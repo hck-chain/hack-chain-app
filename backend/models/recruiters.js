@@ -1,35 +1,34 @@
-const bcrypt = require("bcrypt");
-
-// TODO: Add functionality for counting how many students has a recruiter contacted
+// backend/models/recruiters.js
+// Recruiter model. Name fields are NOT unique to allow multiple recruiters with same names.
 
 module.exports = (sequelize, DataTypes) => {
-  const Recruiter = sequelize.define("Recruiter", {
-    name: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
+  const Recruiter = sequelize.define(
+    "Recruiter",
+    {
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      lastName: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      email: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: false,
+        validate: { isEmail: true }
+      },
+      passwordHash: {
+        type: DataTypes.STRING,
+        allowNull: false
+      }
     },
-    lastName: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
-    },
-    email: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
-    },
-    passwordHash: {
-      type: DataTypes.STRING,
-      allowNull: false
+    {
+      tableName: 'Recruiters',
+      timestamps: true
     }
-  });
-
-  // Hash password before saving
-  Recruiter.beforeCreate(async (recruiter) => {
-    const salt = await bcrypt.genSalt(10);
-    recruiter.passwordHash = await bcrypt.hash(recruiter.passwordHash, salt);
-  });
+  );
 
   return Recruiter;
 };

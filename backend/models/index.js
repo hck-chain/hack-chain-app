@@ -1,12 +1,23 @@
+// backend/models/index.js
 const { Sequelize, DataTypes } = require("sequelize");
+require("dotenv").config(); // por seguridad, aunque index.js ya lo carga
+
+// Forzar tipos y valores por defecto
+const dbName = process.env.DB_NAME || "hackchain";
+const dbUser = process.env.DB_USER || "postgres";
+const dbPassword = (process.env.DB_PASSWORD === undefined || process.env.DB_PASSWORD === null)
+  ? undefined
+  : String(process.env.DB_PASSWORD);
+const dbHost = process.env.DB_HOST || "localhost";
+const dbPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432;
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
+  dbName,
+  dbUser,
+  dbPassword,
   {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,
+    host: dbHost,
+    port: dbPort,
     dialect: "postgres",
     logging: false,
   }
