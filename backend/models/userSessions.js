@@ -1,9 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
-  const Student = sequelize.define("Student", {
+  const UserSession = sequelize.define("UserSession", {
     id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
+      type: DataTypes.STRING(128),
+      primaryKey: true
     },
     wallet_address: {
       type: DataTypes.STRING(42),
@@ -14,25 +13,25 @@ module.exports = (sequelize, DataTypes) => {
       },
       onDelete: 'CASCADE'
     },
-    field_of_study: {
-      type: DataTypes.STRING(255),
-      allowNull: true
+    expires_at: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
-    tableName: 'students',
+    tableName: 'user_sessions',
     underscored: true,
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: false
   });
 
-  Student.associate = (models) => {
-    Student.belongsTo(models.User, {
+  UserSession.associate = (models) => {
+    UserSession.belongsTo(models.User, {
       foreignKey: 'wallet_address',
       targetKey: 'wallet_address',
       onDelete: 'CASCADE'
     });
   };
 
-  return Student;
+  return UserSession;
 };

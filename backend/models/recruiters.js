@@ -1,34 +1,38 @@
-// backend/models/recruiters.js
-// Recruiter model. Name fields are NOT unique to allow multiple recruiters with same names.
-
 module.exports = (sequelize, DataTypes) => {
-  const Recruiter = sequelize.define(
-    "Recruiter",
-    {
-      name: {
-        type: DataTypes.STRING,
-        allowNull: false
-      },
-      lastName: {
-        type: DataTypes.STRING,
-        allowNull: false
-      },
-      email: {
-        type: DataTypes.STRING,
-        unique: true,
-        allowNull: false,
-        validate: { isEmail: true }
-      },
-      passwordHash: {
-        type: DataTypes.STRING,
-        allowNull: false
-      }
+  const Recruiter = sequelize.define("Recruiter", {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
     },
-    {
-      tableName: 'Recruiters',
-      timestamps: true
+    wallet_address: {
+      type: DataTypes.STRING(42),
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'wallet_address'
+      },
+      onDelete: 'CASCADE'
+    },
+    company_name: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     }
-  );
+  }, {
+    tableName: 'recruiters',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  });
+
+  Recruiter.associate = (models) => {
+    Recruiter.belongsTo(models.User, {
+      foreignKey: 'wallet_address',
+      targetKey: 'wallet_address',
+      onDelete: 'CASCADE'
+    });
+  };
 
   return Recruiter;
 };

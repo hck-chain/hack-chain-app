@@ -1,49 +1,85 @@
 // backend/routes/recruiters.js
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcrypt");
-const { Recruiter } = require("../models");
+const { Recruiter, User } = require("../models");
 
-const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
-
-/**
- * POST /api/recruiter/register
- */
-router.post("/register", async (req, res) => {
+// GET /api/recruiters
+router.get("/", async (req, res) => {
   try {
-    const { email, password, name, lastName } = req.body;
-
-    if (!email) return res.status(400).json({ error: "Email required" });
-    if (!password) return res.status(400).json({ error: "Password required (min 8 chars recommended)" });
-    if (!name) return res.status(400).json({ error: "Recruiter's name required" });
-    if (!lastName) return res.status(400).json({ error: "Recruiter's last name required" });
-
-    const existingByEmail = await Recruiter.findOne({ where: { email } });
-    if (existingByEmail) return res.status(409).json({ error: "Recruiter already registered with that email" });
-
-    // Hash password
-    const salt = await bcrypt.genSalt(SALT_ROUNDS);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    const newRecruiter = await Recruiter.create({
-      name,
-      lastName,
-      email,
-      passwordHash
+    const recruiters = await Recruiter.findAll({
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
     });
 
-    return res.status(201).json({
-      message: "Recruiter registered",
+    res.json({
+      recruiters: recruiters.map(recruiter => ({
+        id: recruiter.id,
+        wallet_address: recruiter.wallet_address,
+        company_name: recruiter.company_name,
+        user: recruiter.User,
+        created_at: recruiter.created_at
+      }))
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch recruiters" });
+  }
+});
+
+// GET /api/recruiters/:wallet_address
+router.get("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+
+    const recruiter = await Recruiter.findOne({
+      where: { wallet_address },
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
+    });
+
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+
+    res.json({
       recruiter: {
-        id: newRecruiter.id,
-        email: newRecruiter.email,
-        name: newRecruiter.name,
-        lastName: newRecruiter.lastName
+        id: recruiter.id,
+        wallet_address: recruiter.wallet_address,
+        company_name: recruiter.company_name,
+        user: recruiter.User,
+        created_at: recruiter.created_at
       }
     });
+
   } catch (err) {
-    console.error("Register recruiter error:", err);
-    return res.status(500).json({ error: "Failed to register recruiter" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch recruiter" });
+  }
+});
+
+// PUT /api/recruiters/:wallet_address
+router.put("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+    const { company_name } = req.body;
+
+    const recruiter = await Recruiter.findOne({ where: { wallet_address } });
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+
+    await recruiter.update({ company_name });
+
+    res.json({ message: "Recruiter updated successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update recruiter" });
   }
 });
 
