@@ -56,35 +56,154 @@ router.get("/:cid", async (req, res) => {
 // POST /api/certificates/database
 router.post("/database", async (req, res) => {
   try {
-    const { title, issueDate, studentId, issuerId } = req.body;
+    const {
+      issuer_wallet_address,
+      title,
+      description,
+      certificate_hash,
+      blockchain_tx_hash,
+      issue_date
+    } = req.body;
 
-    // 1. Check if student exists
-    const student = await Student.findByPk(studentId);
-    if (!student) {
-      return res.status(404).json({ error: "Student not found" });
+    if (!issuer_wallet_address || !title || !issue_date) {
+      return res.status(400).json({ error: "Issuer wallet address, title, and issue date are required" });
     }
 
-    // 2. Check if issuer exists
-    const issuer = await Issuer.findByPk(issuerId);
+    // Check if issuer exists
+    const issuer = await Issuer.findOne({ where: { wallet_address: issuer_wallet_address } });
     if (!issuer) {
       return res.status(404).json({ error: "Issuer not found" });
     }
 
-    // 3. Create certificate
+    // Create certificate
     const certificate = await Certificate.create({
+      issuer_wallet_address,
       title,
-      issueDate,
-      studentId,
-      issuerId
+      description,
+      certificate_hash,
+      blockchain_tx_hash,
+      issue_date,
+      is_revoked: false
     });
 
     res.status(201).json({
       message: "Certificate created successfully",
-      certificate
+      certificate: {
+        id: certificate.id,
+        issuer_wallet_address: certificate.issuer_wallet_address,
+        title: certificate.title,
+        description: certificate.description,
+        certificate_hash: certificate.certificate_hash,
+        blockchain_tx_hash: certificate.blockchain_tx_hash,
+        issue_date: certificate.issue_date,
+        is_revoked: certificate.is_revoked,
+        created_at: certificate.created_at
+      }
     });
 
   } catch (error) {
     console.error("Error creating certificate:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/certificates/database
+router.get("/database", async (req, res) => {
+  try {
+    const certificates = await Certificate.findAll({
+      include: [{
+        model: Issuer,
+        include: [{
+          model: User,
+          attributes: ['name', 'lastname', 'email']
+        }]
+      }],
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({
+      certificates: certificates.map(cert => ({
+        id: cert.id,
+        issuer_wallet_address: cert.issuer_wallet_address,
+        title: cert.title,
+        description: cert.description,
+        certificate_hash: cert.certificate_hash,
+        blockchain_tx_hash: cert.blockchain_tx_hash,
+        issue_date: cert.issue_date,
+        is_revoked: cert.is_revoked,
+        created_at: cert.created_at,
+        issuer: cert.Issuer
+      }))
+    });
+
+  } catch (error) {
+    console.error("Error fetching certificates:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/certificates/database/:id
+router.get("/database/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const certificate = await Certificate.findByPk(id, {
+      include: [{
+        model: Issuer,
+        include: [{
+          model: User,
+          attributes: ['name', 'lastname', 'email']
+        }]
+      }]
+    });
+
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    res.json({
+      certificate: {
+        id: certificate.id,
+        issuer_wallet_address: certificate.issuer_wallet_address,
+        title: certificate.title,
+        description: certificate.description,
+        certificate_hash: certificate.certificate_hash,
+        blockchain_tx_hash: certificate.blockchain_tx_hash,
+        issue_date: certificate.issue_date,
+        is_revoked: certificate.is_revoked,
+        created_at: certificate.created_at,
+        issuer: certificate.Issuer
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching certificate:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /api/certificates/database/:id/revoke
+router.put("/database/:id/revoke", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const certificate = await Certificate.findByPk(id);
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    await certificate.update({ is_revoked: true });
+
+    res.json({
+      message: "Certificate revoked successfully",
+      certificate: {
+        id: certificate.id,
+        is_revoked: certificate.is_revoked
+      }
+    });
+
+  } catch (error) {
+    console.error("Error revoking certificate:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

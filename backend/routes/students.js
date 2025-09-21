@@ -1,78 +1,85 @@
 // backend/routes/students.js
 const express = require("express");
 const router = express.Router();
-const { ethers } = require("ethers");
-const bcrypt = require("bcrypt");
-const { Student } = require("../models");
+const { Student, User } = require("../models");
 
-const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
-//const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true";
-
-/**
- * POST /api/student/register
- * - Validates body minimally
- * - Hashes password explicitly
- * - Creates wallet in-memory, stores walletAddress only
- * - Optionally returns privateKey in response if RETURN_PRIVATE_KEY_ON_REGISTER=true (NOT recommended for production)
- */
-router.post("/register", async (req, res) => {
+// GET /api/students
+router.get("/", async (req, res) => {
   try {
-
-    const { email, password, name, lastName, age, walletAddress } = req.body;
-
-    if (!email) return res.status(400).json({ error: "Email required" });
-    if (!password) return res.status(400).json({ error: "Password required (min 8 chars recommended)" });
-    if (!name) return res.status(400).json({ error: "Name required" });
-    if (!lastName) return res.status(400).json({ error: "Last name required" });
-    if (age === undefined || age === null) return res.status(400).json({ error: "Age required" });
-    if (!walletAddress) return res.status(400).json({error: "Wallet required"});
-
-    // Check if student already exists
-    const existing = await Student.findOne({ where: { email } });
-    if (existing) return res.status(409).json({ error: "Student already registered" });
-
-    // Generate wallet (in-memory)
-    //const newWallet = ethers.Wallet.createRandom();
-
-    // Hash password explicitly
-    const salt = await bcrypt.genSalt(SALT_ROUNDS);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    // Create student record - DO NOT store privateKey
-    const newStudent = await Student.create({
-      name,
-      lastName,
-      age,
-      email,
-      passwordHash,
-      walletAddress
-      // privateKey intentionally omitted
+    const students = await Student.findAll({
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
     });
 
-    // Build response
-    const responseStudent = {
-      id: newStudent.id,
-      name: newStudent.name,
-      lastName: newStudent.lastName,
-      age: newStudent.age,
-      email: newStudent.email,
-      walletAddress: newStudent.walletAddress
-    };
-
-    // // Optionally include privateKey in response (dangerous; disabled by default)
-    // if (RETURN_PRIVATE_KEY) {
-    //   responseStudent.privateKey = newWallet.privateKey;
-    //   responseStudent.mnemonic = newWallet.mnemonic?.phrase ?? null;
-    //   responseStudent.warning = "This private key is shown because RETURN_PRIVATE_KEY_ON_REGISTER=true. Do NOT share it. It is not stored on the server.";
-    // }
-
-    return res.status(201).json({
-      message: "Student registered",
-      student: responseStudent
+    res.json({
+      students: students.map(student => ({
+        id: student.id,
+        wallet_address: student.wallet_address,
+        field_of_study: student.field_of_study,
+        user: student.User,
+        created_at: student.created_at
+      }))
     });
+
   } catch (err) {
-    console.error("Register student error:", err);
-    return res.status(500).json({ error: "Failed to register student" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch students" });
+  }
+});
+
+// GET /api/students/:wallet_address
+router.get("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+
+    const student = await Student.findOne({
+      where: { wallet_address },
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    res.json({
+      student: {
+        id: student.id,
+        wallet_address: student.wallet_address,
+        field_of_study: student.field_of_study,
+        user: student.User,
+        created_at: student.created_at
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch student" });
+  }
+});
+
+// PUT /api/students/:wallet_address
+router.put("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+    const { field_of_study } = req.body;
+
+    const student = await Student.findOne({ where: { wallet_address } });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    await student.update({ field_of_study });
+
+    res.json({ message: "Student updated successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update student" });
   }
 });
 
