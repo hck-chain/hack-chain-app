@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt");
 const { Student } = require("../models");
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
-const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true";
+//const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true";
 
 /**
  * POST /api/student/register
@@ -17,20 +17,22 @@ const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true"
  */
 router.post("/register", async (req, res) => {
   try {
-    const { email, password, name, lastName, age } = req.body;
+
+    const { email, password, name, lastName, age, walletAddress } = req.body;
 
     if (!email) return res.status(400).json({ error: "Email required" });
     if (!password) return res.status(400).json({ error: "Password required (min 8 chars recommended)" });
     if (!name) return res.status(400).json({ error: "Name required" });
     if (!lastName) return res.status(400).json({ error: "Last name required" });
     if (age === undefined || age === null) return res.status(400).json({ error: "Age required" });
+    if (!walletAddress) return res.status(400).json({error: "Wallet required"});
 
     // Check if student already exists
     const existing = await Student.findOne({ where: { email } });
     if (existing) return res.status(409).json({ error: "Student already registered" });
 
     // Generate wallet (in-memory)
-    const newWallet = ethers.Wallet.createRandom();
+    //const newWallet = ethers.Wallet.createRandom();
 
     // Hash password explicitly
     const salt = await bcrypt.genSalt(SALT_ROUNDS);
@@ -43,7 +45,7 @@ router.post("/register", async (req, res) => {
       age,
       email,
       passwordHash,
-      walletAddress: newWallet.address
+      walletAddress
       // privateKey intentionally omitted
     });
 
@@ -57,12 +59,12 @@ router.post("/register", async (req, res) => {
       walletAddress: newStudent.walletAddress
     };
 
-    // Optionally include privateKey in response (dangerous; disabled by default)
-    if (RETURN_PRIVATE_KEY) {
-      responseStudent.privateKey = newWallet.privateKey;
-      responseStudent.mnemonic = newWallet.mnemonic?.phrase ?? null;
-      responseStudent.warning = "This private key is shown because RETURN_PRIVATE_KEY_ON_REGISTER=true. Do NOT share it. It is not stored on the server.";
-    }
+    // // Optionally include privateKey in response (dangerous; disabled by default)
+    // if (RETURN_PRIVATE_KEY) {
+    //   responseStudent.privateKey = newWallet.privateKey;
+    //   responseStudent.mnemonic = newWallet.mnemonic?.phrase ?? null;
+    //   responseStudent.warning = "This private key is shown because RETURN_PRIVATE_KEY_ON_REGISTER=true. Do NOT share it. It is not stored on the server.";
+    // }
 
     return res.status(201).json({
       message: "Student registered",

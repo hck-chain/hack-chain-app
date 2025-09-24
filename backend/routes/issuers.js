@@ -6,18 +6,19 @@ const bcrypt = require("bcrypt");
 const { Issuer } = require("../models");
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
-const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true";
+// const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true";
 
 /**
  * POST /api/issuer/register
  */
 router.post("/register", async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, walletAddress} = req.body;
 
     if (!email) return res.status(400).json({ error: "Email required" });
     if (!password) return res.status(400).json({ error: "Password required (min 8 chars recommended)" });
     if (!name) return res.status(400).json({ error: "Company name required" });
+    if (!walletAddress) return res.status(400).json({ error: "Wallet required" });
 
     // Check existing
     const existingByEmail = await Issuer.findOne({ where: { email } });
@@ -26,8 +27,8 @@ router.post("/register", async (req, res) => {
     const existingByName = await Issuer.findOne({ where: { name } });
     if (existingByName) return res.status(409).json({ error: "Issuer already registered with that name" });
 
-    // Create wallet (in-memory)
-    const newWallet = ethers.Wallet.createRandom();
+    // // Create wallet (in-memory)
+    // const newWallet = ethers.Wallet.createRandom();
 
     // Hash password
     const salt = await bcrypt.genSalt(SALT_ROUNDS);
@@ -38,7 +39,7 @@ router.post("/register", async (req, res) => {
       name,
       email,
       passwordHash,
-      walletAddress: newWallet.address
+      walletAddress
     });
 
     const responseIssuer = {
@@ -48,11 +49,11 @@ router.post("/register", async (req, res) => {
       walletAddress: newIssuer.walletAddress
     };
 
-    if (RETURN_PRIVATE_KEY) {
-      responseIssuer.privateKey = newWallet.privateKey;
-      responseIssuer.mnemonic = newWallet.mnemonic?.phrase ?? null;
-      responseIssuer.warning = "This private key is shown because RETURN_PRIVATE_KEY_ON_REGISTER=true. Do NOT share it. It is not stored on the server.";
-    }
+    // if (RETURN_PRIVATE_KEY) {
+    //   responseIssuer.privateKey = newWallet.privateKey;
+    //   responseIssuer.mnemonic = newWallet.mnemonic?.phrase ?? null;
+    //   responseIssuer.warning = "This private key is shown because RETURN_PRIVATE_KEY_ON_REGISTER=true. Do NOT share it. It is not stored on the server.";
+    // }
 
     return res.status(201).json({
       message: "Issuer registered",
