@@ -54,7 +54,7 @@ connectWallet().then(async signer => {
     }
 });
 
-// // Create contract instance
+// Create contract instance
 
 // const abi = [
 //     {
