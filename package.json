@@ -29,5 +29,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/RicardoMuchacho/hack-chain"
+  },
+  "dependencies": {
+    "solc": "^0.8.30"
   }
-} 
+}
