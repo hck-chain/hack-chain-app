@@ -10,74 +10,27 @@ const PgSession = require("connect-pg-simple")(session);
 const db = require("./models"); // Sequelize models (db.sequelize)
 const path = require("path");
 
-// Rutas
-const authRouter = require("./routes/auth");
-const certificatesRouter = require("./routes/certificates");
-const studentRouter = require("./routes/students");
-const issuerRouter = require("./routes/issuers");
-const recruiterRouter = require("./routes/recruiters");
-const profileRouter = require("./routes/profile");
-
 const app = express();
-const port = parseInt(process.env.PORT || "3002", 10);
+const port = process.env.PORT || 3001;
 
-// Opcional: si vas a correr detrás de un proxy (nginx, heroku, etc.)
-if (process.env.TRUST_PROXY === "true") {
-  app.set("trust proxy", 1);
-}
+app.use(cors());
+app.use(bodyParser.json());
 
-// CORS: permitir credenciales (cookies) para sesiones entre frontend y backend.
-// Ajusta FRONTEND_ORIGIN en tu .env (por ejemplo http://localhost:3000)
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
-app.use(cors({
-  origin: FRONTEND_ORIGIN,
-  credentials: true
-}));
+// Import routes
+const usersRouter = require("./routes/users");
+const sessionsRouter = require("./routes/sessions");
+const certificatesRouter = require("./routes/certificates");
+const studentsRouter = require("./routes/students");
+const issuersRouter = require("./routes/issuers");
+const recruitersRouter = require("./routes/recruiters");
 
-// Body parser (JSON) - reemplaza body-parser moderno
-app.use(express.json());
-
-// -------- Session store en Postgres --------
-// Pool de Postgres para el store de sesiones
-const pgPool = new pg.Pool({
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "postgres",
-  database: process.env.DB_NAME || "hackchain",
-  // En producción, considera agregar SSL/tls y opciones de timeout.
-});
-
-const SESSION_SECRET = process.env.SESSION_SECRET || "change-me-in-production";
-const SESSION_NAME = process.env.SESSION_NAME || "hackchain.sid";
-
-app.use(session({
-  store: new PgSession({
-    pool: pgPool,        // pool (obligatorio)
-    tableName: 'session' // tabla donde se guardarán las sesiones
-    // Si quieres que se cree automáticamente la tabla:
-    // createTableIfMissing: true  (consulta la doc de connect-pg-simple)
-  }),
-  name: SESSION_NAME,
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // en prod el cookie debe ser secure
-    sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
-    maxAge: 24 * 60 * 60 * 1000 // 1 día
-  }
-}));
-// ------------------------------------------
-
-// Montar rutas principales
-app.use("/api/auth", authRouter);
+// Use routes
+app.use("/api/users", usersRouter);
+app.use("/api/sessions", sessionsRouter);
 app.use("/api/certificates", certificatesRouter);
-app.use("/api/student", studentRouter);
-app.use("/api/issuer", issuerRouter);
-app.use("/api/recruiter", recruiterRouter);
-app.use("/api/profile", profileRouter);
+app.use("/api/students", studentsRouter);
+app.use("/api/issuers", issuersRouter);
+app.use("/api/recruiters", recruitersRouter);
 
 // Health check básico: verifica que la app está viva y la DB responde
 app.get("/health", async (req, res) => {

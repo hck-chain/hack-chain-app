@@ -12,7 +12,7 @@ import {HackCertificate} from "../src/HackCertificate.sol";
 contract deployCertificate is Script{
 
     function run() external returns(HackCertificate){
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_TESNET");
+        uint256 deployerPrivateKey = uint256 (vm.envUint("PRIVATE_KEY_POLYGON"));
         vm.startBroadcast(deployerPrivateKey);
       //  string memory tokenUri = "ipfs://bafkreibgte6dcf6jqq5ssw7prqzv7m5eiie3bwyd3glynfvb47f6cahx6u" ;
         HackCertificate createCertificate = new HackCertificate();

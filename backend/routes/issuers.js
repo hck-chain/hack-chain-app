@@ -1,67 +1,117 @@
 // backend/routes/issuers.js
 const express = require("express");
 const router = express.Router();
-const { ethers } = require("ethers");
-const bcrypt = require("bcrypt");
-const { Issuer } = require("../models");
+const { Issuer, Student, User, Certificate } = require("../models");
+const students = require("../models/students");
 
-const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
-// const RETURN_PRIVATE_KEY = process.env.RETURN_PRIVATE_KEY_ON_REGISTER === "true";
-
-/**
- * POST /api/issuer/register
- */
-router.post("/register", async (req, res) => {
+// GET /api/issuers
+router.get("/", async (req, res) => {
   try {
-    const { email, password, name, walletAddress} = req.body;
-
-    if (!email) return res.status(400).json({ error: "Email required" });
-    if (!password) return res.status(400).json({ error: "Password required (min 8 chars recommended)" });
-    if (!name) return res.status(400).json({ error: "Company name required" });
-    if (!walletAddress) return res.status(400).json({ error: "Wallet required" });
-
-    // Check existing
-    const existingByEmail = await Issuer.findOne({ where: { email } });
-    if (existingByEmail) return res.status(409).json({ error: "Issuer already registered with that email" });
-
-    const existingByName = await Issuer.findOne({ where: { name } });
-    if (existingByName) return res.status(409).json({ error: "Issuer already registered with that name" });
-
-    // // Create wallet (in-memory)
-    // const newWallet = ethers.Wallet.createRandom();
-
-    // Hash password
-    const salt = await bcrypt.genSalt(SALT_ROUNDS);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    // Create issuer without storing privateKey
-    const newIssuer = await Issuer.create({
-      name,
-      email,
-      passwordHash,
-      walletAddress
+    const issuers = await Issuer.findAll({
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
     });
 
-    const responseIssuer = {
-      id: newIssuer.id,
-      email: newIssuer.email,
-      name: newIssuer.name,
-      walletAddress: newIssuer.walletAddress
-    };
-
-    // if (RETURN_PRIVATE_KEY) {
-    //   responseIssuer.privateKey = newWallet.privateKey;
-    //   responseIssuer.mnemonic = newWallet.mnemonic?.phrase ?? null;
-    //   responseIssuer.warning = "This private key is shown because RETURN_PRIVATE_KEY_ON_REGISTER=true. Do NOT share it. It is not stored on the server.";
-    // }
-
-    return res.status(201).json({
-      message: "Issuer registered",
-      issuer: responseIssuer
+    res.json({
+      issuers: issuers.map(issuer => ({
+        id: issuer.id,
+        wallet_address: issuer.wallet_address,
+        organization_name: issuer.organization_name,
+        user: issuer.User,
+        created_at: issuer.created_at
+      }))
     });
+
   } catch (err) {
-    console.error("Register issuer error:", err);
-    return res.status(500).json({ error: "Failed to register issuer" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch issuers" });
+  }
+});
+
+// GET /api/issuers/:wallet_address
+router.get("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+
+    const issuer = await Issuer.findOne({
+      where: { wallet_address },
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+        },
+        {
+          model: Certificate,
+          attributes: ['id', 'title', 'description', 'issue_date', 'is_revoked', 'created_at']
+        }
+      ]
+    });
+
+    if (!issuer) {
+      return res.status(404).json({ error: "Issuer not found" });
+    }
+
+    res.json({
+      issuer: {
+        id: issuer.id,
+        wallet_address: issuer.wallet_address,
+        organization_name: issuer.organization_name,
+        user: issuer.User,
+        certificates: issuer.Certificates,
+        created_at: issuer.created_at
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch issuer" });
+  }
+});
+
+// PUT /api/issuers/:wallet_address
+router.put("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+    const { organization_name } = req.body;
+
+    const issuer = await Issuer.findOne({ where: { wallet_address } });
+    if (!issuer) {
+      return res.status(404).json({ error: "Issuer not found" });
+    }
+
+    await issuer.update({ organization_name });
+
+    res.json({ message: "Issuer updated successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update issuer" });
+  }
+});
+
+router.post("/mint", async (req, res) => {
+  try {
+    const { walletStudent, nameStudent, courseName, tokenUri } = req.body;
+    if (!walletStudent || !nameStudent || !courseName || !tokenUri) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    const walletExists = await Student.findOne({ where: { wallet_address: walletStudent } });
+    if (walletExists) {
+      return res.json({
+        walletStudent,
+        nameStudent,
+        courseName,
+        tokenUri
+      });
+    } else {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Incorrect data" })
   }
 });
 
