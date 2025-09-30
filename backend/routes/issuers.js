@@ -1,7 +1,8 @@
 // backend/routes/issuers.js
 const express = require("express");
 const router = express.Router();
-const { Issuer, User, Certificate } = require("../models");
+const { Issuer, Student, User, Certificate } = require("../models");
+const students = require("../models/students");
 
 // GET /api/issuers
 router.get("/", async (req, res) => {
@@ -87,6 +88,30 @@ router.put("/:wallet_address", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update issuer" });
+  }
+});
+
+router.post("/mint", async (req, res) => {
+  try {
+    const { walletStudent, nameStudent, courseName, tokenUri } = req.body;
+    if (!walletStudent || !nameStudent || !courseName || !tokenUri) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    const walletExists = await Student.findOne({ where: { wallet_address: walletStudent } });
+    if (walletExists) {
+      return res.json({
+        walletStudent,
+        nameStudent,
+        courseName,
+        tokenUri
+      });
+    } else {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Incorrect data" })
   }
 });
 
