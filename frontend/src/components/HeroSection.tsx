@@ -39,14 +39,16 @@ const HeroSection = () => {
                 View Certificates
               </Button>
               
-              <Button 
-                variant="ghost" 
-                size="lg" 
-                className="text-muted-foreground hover:text-white px-6 py-3 rounded-full font-medium transition-all duration-300"
-              >
-                <PlayCircle className="mr-2 h-4 w-4" />
-                Watch Demo
-              </Button>
+              <Link to="/nft-creator">
+                <Button 
+                  variant="ghost" 
+                  size="lg" 
+                  className="text-muted-foreground hover:text-white px-6 py-3 rounded-full font-medium transition-all duration-300"
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Watch Demo
+                </Button>
+              </Link>
             </div>
           </div>
           
