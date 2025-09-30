@@ -8,14 +8,14 @@ const HeroSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="glass rounded-3xl p-8 md:p-16 glass-hover animate-in fade-in duration-700 slide-in-from-bottom">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight animate-in fade-in duration-700 delay-200 slide-in-from-bottom">
-            Show your talent in the{' '}
-            <span className="gradient-text">Web3 era</span>
+            Prove your expertise in the{' '}
+            <span className="gradient-text">Digital age</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed animate-in fade-in duration-700 delay-400 slide-in-from-bottom">
-            Revolutionize cybersecurity certification with blockchain technology. 
-            Earn NFT-based certificates that prove your expertise in ethical hacking 
-            and cybersecurity, verified on the blockchain and recognized by top recruiters worldwide.
+            Revolutionize professional certification with blockchain technology. 
+            Earn NFT-based certificates that prove your expertise in any field - 
+            from programming and design to finance and healthcare, verified on the blockchain and recognized by employers worldwide.
           </p>
           
                     {/* Three-tier button hierarchy */}

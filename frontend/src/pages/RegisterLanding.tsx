@@ -44,12 +44,12 @@ const RegisterLanding = () => {
 
       <div className="animate-in fade-in duration-700 slide-in-from-bottom">
         <div className="z-10 flex flex-col items-start max-w-4xl mx-auto px-4 mt-8 mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold leading-tight">
-            Join the Future of{' '}
-            <span className="gradient-text">Cybersecurity Certification</span>
-          </h1>
+                        <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-6">
+                Join the Future of
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Professional Certification</span>
+              </h1>
           <p className="mt-3 text-base md:text-lg text-muted-foreground max-w-2xl">
-            Choose your role and start your journey with blockchain-verified certificates in ethical hacking and cybersecurity.
+            Choose your role and start your journey with blockchain-verified certificates in any professional field or skill area.
           </p>
         </div>
 
@@ -65,7 +65,7 @@ const RegisterLanding = () => {
                 <div className="space-y-2">
                   <CardTitle className="text-xl gradient-text">Student</CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    Learn cybersecurity and earn blockchain-verified certificates
+                    Learn any skill and earn blockchain-verified certificates
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -146,7 +146,7 @@ const RegisterLanding = () => {
                 <div className="space-y-2">
                   <CardTitle className="text-xl bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Recruiter</CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    Find and verify top cybersecurity talent with confidence
+                    Find and verify top talent across all industries with confidence
                   </CardDescription>
                 </div>
               </CardHeader>

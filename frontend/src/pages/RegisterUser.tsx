@@ -50,12 +50,12 @@ export function RegisterUser() {
             <div className="space-y-4">
               <h1 className="text-4xl font-bold text-white leading-tight">
                 Join the Future of 
-                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Cybersecurity Certification</span>
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Professional Certification</span>
               </h1>
               
               <p className="text-lg text-slate-300 leading-relaxed">
                 Create your student account and start earning blockchain-verified 
-                certificates that prove your expertise in ethical hacking and cybersecurity.
+                certificates that prove your expertise in any professional field.
               </p>
             </div>
 
@@ -69,12 +69,12 @@ export function RegisterUser() {
                 <div className="flex-1">
                   <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Student Experience</h3>
                   <p className="text-slate-300 mb-4">
-                    Join thousands of students earning blockchain-verified certificates in cybersecurity and ethical hacking.
+                    Join thousands of students earning blockchain-verified certificates across all professional fields and skills.
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                      <span className="text-sm text-slate-400">Complete hands-on cybersecurity courses</span>
+                      <span className="text-sm text-slate-400">Complete professional courses in any field</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
@@ -136,7 +136,7 @@ export function RegisterUser() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-slate-400">
-              © 2025 Hack Chain. Securing the future of cybersecurity education.
+              © 2025 Hack Chain. Revolutionizing professional certification with blockchain technology.
             </p>
             
             <div className="flex gap-6 text-sm">

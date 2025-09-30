@@ -50,12 +50,12 @@ export default function RegisterEducator() {
               <div className="space-y-4">
                 <h1 className="text-4xl font-bold text-white leading-tight">
                   Empower the Next Generation of
-                  <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Cybersecurity Professionals</span>
+                  <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Professionals</span>
                 </h1>
                 
                 <p className="text-lg text-slate-300 leading-relaxed">
                   Join as an educator and issue blockchain-verified certificates that 
-                  prove student achievements in cybersecurity courses and programs.
+                  prove student achievements in any field - from technology and business to arts and sciences.
                 </p>
               </div>
 

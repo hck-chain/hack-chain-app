@@ -21,7 +21,7 @@ const Footer: React.FC = () => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       <div className="gradient-text text-2xl font-bold mb-4">HackChain</div>
       <p className="text-muted-foreground">
-        Revolutionizing cybersecurity certification with blockchain technology
+        Revolutionizing professional certification with blockchain technology
       </p>
       <div className="flex justify-center gap-6 mt-6">
         {socials.map((social) => (

@@ -50,12 +50,12 @@ export function RegisterRecruiter() {
               <div className="space-y-4">
                 <h1 className="text-4xl font-bold text-white leading-tight">
                   Find and Verify
-                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent"> Top Cybersecurity Talent</span>
+                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent"> Top Professional Talent</span>
                 </h1>
                 
                 <p className="text-lg text-slate-300 leading-relaxed">
                   Join as a recruiter and access the world's largest platform for verified 
-                  cybersecurity professionals with blockchain-authenticated skills.
+                  professionals across all industries with blockchain-authenticated skills.
                 </p>
               </div>
 
@@ -69,7 +69,7 @@ export function RegisterRecruiter() {
                   <div className="flex-1">
                     <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Recruiter Experience</h3>
                     <p className="text-slate-300 mb-4">
-                      Connect with certified cybersecurity professionals and verify their skills with confidence.
+                      Connect with certified professionals across all industries and verify their skills with confidence.
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function RegisterRecruiter() {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <p className="text-sm text-slate-400">
-                © 2025 Hack Chain. Connecting top cybersecurity talent with leading companies.
+                © 2025 Hack Chain. Connecting verified professionals with leading companies across all industries.
               </p>
               
               <div className="flex gap-6 text-sm">
