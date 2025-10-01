@@ -23,7 +23,7 @@ const FeatureBlocks = () => {
     {
       Icon: Shield,
       title: 'Security First',
-      description: 'Built by cybersecurity experts for cybersecurity professionals. Maximum security standards.',
+      description: 'Built with blockchain security for all professionals. Maximum protection for your credentials.',
       color: 'from-orange-500 to-red-500',
     },
     {

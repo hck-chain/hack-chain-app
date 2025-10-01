@@ -9,7 +9,7 @@ const ValueProposition = () => {
             How It <span className="gradient-text">Works</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            From learning to employment - your journey in the Web3 cybersecurity ecosystem
+            From learning to employment - your journey in the Web3 professional certification ecosystem
           </p>
         </div>
         
@@ -23,7 +23,7 @@ const ValueProposition = () => {
               </div>
               <h3 className="text-2xl font-bold mb-4 gradient-text">Student</h3>
               <p className="text-muted-foreground">
-                Complete cybersecurity courses and pass rigorous practical assessments
+                Complete professional courses and pass rigorous assessments in your field of expertise
               </p>
             </div>
             

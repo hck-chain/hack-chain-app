@@ -35,16 +35,16 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center cursor-pointer" onClick={() => window.location.href = '/'}>
-          <img 
-            src={hackChainLogo} 
-            alt="HackChain Logo" 
-            className="h-8 w-auto mr-2"
-          />
-          <div className="gradient-text text-2xl font-bold">
-            HackChain
-          </div>
-        </div>
+          <Link to="/" className="flex items-center cursor-pointer group transition-all duration-300 hover:scale-105">
+            <img 
+              src={hackChainLogo} 
+              alt="HackChain Logo" 
+              className="h-8 w-auto mr-2 transition-transform duration-300 group-hover:rotate-12"
+            />
+            <div className="gradient-text text-2xl font-bold transition-all duration-300 group-hover:tracking-wide">
+              HackChain
+            </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
@@ -54,9 +54,10 @@ const Navbar = () => {
                   key={item.name}
                   href={item.href}
                   onClick={(e) => handleSmoothScroll(e, item.href)}
-                  className="text-foreground/80 hover:text-foreground transition-colors duration-200 cursor-pointer"
+                  className="text-foreground/80 hover:text-foreground transition-all duration-300 cursor-pointer relative group"
                 >
                   {item.name}
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 group-hover:w-full transition-all duration-300"></span>
                 </a>
               ))}
             </div>
@@ -64,8 +65,18 @@ const Navbar = () => {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Sign In Button */}
+            <Link to="/login">
+              <Button 
+                variant="ghost"
+                className="text-foreground hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+              >
+                Sign In
+              </Button>
+            </Link>
+            
             {/* Get Started Button */}
-            <Link to="/register/user">
+            <Link to="/register">
               <Button 
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
               >
@@ -73,12 +84,6 @@ const Navbar = () => {
                 Get Started
               </Button>
             </Link>
-            
-            {/* Wallet Button */}
-            <Button variant="outline" className="glass-hover border-white/20 text-foreground">
-              <Wallet className="w-4 h-4 mr-2" />
-              Connect Wallet
-            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -110,7 +115,17 @@ const Navbar = () => {
               
               {/* Mobile Action Buttons */}
               <div className="px-3 py-2 space-y-2">
-                <Link to="/register/user" className="block">
+                <Link to="/login" className="block">
+                  <Button 
+                    variant="outline"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                
+                <Link to="/register" className="block">
                   <Button 
                     className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-lg"
                     onClick={() => setIsMenuOpen(false)}
@@ -119,11 +134,6 @@ const Navbar = () => {
                     Get Started
                   </Button>
                 </Link>
-                
-                <Button variant="outline" className="w-full glass-hover border-white/20">
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
-                </Button>
               </div>
             </div>
           </div>
