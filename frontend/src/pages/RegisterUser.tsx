@@ -9,7 +9,7 @@ import hackChainLogo from "/images/logoHackchain.png";
 
 export function RegisterUser() {
   return (
-    <div className="min-h-screen relative overflow-x-hidden bg-background">
+    <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col">
       {/* Background Animation - Continuous and always running */}
       <div className="absolute inset-0 z-0 bg-background" />
       <div className="absolute inset-0 z-10">
@@ -18,7 +18,7 @@ export function RegisterUser() {
       </div>
       
       {/* Page Content with entrance animations */}
-      <div className="relative z-20 animate-in fade-in duration-700">
+      <div className="relative z-20 animate-in fade-in duration-700 flex flex-col flex-1">
         {/* Sticky header with full-width border, consistent with RegisterLanding */}
         <div className="z-30 w-full border-b border-white/10 bg-background/80 backdrop-blur mb-6" style={{minHeight: '56px'}}>
     <div className="flex items-center justify-between max-w-6xl mx-auto px-4 pt-6 pb-3">
@@ -42,8 +42,8 @@ export function RegisterUser() {
         </div>
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 pb-12 animate-in slide-in-from-bottom duration-700 delay-150">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="relative z-10 container mx-auto px-4 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
+        <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
           
           {/* Left Side - Information */}
           <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-300">
@@ -132,7 +132,7 @@ export function RegisterUser() {
       </div>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-700/50 bg-slate-900/50 backdrop-blur animate-in slide-in-from-bottom duration-700 delay-700">
+      <footer className="relative z-10 border-t border-slate-700/50 bg-slate-900/50 backdrop-blur animate-in slide-in-from-bottom duration-700 delay-700 mt-auto">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-slate-400">

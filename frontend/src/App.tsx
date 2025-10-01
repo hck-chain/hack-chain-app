@@ -10,6 +10,7 @@ import  RegisterLanding  from "./pages/RegisterLanding";
 import { RegisterUser } from "./pages/RegisterUser";
 import { RegisterRecruiter } from "./pages/RegisterRecruiter";
 import RegisterEducator from "./pages/RegisterEducator";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/nft-creator" element={<NFTCreator />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterLanding />} />
           <Route path="/register/user" element={<RegisterUser />} />
           <Route path="/register/recruiter" element={<RegisterRecruiter />} />
