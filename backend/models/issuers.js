@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
         model: 'users',
         key: 'wallet_address'
       },
-      onDelete: 'CASCADE'
+      onDelete: 'CASCADE',
     },
     organization_name: {
       type: DataTypes.STRING(255),

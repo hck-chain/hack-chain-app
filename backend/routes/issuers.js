@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
 const students = require("../models/students");
+const { getUserFromToken } = require("../middleware/auth.js")
 
 // GET /api/issuers
 router.get("/", async (req, res) => {
@@ -91,14 +92,47 @@ router.put("/:wallet_address", async (req, res) => {
   }
 });
 
+// POST api/issuers/mint
 router.post("/mint", async (req, res) => {
   try {
-    const { walletStudent, nameStudent, courseName, tokenUri } = req.body;
-    if (!walletStudent || !nameStudent || !courseName || !tokenUri) {
+    const { walletStudent, nameStudent, professor, courseName, imageUri } = req.body;
+    if (!walletStudent || !nameStudent || !professor || !courseName || !imageUri) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     const walletExists = await Student.findOne({ where: { wallet_address: walletStudent } });
+    const professorExists = await Issuer.findOne({ where: { wallet_address: professor.toLowerCase() } });
+    if (!professorExists) {
+      throw new Error(`No se encontró un issuer con la wallet ${professor}`);
+    }
+    const professorName = professorExists.organization_name;
+
     if (walletExists) {
+
+      const hoy = new Date();
+      const fecha = `${hoy.getFullYear()}-${hoy.getMonth() + 1}-${hoy.getDate()}`;
+
+      const uri = {
+        "name": nameStudent,
+        "course": courseName,
+        "professor": professorName,
+        "date": `${fecha}`,
+        "imageCID": imageUri,
+      };
+      const pinata = await fetch("http://localhost:3001/api/certificates/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(uri)
+      });
+
+      let data;
+      try {
+        data = await pinata.json();
+      } catch (e) {
+        console.error("Failed to parse Pinata response:", e);
+        return res.status(500).json({ error: "Invalid response from Pinata" });
+      }
+      const tokenUri = `ipfs://${data.cid}`;
+
       return res.json({
         walletStudent,
         nameStudent,

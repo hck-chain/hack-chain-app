@@ -8,7 +8,7 @@ const { User, Student, Issuer, Recruiter } = require("../models");
 router.post("/register", async (req, res) => {
   try {
     const { wallet_address, role, name, lastname, email, organization_name, field_of_study, company_name } = req.body;
-
+    
     if (!wallet_address) {
       return res.status(400).json({ error: "Wallet address required" });
     }
@@ -28,7 +28,7 @@ router.post("/register", async (req, res) => {
 
     // Create user
     const newUser = await User.create({
-      wallet_address,
+      wallet_address: wallet_address.toLowerCase(),
       role,
       name,
       lastname,

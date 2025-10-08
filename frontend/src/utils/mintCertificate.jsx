@@ -2,7 +2,7 @@ import React, { use, useState } from 'react';
 import { ethers } from "ethers";
 
 const POLYGON_CHAIN_ID = '0x89';
-const CONTRACT_ADDRESS = '0x98E43BBA94e295F57cf68F80C0B2f28FF3ec7558';
+const CONTRACT_ADDRESS = '0x212E91e44e18Ae70ad0E3B52EB1243132F04b85E';
 
 // ABI
 
@@ -736,7 +736,7 @@ function App() {
     const [walletStudent, setWalletStudent] = useState("");
     const [nameStudent, setNameStudent] = useState("");
     const [courseName, setCourseName] = useState("");
-    const [tokenUri, setTokenUri] = useState("");
+    const [imageUri, setImageUri] = useState("");
 
     // Connect wallet
     const connectWallet = async () => {
@@ -784,15 +784,19 @@ function App() {
     }
 
     const dataCertificate = async () => {
+        const professor = account;
+        console.log("Buscando wallet:", professor);
+
         try {
-            const response = await fetch("http://localhost:3000/api/issuers/mint", {
+            const response = await fetch("http://localhost:3001/api/issuers/mint", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     walletStudent,
                     nameStudent,
+                    professor,
                     courseName,
-                    tokenUri
+                    imageUri
                 })
             });
             const data = await response.json();
@@ -822,8 +826,8 @@ function App() {
 
     async function mint() {
         try {
-            if(!isConnected){
-            await connectWallet();
+            if (!isConnected) {
+                await connectWallet();
             }
             const data = await dataCertificate();
             await certificate(data);
@@ -860,11 +864,11 @@ function App() {
 
             <input
                 type="text"
-                placeholder="Token URI"
-                value={tokenUri}
-                onChange={(e) => setTokenUri(e.target.value)}
+                placeholder="Image URI"
+                value={imageUri}
+                onChange={(e) => setImageUri(e.target.value)}
             />
-
+            
             <button onClick={mint} disabled={isMinting}>Mint Certificate</button>
         </div>
     );

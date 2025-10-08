@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
     const metadata = {
       name: `Certificate for ${name}`,
       description: `${course} impartido por ${professor}`,
-      image: `ipfs://${defaultCertificateCID}`,
+      image: `ipfs://${imageCID}`,
       attributes: [
         { trait_type: "Student", value: name },
         { trait_type: "Course", value: course },

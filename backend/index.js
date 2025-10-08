@@ -14,7 +14,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 // Import routes
 const usersRouter = require("./routes/users");
@@ -70,7 +70,7 @@ let server;
     // 3) Arrancar servidor
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
-      console.log(`🔗 Frontend origin: ${FRONTEND_ORIGIN}`);
+      console.log(`🔗 Frontend origin: ${process.env.FRONTEND_ORIGIN}`);
     });
   } catch (err) {
     console.error("Failed to start server:", err);

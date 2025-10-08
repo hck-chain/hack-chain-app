@@ -1,11 +1,10 @@
-
 {
-    "name": "Certificate",
-    "description": "Introducion a Linux, Emmanuel Pastor",
-    "image": "ipfs://bafybeia6yrftb6az4d7hqzfu2o2zjapnrcvhvn66xwfvcgxfsatdt2cvl4",
+    "name": "Hack Chain Certificates",
+    "description": "Non-Fungible Talent",
+    "image": "ipfs://bafybeieqzgp36d35eqop2saaj3focwpu2v7yshnhhijunritalhtyujola",
     "attributes": [
         {
-            "trait_type": "Rarity",
+            "trait_type": "Version",
             "value": "1"
         }
     ]

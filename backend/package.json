@@ -3,15 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "jest --runInBand --detectOpenHandles",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "axios": "^1.12.2",
     "@neondatabase/serverless": "^1.0.1",
+    "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "connect-pg-simple": "^10.0.0",
@@ -23,6 +24,7 @@
     "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "pinata": "^2.4.9",
     "sequelize": "^6.37.7",

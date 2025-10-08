@@ -14,7 +14,7 @@ contract deployCertificate is Script{
     function run() external returns(HackCertificate){
         uint256 deployerPrivateKey = uint256 (vm.envUint("PRIVATE_KEY_POLYGON"));
         vm.startBroadcast(deployerPrivateKey);
-      //  string memory tokenUri = "ipfs://bafkreibgte6dcf6jqq5ssw7prqzv7m5eiie3bwyd3glynfvb47f6cahx6u" ;
+      //  string memory tokenUri = "ipfs://bafkreif5ucabsvsh4mcudi3pfo6i6j3hxuz2t2tjzdvw6myw5ouuuddmsm" ;
         HackCertificate createCertificate = new HackCertificate();
         vm.stopBroadcast();
         return createCertificate;
