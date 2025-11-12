@@ -62,7 +62,7 @@ export const LoginForm = () => {
         } else if (response.user.role === "Recruiter") {
           navigate("/dashboard/recruiter");
         } else if (response.user.role === "Issuer") {
-          navigate("/dashboard/issuer");
+          navigate("/educator/dashboard");
         } else {
           navigate("/dashboard");
         }
