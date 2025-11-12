@@ -198,7 +198,6 @@ const EducatorDashboard = () => {
 
   return (
     <Layout>
-      <Navbar />
       <main className="min-h-screen flex flex-col px-4 md:px-12 pt-8 pb-12">
         {/* Header con info del educador */}
         <div className="w-full max-w-7xl mx-auto mb-8">

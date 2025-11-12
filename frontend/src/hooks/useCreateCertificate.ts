@@ -35,7 +35,7 @@ export const useCreateCertificate = () => {
     setSuccess(false);
 
     try {
-      const response = await fetch('http://localhost:3001/api/certificates/database', {
+      const response = await fetch('http://localhost:3001/api/issuers/mint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
