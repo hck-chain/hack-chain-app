@@ -9,18 +9,41 @@ router.post("/register", async (req, res) => {
   try {
     const { wallet_address, role, name, lastname, email, organization_name, field_of_study, company_name } = req.body;
 
-    if (!wallet_address) {
-      return res.status(400).json({ error: "Wallet address required" });
-    }
-
-    if (!role || !['student', 'issuer', 'recruiter'].includes(role)) {
-      return res.status(400).json({ error: "Valid role required (student, issuer, recruiter)" });
-    }
-
     // Check if user already exists
     const existingUser = await User.findOne({ where: { wallet_address } });
     if (existingUser) {
       return res.status(409).json({ error: "User already registered" });
+    }
+
+    // if (!wallet_address) {
+    //   return res.status(400).json({ error: "Wallet address required" });
+    // }
+
+    // if (!role || !['student', 'issuer', 'recruiter'].includes(role)) {
+    //   return res.status(400).json({ error: "Valid role required (student, issuer, recruiter)" });
+    // }
+
+    switch (role) {
+      case 'student':
+        if (!wallet_address || !name || !lastname || !email || !field_of_study) {
+          return res.status(400).json({ error: "Missing student data" });
+        }
+        break;
+
+      case 'issuer':
+        if (!wallet_address || !email || !organization_name) {
+          return res.status(400).json({ error: "Missing issuer data" });
+        }
+        break;
+
+      case 'recruiter':
+        if (!wallet_address || !email || !company_name) {
+          return res.status(400).json({ error: "Missing recruiter data" });
+        }
+        break;
+
+      default:
+        return res.status(400).json({ error: "Invalid role" });
     }
 
     // Generate nonce for wallet verification
@@ -41,25 +64,16 @@ router.post("/register", async (req, res) => {
     let roleSpecificData = null;
 
     if (role === 'student') {
-      if (!field_of_study) {
-        return res.status(400).json({ error: "Field of study required for students" });
-      }
       roleSpecificData = await Student.create({
         wallet_address: wallet_address.toLowerCase(),
         field_of_study
       });
     } else if (role === 'issuer') {
-      if (!organization_name) {
-        return res.status(400).json({ error: "Organization name required for issuers" });
-      }
       roleSpecificData = await Issuer.create({
         wallet_address: wallet_address.toLowerCase(),
         organization_name
       });
     } else if (role === 'recruiter') {
-      if (!company_name) {
-        return res.status(400).json({ error: "Company name required for recruiters" });
-      }
       roleSpecificData = await Recruiter.create({
         wallet_address: wallet_address.toLowerCase(),
         company_name
