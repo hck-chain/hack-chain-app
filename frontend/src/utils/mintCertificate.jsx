@@ -2,7 +2,7 @@ import React, { use, useState } from 'react';
 import { ethers } from "ethers";
 
 const POLYGON_CHAIN_ID = '0x89';
-const CONTRACT_ADDRESS = '0x212E91e44e18Ae70ad0E3B52EB1243132F04b85E';
+const CONTRACT_ADDRESS = '0x8D21aC87475eC2EE80fB149E376035F5E29DCa7C';
 
 // ABI
 
@@ -737,6 +737,8 @@ function App() {
     const [nameStudent, setNameStudent] = useState("");
     const [courseName, setCourseName] = useState("");
     const [imageUri, setImageUri] = useState("");
+    const certificate_hash = imageUri;
+
 
     // Connect wallet
     const connectWallet = async () => {
@@ -785,7 +787,23 @@ function App() {
 
     const dataCertificate = async () => {
         const professor = account;
-        console.log("Buscando wallet:", professor);
+        console.log("Buscando wallet de issuer:", professor);
+
+        if (!walletStudent) {
+            alert("Please enter the wallet address");
+        }
+        if (!nameStudent) {
+            alert("Please enter the student's name");
+        }
+        if (!courseName) {
+            alert("Please enter the course name");
+        }
+        if (!imageUri) {
+            alert("Please enter the token uri");
+        }
+        if (!professor) {
+            alert("Please open metamask extension and try again");
+        }
 
         try {
             const response = await fetch("http://localhost:3001/api/issuers/mint", {
@@ -800,6 +818,7 @@ function App() {
                 })
             });
             const data = await response.json();
+            if (walletStudent != "" && response.status == 404) { alert("Wallet not registered") };
             return data;
         } catch (err) {
             console.error('Data error: ', err);
@@ -815,10 +834,33 @@ function App() {
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
             const tx = await contract.issueCertificate(data.walletStudent, data.nameStudent, data.courseName, data.tokenUri);
             await tx.wait();
+            const issuer_wallet_address = account;
+            const title = courseName;
+            const description = "First version of the HackChain Tokenized Certificate";
+            const blockchain_tx_hash = tx.hash;
+            const issue_date = new Date().toISOString().split('T')[0];
+            try {
+                const response = await fetch("http://localhost:3001/api/certificates/database", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        issuer_wallet_address,
+                        title,
+                        description,
+                        certificate_hash,
+                        blockchain_tx_hash,
+                        issue_date
+                    })
+                });
+            } catch (error) {
+                console.error('Data error: ', err);
+                alert('Failed to sent data');
+            }
+
             alert('Certificate minted!');
+
         } catch (err) {
-            console.error('Mint error: ', err);
-            alert('Failed to minting');
+            console.error('Data error: ', err);
         } finally {
             setIsMinting(false);
         }
@@ -868,7 +910,7 @@ function App() {
                 value={imageUri}
                 onChange={(e) => setImageUri(e.target.value)}
             />
-            
+
             <button onClick={mint} disabled={isMinting}>Mint Certificate</button>
         </div>
     );

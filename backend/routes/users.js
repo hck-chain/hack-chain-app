@@ -8,7 +8,7 @@ const { User, Student, Issuer, Recruiter } = require("../models");
 router.post("/register", async (req, res) => {
   try {
     const { wallet_address, role, name, lastname, email, organization_name, field_of_study, company_name } = req.body;
-    
+
     if (!wallet_address) {
       return res.status(400).json({ error: "Wallet address required" });
     }
@@ -41,8 +41,11 @@ router.post("/register", async (req, res) => {
     let roleSpecificData = null;
 
     if (role === 'student') {
+      if (!field_of_study) {
+        return res.status(400).json({ error: "Field of study required for students" });
+      }
       roleSpecificData = await Student.create({
-        wallet_address,
+        wallet_address: wallet_address.toLowerCase(),
         field_of_study
       });
     } else if (role === 'issuer') {
@@ -50,12 +53,15 @@ router.post("/register", async (req, res) => {
         return res.status(400).json({ error: "Organization name required for issuers" });
       }
       roleSpecificData = await Issuer.create({
-        wallet_address,
+        wallet_address: wallet_address.toLowerCase(),
         organization_name
       });
     } else if (role === 'recruiter') {
+      if (!company_name) {
+        return res.status(400).json({ error: "Company name required for recruiters" });
+      }
       roleSpecificData = await Recruiter.create({
-        wallet_address,
+        wallet_address: wallet_address.toLowerCase(),
         company_name
       });
     }
@@ -77,7 +83,7 @@ router.post("/register", async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to register user" });
+    res.status(500).json({ error: "Failed to register user: ", err });
   }
 });
 

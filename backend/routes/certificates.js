@@ -21,7 +21,7 @@ router.post("/", async (req, res) => {
     }
     const metadata = {
       name: `Certificate for ${name}`,
-      description: `${course} impartido por ${professor}`,
+      description: `First version of the HackChain Tokenized Certificate`,
       image: `ipfs://${imageCID}`,
       attributes: [
         { trait_type: "Student", value: name },
@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
     const result = await pinata.upload.public.json(metadata, {
       pinataMetadata: { name: `Certificate for ${name}` },
     });
-    res.json({ cid: result.cid, pinata: result });
+    res.json({ cid: result.cid });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to upload metadata" });
