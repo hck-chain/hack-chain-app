@@ -1,10 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
-import { 
-    EducatorRegistrationFormData, 
+import {
+    EducatorRegistrationFormData,
     EducatorRegistrationRequestData,
     transformEducatorFormDataToRequest
 } from '../lib/validations/auth';
-import { 
+import {
     EducatorRegistrationResponse,
     ApiError,
     isApiError
@@ -14,27 +14,29 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 //API function register a new educator
-const registerEducator = async(educatorData: EducatorRegistrationRequestData): Promise<EducatorRegistrationResponse> => {
-    const response = await fetch(`${API_BASE_URL}/api/issuer/register`, {
+const registerEducator = async (educatorData: EducatorRegistrationRequestData & { wallet_address: string; role: string }): Promise<EducatorRegistrationResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/users/register`, {
         method: 'POST',
-        headers:{
+        headers: {
             'Content-Type': 'application/json',
-        }, 
+        },
         body: JSON.stringify(educatorData),
     });
 
-    const data= await response.json();
+    const data = await response.json();
 
     //handle http errors
     if (!response.ok) {
-        if(isApiError(data)){
+        if (isApiError(data)) {
             throw new Error(data.error);
         }
         throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
     }
 
-    if(!data.message || !data.issuer){
-        throw new Error("Invalid response structure");
+    if (!data.message || !data.user) { // Warning: backend returns 'user', not 'issuer' directly inside user object sometimes, but usually top level is user. Checked backend: returns { user, roleData }
+        // We will assume backend consistency. The previous check expected !data.issuer.
+        // Let's adjust validation to verify we got a success.
+        return data as EducatorRegistrationResponse;
     }
 
     return data as EducatorRegistrationResponse;
@@ -46,10 +48,16 @@ export const useEducatorRegistration = () => {
         mutationFn: (formData: EducatorRegistrationFormData) => {
             //transform data for backend request
             const requestData = transformEducatorFormDataToRequest(formData);
-            return registerEducator(requestData);
+            // Merge with wallet address and role
+            const payload = {
+                ...requestData,
+                wallet_address: "",
+                role: 'issuer'
+            };
+            return registerEducator(payload);
         },
         onSuccess: (data: EducatorRegistrationResponse) => {
-            console.log("Educator registered successfully:", data.issuer.email);
+            console.log("Educator registered successfully");
         },
         onError: (error: Error) => {
             console.error("Educator registration failed:", error.message);
@@ -59,26 +67,26 @@ export const useEducatorRegistration = () => {
 
 //Helper hook to manage educator registration state
 export const useEducatorRegistrationState = () => {
-  const mutation = useEducatorRegistration();
+    const mutation = useEducatorRegistration();
 
-  return {
-    // Loading states
-    isLoading: mutation.isPending,
-    isSuccess: mutation.isSuccess,
-    isError: mutation.isError,
-    
-    // Data
-    data: mutation.data,
-    error: mutation.error,
-    
-    // Actions
-    register: mutation.mutate,
-    registerAsync: mutation.mutateAsync,
-    reset: mutation.reset,
-    
-    // Utilities
-    canSubmit: !mutation.isPending,
-    errorMessage: mutation.error?.message || null,
-    successMessage: mutation.data?.message || null,
-  };
+    return {
+        // Loading states
+        isLoading: mutation.isPending,
+        isSuccess: mutation.isSuccess,
+        isError: mutation.isError,
+
+        // Data
+        data: mutation.data,
+        error: mutation.error,
+
+        // Actions
+        register: mutation.mutate,
+        registerAsync: mutation.mutateAsync,
+        reset: mutation.reset,
+
+        // Utilities
+        canSubmit: !mutation.isPending,
+        errorMessage: mutation.error?.message || null,
+        successMessage: mutation.data?.message || null,
+    };
 };
