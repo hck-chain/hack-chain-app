@@ -15,29 +15,21 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ error: "User already registered" });
     }
 
-    // if (!wallet_address) {
-    //   return res.status(400).json({ error: "Wallet address required" });
-    // }
-
-    // if (!role || !['student', 'issuer', 'recruiter'].includes(role)) {
-    //   return res.status(400).json({ error: "Valid role required (student, issuer, recruiter)" });
-    // }
-
     switch (role) {
       case 'student':
-        if (!wallet_address || !name || !lastname || !email || !field_of_study) {
+        if (!wallet_address || !name || !lastname || !email) {
           return res.status(400).json({ error: "Missing student data" });
         }
         break;
 
       case 'issuer':
-        if (!wallet_address || !email || !organization_name) {
+        if (!wallet_address || !organization_name || !email) {
           return res.status(400).json({ error: "Missing issuer data" });
         }
         break;
 
       case 'recruiter':
-        if (!wallet_address || !email || !company_name) {
+        if (!wallet_address || !name || !lastname || !email || !company_name) {
           return res.status(400).json({ error: "Missing recruiter data" });
         }
         break;
@@ -66,7 +58,6 @@ router.post("/register", async (req, res) => {
     if (role === 'student') {
       roleSpecificData = await Student.create({
         wallet_address: wallet_address.toLowerCase(),
-        field_of_study
       });
     } else if (role === 'issuer') {
       roleSpecificData = await Issuer.create({
@@ -94,6 +85,8 @@ router.post("/register", async (req, res) => {
       },
       roleData: roleSpecificData
     });
+
+    wallet_address = "";
 
   } catch (err) {
     console.error(err);

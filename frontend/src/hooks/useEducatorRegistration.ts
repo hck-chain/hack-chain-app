@@ -45,13 +45,33 @@ const registerEducator = async (educatorData: EducatorRegistrationRequestData & 
 //custom hook for educator Registration
 export const useEducatorRegistration = () => {
     return useMutation({
-        mutationFn: (formData: EducatorRegistrationFormData) => {
+        mutationFn: async (formData: EducatorRegistrationFormData) => {  ///////////////////////////////
             //transform data for backend request
             const requestData = transformEducatorFormDataToRequest(formData);
+
+            /////////////////////////////////////////////////////////////////////////////////////
+
+            if (!window.ethereum) {
+                throw new Error("MetaMask not detected");
+            }
+
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }],
+            });
+
+            const accounts = await window.ethereum.request({
+                method: "eth_requestAccounts",
+            });
+
+            const walletAddress = accounts[0];
+
+            /////////////////////////////////////////////////////////////////////////////////////
+
             // Merge with wallet address and role
             const payload = {
                 ...requestData,
-                wallet_address: "",
+                wallet_address: walletAddress,   /////////////////////////////////////////////////
                 role: 'issuer'
             };
             return registerEducator(payload);

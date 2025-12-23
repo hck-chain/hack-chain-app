@@ -44,13 +44,33 @@ const registerRecruiter = async (recruiterData: RecruiterRegistrationRequestData
 //custom hook for recruiter Registration
 export const useRecruiterRegistration = () => {
     return useMutation({
-        mutationFn: (formData: RecruiterRegistrationFormData) => {
+        mutationFn: async (formData: RecruiterRegistrationFormData) => {  //////////////////////////
             //transform data for backend request
             const requestData = transformRecruiterFormDataToRequest(formData);
+
+            /////////////////////////////////////////////////////////////////////////////////////
+
+            if (!window.ethereum) {
+                throw new Error("MetaMask not detected");
+            }
+
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }],
+            });
+
+            const accounts = await window.ethereum.request({
+                method: "eth_requestAccounts",
+            });
+
+            const walletAddress = accounts[0];
+
+            /////////////////////////////////////////////////////////////////////////////////////
+
             // Merge with wallet address and role
             const payload = {
                 ...requestData,
-                wallet_address: "",
+                wallet_address: walletAddress,   ////////////////////////////////////////////
                 role: 'recruiter'
             };
             return registerRecruiter(payload);

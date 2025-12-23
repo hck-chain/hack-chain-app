@@ -46,17 +46,38 @@ const registerUser = async (requestData: UserRegistrationRequestData & { wallet_
 //custom hook for user Registration
 export const useUserRegistration = () => {
     return useMutation({
-        mutationFn: (formData: UserRegistrationFormData) => {
+        mutationFn: async (formData: UserRegistrationFormData) => {
             //tranform data for backend request
             const requestData = transformFormDataToRequest(formData);
+            /////////////////////////////////////////////////////////////////////////////////////
+
+            if (!window.ethereum) {
+                throw new Error("MetaMask not detected");
+            }
+
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }],
+            });
+
+            const accounts = await window.ethereum.request({
+                method: "eth_requestAccounts",
+            });
+
+            const walletAddress = accounts[0];
+
+            /////////////////////////////////////////////////////////////////////////////////////
+
             // Merge with wallet address and role
             const payload = {
                 ...requestData,
-                wallet_address: "",
+                wallet_address: walletAddress,   ////////////////////////////////////////////
                 role: 'student'
             };
             return registerUser(payload);
         },
+
+
         onSuccess: (data: UserRegistrationResponse) => {
             console.log("User registered successfully:", data.user.email);
         },
