@@ -12,11 +12,17 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3001;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 
-app.use(cors());
+app.use(cors({
+  origin: FRONTEND_ORIGIN,
+  credentials: true
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Import routes
+const authRouter = require("./routes/auth");
 const usersRouter = require("./routes/users");
 const sessionsRouter = require("./routes/sessions");
 const certificatesRouter = require("./routes/certificates");
@@ -25,6 +31,7 @@ const issuersRouter = require("./routes/issuers");
 const recruitersRouter = require("./routes/recruiters");
 
 // Use routes
+app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/certificates", certificatesRouter);
@@ -74,8 +81,6 @@ let server;
     });
   } catch (err) {
     console.error("Failed to start server:", err);
-    // cierra pool si hay error y sal del proceso
-    try { await pgPool.end(); } catch (e) { /* ignore */ }
     process.exit(1);
   }
 })();
@@ -90,8 +95,6 @@ async function shutdown(signal) {
       });
       console.log("HTTP server closed.");
     }
-    await pgPool.end();
-    console.log("Postgres pool closed.");
     // cerrar sequelize
     if (db && db.sequelize) {
       await db.sequelize.close();
