@@ -4,15 +4,17 @@ const { Student, Issuer, Recruiter } = require("../models");
 /**
  * Normaliza el resultado: { modelName: 'student'|'issuer'|'recruiter', user }
  */
-async function findUserByEmail(email) {
-  if (!email) return null;
-  let user = await Student.findOne({ where: { email } });
+
+async function findUserByWallet(wallet_address) {
+  if (!wallet_address) return null;
+
+  let user = await Student.findOne({ where: { wallet_address } });
   if (user) return { modelName: "student", user };
 
-  user = await Issuer.findOne({ where: { email } });
+  user = await Issuer.findOne({ where: { wallet_address } });
   if (user) return { modelName: "issuer", user };
 
-  user = await Recruiter.findOne({ where: { email } });
+  user = await Recruiter.findOne({ where: { wallet_address } });
   if (user) return { modelName: "recruiter", user };
 
   return null;
@@ -24,8 +26,6 @@ function modelForRole(role) {
     case "student":
       return Student;
     case "issuer":
-    case "educator":
-    case "educator": // normalized
       return Issuer;
     case "recruiter":
       return Recruiter;
@@ -70,7 +70,8 @@ async function updateUserByIdAndRole(id, role, updates) {
 }
 
 module.exports = {
-  findUserByEmail,
+  findUserByWallet,
+  modelForRole,
   getUserByIdAndRole,
   updateUserByIdAndRole,
 };

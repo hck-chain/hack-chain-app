@@ -51,49 +51,49 @@ router.post(
   "/login",
   loginLimiter,
   [
-    body("email").isEmail().withMessage("Valid email required"),
-    body("password").isString().isLength({ min: 6 }).withMessage("Password required (min 6)"),
-    body("cfToken").optional().isString(),
+    body("wallet_address")
+      .isString()
+      .isLength({ min: 42, max: 42 })
+      .withMessage("Valid wallet address required"),
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-      const { email, password, cfToken } = req.body;
+      const { wallet_address } = req.body;
 
-      // captcha if env configured
-      const captcha = await verifyCaptchaIfNeeded(cfToken);
-      if (!captcha.ok) return res.status(403).json({ error: captcha.error || "Captcha failed" });
-
-      const found = await userService.findUserByEmail(email);
-      if (!found) return res.status(401).json({ error: "Invalid credentials" });
+      // // captcha if env configured
+      // const captcha = await verifyCaptchaIfNeeded(cfToken); ///////////////////////
+      // if (!captcha.ok) return res.status(403).json({ error: captcha.error || "Captcha failed" }); ////////////
+      
+      const found = await userService.findUserByWallet(wallet_address.toLowerCase());
+      if (!found) {
+        return res.status(404).json({
+          error: "No user associated with this wallet",
+        });
+      }
 
       const { modelName, user } = found;
-      const match = await bcrypt.compare(password, user.passwordHash || "");
-      if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-      const payload = { sub: user.id, role: modelName, email: user.email };
+      const payload = { sub: user.id, role: modelName, wallet: wallet_address };
       const token = signToken(payload);
 
-      // sanitize user
+      // // sanitize user
       const out = user.toJSON ? user.toJSON() : { ...user };
-      delete out.passwordHash;
-      delete out.privateKey;
+      delete out.passwordHash;//////////////////////////////////////////
+      delete out.privateKey;//////////////////////////////////
 
       return res.json({
         message: "Authenticated",
         token,
-        expiresIn: JWT_EXPIRES_IN,
         user: {
           id: out.id,
-          email: out.email,
+          email: out.email || null,
           role: modelName,
-          name: out.name || null,
-          lastName: out.lastName || null,
-          walletAddress: out.walletAddress || null,
+          wallet_address: wallet_address,
         }
-      });
+      })
     } catch (err) {
       console.error("Login error:", err);
       return res.status(500).json({ error: "Internal server error" });

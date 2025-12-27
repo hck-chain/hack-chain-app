@@ -25,11 +25,12 @@ export const useWalletLogin = () => {
             // Endpoint: POST /api/auth/login-wallet
             // Body: { wallet_address: string }
             // Response: { token: string, user: { id, email, role, wallet_address } }
-            const response = await fetch(`${API_BASE_URL}/api/auth/login-wallet`, {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                //body: JSON.stringify({ wallet_address: walletAddress }),
                 body: JSON.stringify({ wallet_address: walletAddress }),
             });
 
@@ -64,28 +65,43 @@ export const useWalletLogin = () => {
     const connectAndLogin = async () => {
         setError(null);
 
+        // if (!window.ethereum) {
+        //     setError("MetaMask is not installed. Please install it to continue.");
+        //     return;
+        // }
+
+        // try {
+        //     // Request account access
+        //     const accounts = await window.ethereum.request({
+        //         method: 'eth_requestAccounts'
+        //     });
+
+        //     if (accounts && accounts.length > 0) {
+        //         const address = accounts[0];
+        //         // Attempt login with backend
+        //         mutation.mutate(address);
+        //     } else {
+        //         setError("No accounts found. Please unlock MetaMask.");
+        //     }
+        // } catch (err: any) {
+        //     console.error("Wallet connection error:", err);
+        //     setError(err.message || "Failed to connect wallet.");
+        // }
         if (!window.ethereum) {
-            setError("MetaMask is not installed. Please install it to continue.");
-            return;
+            throw new Error("MetaMask not detected");
         }
 
-        try {
-            // Request account access
-            const accounts = await window.ethereum.request({
-                method: 'eth_requestAccounts'
-            });
+        await window.ethereum.request({
+            method: "wallet_requestPermissions",
+            params: [{ eth_accounts: {} }],
+        });
 
-            if (accounts && accounts.length > 0) {
-                const address = accounts[0];
-                // Attempt login with backend
-                mutation.mutate(address);
-            } else {
-                setError("No accounts found. Please unlock MetaMask.");
-            }
-        } catch (err: any) {
-            console.error("Wallet connection error:", err);
-            setError(err.message || "Failed to connect wallet.");
-        }
+        const accounts = await window.ethereum.request({
+            method: "eth_requestAccounts",
+        });
+
+        const walletAddress = accounts[0];
+        mutation.mutate(walletAddress);
     };
 
     return {
