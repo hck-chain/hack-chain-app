@@ -1,7 +1,8 @@
 // backend/routes/recruiters.js
 const express = require("express");
 const router = express.Router();
-const { Recruiter, User } = require("../models");
+const { Recruiter, User, Student } = require("../models");
+const { where } = require("sequelize");
 
 // GET /api/recruiters
 router.get("/", async (req, res) => {
@@ -29,13 +30,39 @@ router.get("/", async (req, res) => {
   }
 });
 
+// POST /api/recruiters/dashboard
+router.post("/dashboard", async (req, res) => {
+  try {
+    const { wallet_address } = req.body;
+    const recruiter = await Recruiter.findOne({ where: { wallet_address: wallet_address.toLowerCase() } });
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+    const students = await Student.findAll({
+      include: [{
+        model: User,
+        attributes: ["name", "lastname"]
+      }],
+      attributes: [
+        "field_of_study",
+        "wallet_address",
+        "created_at"
+      ]
+    });
+    res.status(200).json(students);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to get students list" });
+  }
+});
+
 // GET /api/recruiters/:wallet_address
 router.get("/:wallet_address", async (req, res) => {
   try {
     const { wallet_address } = req.params;
 
     const recruiter = await Recruiter.findOne({
-      where: { wallet_address },
+      where: { wallet_address: wallet_address.toLowerCase() },
       include: [{
         model: User,
         attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
@@ -68,7 +95,7 @@ router.put("/:wallet_address", async (req, res) => {
     const { wallet_address } = req.params;
     const { company_name } = req.body;
 
-    const recruiter = await Recruiter.findOne({ where: { wallet_address } });
+    const recruiter = await Recruiter.findOne({ where: { wallet_address: wallet_address.toLowerCase() } });
     if (!recruiter) {
       return res.status(404).json({ error: "Recruiter not found" });
     }
