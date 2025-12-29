@@ -29,6 +29,7 @@ const certificatesRouter = require("./routes/certificates");
 const studentsRouter = require("./routes/students");
 const issuersRouter = require("./routes/issuers");
 const recruitersRouter = require("./routes/recruiters");
+const opensea = require("./routes/opensea");
 
 // Use routes
 app.use("/api/auth", authRouter);
@@ -38,6 +39,7 @@ app.use("/api/certificates", certificatesRouter);
 app.use("/api/students", studentsRouter);
 app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
+app.use("/api/opensea",opensea);
 
 // Health check básico: verifica que la app está viva y la DB responde
 app.get("/health", async (req, res) => {
