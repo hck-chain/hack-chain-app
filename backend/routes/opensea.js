@@ -18,7 +18,7 @@ router.get("/collection/:slug", async (req, res) => {
   }
 });
 
-// Certificates by account /api/opensea/collection/:slug
+// Certificates by account /api/opensea/certificates/
 router.post("/certificates/", async (req, res) => {
   try {
     const { address } = req.body;
