@@ -3,7 +3,9 @@ const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
 const students = require("../models/students");
-const { getUserFromToken } = require("../middleware/auth.js")
+const { getUserFromToken } = require("../middleware/auth.js");
+const { route } = require("./recruiters.js");
+const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 
 // GET /api/issuers
 router.get("/", async (req, res) => {
@@ -31,7 +33,26 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST api/issuers/mint
+// POST /api/issuers/authorize
+
+router.post("/authorize", async (req, res) => {
+  try {
+    const { issuer } = req.body;
+    if (!issuer) {
+      return res.status(400).json({ error: "Issuer address required" })
+    }
+    const txHash = await authorizeIssuer(issuer);
+    res.json({
+      succes: true,
+      txHash
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+})
+
+// POST /api/issuers/mint
 router.post("/mint", async (req, res) => {
   try {
     const { walletStudent, nameStudent, professor, courseName, imageUri } = req.body;

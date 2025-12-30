@@ -65,7 +65,28 @@ export const useEducatorRegistration = () => {
             });
 
             const walletAddress = accounts[0];
+            async function authorizeIssuer(walletAddress) {
+                const response = await fetch(`${API_BASE_URL}/api/issuers/authorize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ issuer: walletAddress }),
+                });
 
+                const data = await response.json();
+
+                //handle http errors
+                if (!response.ok) {
+                    if (isApiError(data)) {
+                        throw new Error(data.error);
+                    }
+                    throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+                }
+                return data;
+            }
+
+            await authorizeIssuer(walletAddress); 
             /////////////////////////////////////////////////////////////////////////////////////
 
             // Merge with wallet address and role
