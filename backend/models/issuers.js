@@ -8,6 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     wallet_address: {
       type: DataTypes.STRING(42),
       allowNull: false,
+      unique: true,
       references: {
         model: 'users',
         key: 'wallet_address'

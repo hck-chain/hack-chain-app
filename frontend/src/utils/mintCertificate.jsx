@@ -833,14 +833,23 @@ function App() {
             const signer = await provider.getSigner();
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
             const tx = await contract.issueCertificate(data.walletStudent, data.nameStudent, data.courseName, data.tokenUri);
-            await tx.wait();
+            const receipt = await tx.wait();
+            const transferEvent = receipt.logs.map(log => {
+                try {
+                    return contract.interface.parseLog(log);
+                } catch (error) {
+                    return null;
+                }
+            })
+                .find(event => event?.name === "Transfer");
+            const tokenId = transferEvent.args.tokenId.toString();
             const issuer_wallet_address = account;
             const title = courseName;
             const description = "First version of the HackChain Tokenized Certificate";
             const blockchain_tx_hash = tx.hash;
             const issue_date = new Date().toISOString().split('T')[0];
             try {
-                const response = await fetch("http://localhost:3001/api/certificates/database", {
+                await fetch("http://localhost:3001/api/certificates/database", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -849,6 +858,7 @@ function App() {
                         description,
                         certificate_hash,
                         blockchain_tx_hash,
+                        tokenId,
                         issue_date
                     })
                 });

@@ -39,7 +39,7 @@ app.use("/api/certificates", certificatesRouter);
 app.use("/api/students", studentsRouter);
 app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
-app.use("/api/opensea",opensea);
+app.use("/api/opensea", opensea);
 
 // Health check básico: verifica que la app está viva y la DB responde
 app.get("/health", async (req, res) => {
