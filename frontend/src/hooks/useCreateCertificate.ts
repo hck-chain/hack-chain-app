@@ -1,75 +1,93 @@
 import { useState } from 'react';
+import { useToast } from "@/components/ui/use-toast";
+import { web3Service } from '@/utils/web3Service';
 
-interface CertificateData {
-  issuer_wallet_address: string;
-  title: string;
-  description?: string;
-  certificate_hash?: string;
-  blockchain_tx_hash?: string;
-  issue_date: string;
-}
-
-interface CreateCertificateResponse {
-  message: string;
-  certificate: {
-    id: number;
-    issuer_wallet_address: string;
-    title: string;
-    description?: string;
-    certificate_hash?: string;
-    blockchain_tx_hash?: string;
-    issue_date: string;
-    is_revoked: boolean;
-    created_at: string;
-  };
+export interface CertificateData {
+  studentName: string;
+  studentWallet: string;
+  courseName: string;
+  imageUri: string;
 }
 
 export const useCreateCertificate = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const { toast } = useToast();
 
-  const createCertificate = async (data: CertificateData): Promise<CreateCertificateResponse | null> => {
+  const createCertificate = async (data: CertificateData, professorWallet: string) => {
     setIsLoading(true);
-    setError(null);
-    setSuccess(false);
-
     try {
+      console.log("Starting certificate creation process...");
+
+      // 0. Validate Inputs
+      if (!data.studentWallet || !ethers.utils.isAddress(data.studentWallet)) {
+        throw new Error("Invalid student wallet address");
+      }
+
+      // 1. Backend: Validate Student & Pin Metadata to IPFS
+      const payload = {
+        walletStudent: data.studentWallet,
+        nameStudent: data.studentName,
+        professor: professorWallet,
+        courseName: data.courseName,
+        imageUri: data.imageUri
+      };
+
       const response = await fetch('http://localhost:3001/api/issuers/mint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create certificate');
+        throw new Error(errorData.error || 'Failed to upload metadata to IPFS');
       }
 
-      const result: CreateCertificateResponse = await response.json();
-      setSuccess(true);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(errorMessage);
-      return null;
+      const result = await response.json();
+      const tokenUri = result.tokenUri;
+      console.log("Metadata pinned to IPFS:", tokenUri);
+
+      // 2. Blockchain: Mint Certificate
+      const mintSuccess = await web3Service.mintCertificateOnChain(
+        data.studentWallet,
+        data.studentName,
+        data.courseName,
+        tokenUri
+      );
+
+      if (!mintSuccess) {
+        throw new Error("User rejected transaction or blockchain error occurred.");
+      }
+
+      toast({
+        title: "Success!",
+        description: "Certificate minted and sent to student's wallet.",
+      });
+
+      return true;
+
+    } catch (error: any) {
+      console.error('Certificate creation error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create certificate",
+        variant: "destructive",
+      });
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const reset = () => {
-    setError(null);
-    setSuccess(false);
-  };
-
   return {
     createCertificate,
-    isLoading,
-    error,
-    success,
-    reset,
+    isLoading
   };
 };
+
+// Helper for address validation if ethers is not globally available in scope, 
+// though we use simple check or assume implicit via web3Service. 
+// Adding minimal polyfill for validation if needed, or import from ethers.
+import { ethers } from 'ethers';
