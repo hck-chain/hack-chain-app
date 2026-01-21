@@ -22,12 +22,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true
     },
     certificate_hash: {
-      type: DataTypes.STRING(64),
+      type: DataTypes.STRING(128),
       unique: true,
       allowNull: false
     },
     blockchain_tx_hash: {
-      type: DataTypes.STRING(66),
+      type: DataTypes.STRING(128),
       allowNull: true
     },
     token_id: {

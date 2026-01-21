@@ -66,7 +66,7 @@ router.post(
       // // captcha if env configured
       // const captcha = await verifyCaptchaIfNeeded(cfToken); ///////////////////////
       // if (!captcha.ok) return res.status(403).json({ error: captcha.error || "Captcha failed" }); ////////////
-      
+
       const found = await userService.findUserByWallet(wallet_address.toLowerCase());
       if (!found) {
         return res.status(404).json({
@@ -76,8 +76,9 @@ router.post(
 
       const { modelName, user } = found;
 
-      const payload = { sub: user.id, role: modelName, wallet: wallet_address };
+      const payload = { wallet: wallet_address }; // usa wallet en vez de sub + role
       const token = signToken(payload);
+
 
       // // sanitize user
       const out = user.toJSON ? user.toJSON() : { ...user };
@@ -148,15 +149,16 @@ router.post(
  * GET /api/auth/me
  * - Protected, returns sanitized user via getUserFromToken
  */
+
 router.get("/me", authenticate, async (req, res) => {
   try {
-    const authPayload = req.auth;
-    const result = await getUserFromToken(authPayload);
+    const result = await getUserFromToken(req.auth); // req.auth tiene wallet
     if (!result) return res.status(404).json({ error: "User not found" });
-    return res.json({ user: result.user, role: result.modelName });
-  } catch (err) {
-    console.error("GET /me error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+
+    res.json(result); // esto ya incluye email
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal error" });
   }
 });
 

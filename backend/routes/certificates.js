@@ -113,7 +113,7 @@ router.post("/database", async (req, res) => {
       description,
       certificate_hash,
       blockchain_tx_hash,
-      tokenId,
+      token_id,
       issue_date
     } = req.body;
 
@@ -135,14 +135,14 @@ router.post("/database", async (req, res) => {
       certificate_hash,
       blockchain_tx_hash,
       issue_date,
-      tokenId,
+      token_id,
       is_revoked: false
     });
 
     res.status(201).json({
       message: "Certificate created successfully",
       certificate: {
-        id: certificate.id,
+        id: certificate.token_id,
         issuer_wallet_address: certificate.issuer_wallet_address,
         title: certificate.title,
         description: certificate.description,

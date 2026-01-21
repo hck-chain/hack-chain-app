@@ -54,7 +54,8 @@ export const useCreateCertificate = () => {
         data.studentWallet,
         data.studentName,
         data.courseName,
-        tokenUri
+        tokenUri,
+        professorWallet
       );
 
       if (!mintSuccess) {

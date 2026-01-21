@@ -45,6 +45,9 @@ const EducatorDashboard = () => {
     imageUri: '', // To store the image URI if we uploaded one, though currently we handle local preview mostly
   });
 
+  const [wallet, setWallet] = useState<string>("");
+  const [organizationName, setOrganizationName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -56,14 +59,44 @@ const EducatorDashboard = () => {
 
   // Verificar autenticación y obtener datos del usuario
   useEffect(() => {
-    // Basic Mock Data for dev context if local storage is empty
-    setUserData({
-      name: "Test Educator",
-      email: "educator@test.com",
-      role: "Issuer",
-      walletAddress: "0x1234567890abcdef1234567890abcdef12345678"
-    });
+    const loadProfile = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
 
+        if (!token) {
+          console.error("No auth token found");
+          return;
+        }
+
+        const res = await fetch("http://localhost:3001/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        console.log("AUTH /me RESPONSE 👉", data);
+
+        if (!res.ok) {
+          console.error("Auth error:", data);
+          return;
+        }
+
+        // data.user viene de ISSUERS
+        // data.modelName === "issuer"
+        setUserData({
+          organization_name: data.user.organization_name,
+          walletAddress: data.user.wallet_address,
+          email: data.user.email ?? "No email registered",
+          role: "Educator",
+        });
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      }
+    };
+
+    loadProfile();
     // Fetch Students
     const fetchStudents = async () => {
       try {
@@ -161,7 +194,7 @@ const EducatorDashboard = () => {
       studentName: form.studentName,
       studentWallet: form.studentWallet,
       courseName: form.certificateTitle, // Using title as course name
-      imageUri: "ipfs://placeholder-cid", // Placeholder as we aren't uploading the image file yet
+      imageUri: "bafybeia4ndso2yw4fkfhpfbkyzhgldbs4qkqocpaqk34jbgw7azpsuxjom", // Placeholder as we aren't uploading the image file yet
     };
 
     // Enviar al hook logic
@@ -270,7 +303,7 @@ const EducatorDashboard = () => {
                 >
                   <div className="flex flex-row items-baseline gap-1">
                     <span className="text-sm text-slate-400 font-medium">Welcome back,</span>
-                    <span className="text-sm font-bold text-white">{userData.name || "Educator"}</span>
+                    <span className="text-sm font-bold text-white">{userData.organization_name || "Educator"}</span>
                   </div>
                   <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                     <Award className="h-5 w-5 text-white" />
@@ -291,7 +324,7 @@ const EducatorDashboard = () => {
                       <Award className="h-7 w-7 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-base font-bold text-white">{userData.name || "My Organization"}</h3>
+                      <h3 className="text-base font-bold text-white">{userData.organization_name || "My Organization"}</h3>
                       <p className="text-xs text-purple-400 font-medium">{userData.role || "Issuer"}</p>
                     </div>
                   </div>
@@ -303,7 +336,7 @@ const EducatorDashboard = () => {
                       <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Email</p>
-                        <p className="text-sm text-slate-200 truncate">{userData.email || "email@org.com"}</p>
+                        <p className="text-sm text-slate-200 truncate">{userData.email || "No email registered"}</p>
                       </div>
                     </div>
 
@@ -312,7 +345,7 @@ const EducatorDashboard = () => {
                       <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Role</p>
-                        <p className="text-sm text-slate-200">Educator / {userData.role || "Issuer"}</p>
+                        <p className="text-sm text-slate-200">Educator</p>
                       </div>
                     </div>
 
