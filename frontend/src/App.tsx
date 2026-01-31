@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NFTCreator from "./pages/NFTCreator";
 import EducatorDashboard from "./pages/EducatorDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
 import  RegisterLanding  from "./pages/RegisterLanding";
 import { RegisterUser } from "./pages/RegisterUser";
 import { RegisterRecruiter } from "./pages/RegisterRecruiter";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/nft-creator" element={<NFTCreator />} />
           <Route path="/educator/dashboard" element={<EducatorDashboard />} />
+          <Route path="/dashboard/student" element={<StudentDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterLanding />} />
           <Route path="/register/user" element={<RegisterUser />} />

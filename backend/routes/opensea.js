@@ -2,6 +2,7 @@ const opensea = require("@api/opensea");
 const express = require("express");
 const router = express.Router();
 opensea.auth(process.env.OPENSEA_API_KEY);
+const CONTRACT_ADDRESS = "0x8D21aC87475eC2EE80fB149E376035F5E29DCa7C".toLowerCase();
 
 // Collection /api/opensea/collection/:slug
 router.get("/collection/:slug", async (req, res) => {
@@ -29,7 +30,7 @@ router.post("/certificates/", async (req, res) => {
       address,
       accept: '*/*'
     });
-    const certificates = data.nfts.filter(nft => nft.collection === slug)
+    const certificates = data.nfts.filter(nft => nft.collection === slug);
     res.status(200).json(certificates);
   } catch (error) {
     console.error("OpenSea error: ", error);
@@ -39,6 +40,29 @@ router.post("/certificates/", async (req, res) => {
     });
   }
 });
+
+// Single certificate OpenSea URL (by tokenId)
+router.get("/certificate/:tokenId", async (req, res) => {
+  try {
+    const { tokenId } = req.params;
+
+    const openseaUrl = `https://opensea.io/assets/matic/${CONTRACT_ADDRESS}/${tokenId}`;
+
+    res.status(200).json({
+      contract_address: CONTRACT_ADDRESS,
+      token_id: tokenId,
+      opensea_url: openseaUrl
+    });
+  } catch (error) {
+    console.error("OpenSea URL error:", error);
+    res.status(500).json({
+      message: "Error generating OpenSea URL",
+      error: error?.message
+    });
+  }
+});
+
+
 
 module.exports = router;
 

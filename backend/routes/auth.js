@@ -151,6 +151,8 @@ router.post(
  */
 
 router.get("/me", authenticate, async (req, res) => {
+  console.log("Headers recibidos:", req.headers);
+  console.log("req.auth generado:", req.auth);
   try {
     const result = await getUserFromToken(req.auth); // req.auth tiene wallet
     if (!result) return res.status(404).json({ error: "User not found" });
