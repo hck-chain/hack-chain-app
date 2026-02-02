@@ -777,7 +777,17 @@ export const web3Service = {
             const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
-            
+
+            await fetch("http://localhost:3001/api/issuers/increment-certificates", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    issuerWallet
+                })
+            });
+
             const transferEvent = receipt.logs.map(log => {
                 try {
                     return contract.interface.parseLog(log);
@@ -787,7 +797,7 @@ export const web3Service = {
             })
                 .find(event => event?.name === "Transfer");
             const tokenId = transferEvent.args.tokenId.toString();
-        
+
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
@@ -818,3 +828,15 @@ export const web3Service = {
         }
     }
 };
+
+export async function getCertificatesByEducator(wallet: string) {
+    console.log("getCertificatesByEducator called with wallet:", wallet); // 🔹 log frontend
+
+    const res = await fetch(`http://localhost:3001/api/issuers/${wallet}/certificates-count`);
+    const data = await res.json();
+
+    console.log("getCertificatesByEducator response:", data); // 🔹 log frontend
+    return data.total;
+}
+
+

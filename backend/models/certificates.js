@@ -13,6 +13,15 @@ module.exports = (sequelize, DataTypes) => {
         key: 'wallet_address'
       }
     },
+    student_wallet_address: {        // <-- NUEVO
+      type: DataTypes.STRING(42),
+      allowNull: false,
+      references: {
+        model: 'students',
+        key: 'wallet_address'
+      },
+      onDelete: 'CASCADE'
+    },
     title: {
       type: DataTypes.STRING(255),
       allowNull: false
@@ -54,6 +63,11 @@ module.exports = (sequelize, DataTypes) => {
     Certificate.belongsTo(models.Issuer, {
       foreignKey: 'issuer_wallet_address',
       targetKey: 'wallet_address'
+    });
+    Certificate.belongsTo(models.Student, {   // <-- NUEVO
+      foreignKey: 'student_wallet_address',
+      targetKey: 'wallet_address',
+      as: 'student'
     });
   };
 

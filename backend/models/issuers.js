@@ -18,6 +18,11 @@ module.exports = (sequelize, DataTypes) => {
     organization_name: {
       type: DataTypes.STRING(255),
       allowNull: false
+    },
+    certificates_issued: {            // <-- Agregado
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
     }
   }, {
     tableName: 'issuers',

@@ -1,16 +1,15 @@
-// src/pages/StudentDashboard.tsx
 import Layout from '@/components/Layout';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface Certificate {
-    identifier: string;   // tokenId real
-    contract: string;     // contract address real
+    identifier: string;
+    contract: string;
     name?: string;
     description?: string;
     image_url: string;
@@ -18,16 +17,17 @@ interface Certificate {
     original_image_url?: string;
 }
 
-
 interface Student {
     wallet_address: string;
     name?: string;
-    email?: string;
-    role?: string;
+    field_of_study?: string;
+    total_certificates?: number;
+    created_at?: string;
 }
 
-const StudentDashboard = () => {
+const StudentDetailDashboard = () => {
     const navigate = useNavigate();
+    const { wallet_address } = useParams<{ wallet_address: string }>();
     const [student, setStudent] = useState<Student | null>(null);
     const [certificates, setCertificates] = useState<Certificate[]>([]);
     const [loading, setLoading] = useState(true);
@@ -35,21 +35,25 @@ const StudentDashboard = () => {
 
     useEffect(() => {
         const loadData = async () => {
+            if (!wallet_address) return;
+
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) return;
 
                 // Student info
-                const res = await fetch('http://localhost:3001/api/auth/me', {
+                const res = await fetch(`http://localhost:3001/api/students/${wallet_address}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
-                console.log("la data es: ", data);
+                if (!data.student) throw new Error("Student not found");
+
                 setStudent({
-                    wallet_address: data.user.wallet_address,
-                    name: data.user.name,
-                    email: data.user.email,
-                    role: data.modelName || 'Student',
+                    wallet_address: data.student.wallet_address,
+                    name: data.student.user.name + ' ' + (data.student.user.lastname || ''),
+                    field_of_study: data.student.field_of_study || 'N/A',
+                    total_certificates: data.student.total_certificates || 0,
+                    created_at: data.student.created_at,
                 });
 
                 // Certificates
@@ -59,12 +63,9 @@ const StudentDashboard = () => {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ address: data.user.wallet_address }),
+                    body: JSON.stringify({ address: wallet_address }),
                 });
                 const certData = await certRes.json();
-
-                console.log("Certificates fetched from backend:", certData); // 🔹 depuración
-                certData.forEach((cert: Certificate) => console.log("Cert:", cert)); // 🔹 cada certificado
                 setCertificates(certData);
             } catch (err) {
                 console.error(err);
@@ -77,18 +78,12 @@ const StudentDashboard = () => {
                 setLoading(false);
             }
         };
+
         loadData();
-    }, [toast]);
+    }, [wallet_address, toast]);
 
-
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('authToken');
-        toast({
-            title: "Logged out",
-            description: "You have been logged out successfully.",
-        });
-        navigate('/login');
+    const goBackToRecruiterDashboard = () => {
+        navigate('/dashboard/recruiter');
     };
 
     const resolveImage = (url?: string) => {
@@ -98,17 +93,12 @@ const StudentDashboard = () => {
             : url;
     };
 
-    if (!student) {
-        return null;
-    }
-
-    // 🔹 Función para abrir NFT en OpenSea
     const viewOnOpenSea = (cert: Certificate) => {
         const url = `https://opensea.io/assets/polygon/${cert.contract}/${cert.identifier}`;
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
-    const totalCertificates = certificates.length;
+    if (!student) return <p className="text-center text-white mt-20">Loading student...</p>;
 
     return (
         <Layout>
@@ -121,14 +111,24 @@ const StudentDashboard = () => {
                 >
                     {/* Header */}
                     <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div>
-                            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
-                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                                    Student Dashboard
-                                </span>
-                            </h1>
-                            <p className="text-lg text-slate-400 font-light">
-                                View your tokenized certificates.                            </p>
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                            <Button
+                                onClick={goBackToRecruiterDashboard}
+                                variant="ghost"
+                                className="flex items-center gap-2 text-white hover:text-blue-400"
+                            >
+                                <ArrowLeft className="h-5 w-5" /> Back
+                            </Button>
+                            <div>
+                                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
+                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                                        {student.name}
+                                    </span>
+                                </h1>
+                                <p className="text-lg text-slate-400 font-light">
+                                    Student details and certificates
+                                </p>
+                            </div>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -137,16 +137,14 @@ const StudentDashboard = () => {
                                     className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
                                 >
                                     <div className="flex flex-row items-baseline gap-1">
-                                        <span className="text-xs text-slate-400 font-medium">Welcome back,</span>
+                                        <span className="text-xs text-slate-400 font-medium">Student:</span>
                                         <span className="text-sm font-bold text-white">
-                                            {student.name || "Student"}
+                                            {student.name}
                                         </span>
                                     </div>
-
                                     <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
                                         <Award className="h-4 w-4 text-white" />
                                     </div>
-
                                     <ChevronDown className="h-4 w-4 text-slate-400" />
                                 </Button>
                             </PopoverTrigger>
@@ -156,40 +154,22 @@ const StudentDashboard = () => {
                                 sideOffset={8}
                             >
                                 <div className="p-6 space-y-4">
-
-                                    {/* Header */}
                                     <div className="flex items-center gap-4 pb-4 border-b border-white/10">
                                         <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
                                             <Award className="h-6 w-6 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-base font-bold text-white">
-                                                {student.name || "Student"}
-                                            </h3>
-                                            <p className="text-xs text-blue-400 font-medium">
-                                                {"Student"}
-                                            </p>
+                                            <h3 className="text-base font-bold text-white">{student.name}</h3>
                                         </div>
                                     </div>
 
                                     {/* Info */}
                                     <div className="space-y-3">
-
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Mail className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Total Certificates</p>
-                                                <p className="text-sm text-slate-200 truncate">
-                                                    {totalCertificates || "No certificate found"}
-                                                </p>
-                                            </div>
-                                        </div>
-
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Role</p>
-                                                <p className="text-sm text-slate-200">Student</p>
+                                                <p className="text-xs uppercase text-slate-500 font-semibold">Field of Study</p>
+                                                <p className="text-sm text-slate-200">{student.field_of_study}</p>
                                             </div>
                                         </div>
 
@@ -197,36 +177,23 @@ const StudentDashboard = () => {
                                             <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
                                                 <p className="text-xs uppercase text-slate-500 font-semibold">Wallet</p>
-                                                <p className="text-sm text-slate-200 font-mono">
-                                                    ••••{student.wallet_address.slice(-4)}
-                                                </p>
+                                                <p className="text-sm text-slate-200 font-mono">••••{student.wallet_address.slice(-4)}</p>
                                             </div>
                                         </div>
 
-                                        {/* Logout Button */}
-                                        <div className="pt-4 border-t border-white/10">
-                                            <Button
-                                                onClick={handleLogout}
-                                                variant="outline"
-                                                className="
-                                                w-full
-                                                border-red-500/20
-                                                text-red-400
-                                                hover:bg-red-500/10
-                                                hover:text-red-300
-                                                hover:border-red-500/30
-                                                "
-                                            >
-                                                <LogOut className="h-4 w-4 mr-2" />
-                                                Logout
-                                            </Button>
+                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <p className="text-xs uppercase text-slate-500 font-semibold">Certificates</p>
+                                            <p className="text-sm text-slate-200">{student.total_certificates}</p>
                                         </div>
 
+                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <p className="text-xs uppercase text-slate-500 font-semibold">Registered</p>
+                                            <p className="text-sm text-slate-200">{new Date(student.created_at || '').toLocaleDateString()}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </PopoverContent>
                         </Popover>
-
                     </header>
 
                     {/* Certificates Grid */}
@@ -241,33 +208,27 @@ const StudentDashboard = () => {
                             >
                                 <div className="w-full bg-black flex items-center justify-center">
                                     <img
-                                        src={resolveImage(
-                                            cert.original_image_url ||
-                                            cert.display_image_url ||
-                                            cert.image_url
-                                        )}
+                                        src={resolveImage(cert.original_image_url || cert.display_image_url || cert.image_url)}
                                         alt={`Certificate ${cert.identifier}`}
                                         className="w-full h-auto object-contain"
                                     />
                                 </div>
-
                                 <div className="p-0 flex flex-col items-center gap-3">
                                     <button
                                         onClick={() => viewOnOpenSea(cert)}
                                         className="
-                        px-4 py-2
-                        bg-gradient-to-r from-blue-500 to-indigo-600
-                        hover:from-blue-600 hover:to-indigo-700
-                        text-white
-                        text-sm font-semibold
-                        rounded-lg
-                        shadow-md hover:shadow-lg
-                        transition-all duration-300
-                        transform hover:-translate-y-0.5
-                        flex items-center gap-2
-                    "
+                                            px-4 py-2
+                                            bg-gradient-to-r from-blue-500 to-indigo-600
+                                            hover:from-blue-600 hover:to-indigo-700
+                                            text-white
+                                            text-sm font-semibold
+                                            rounded-lg
+                                            shadow-md hover:shadow-lg
+                                            transition-all duration-300
+                                            transform hover:-translate-y-0.5
+                                            flex items-center gap-2
+                                        "
                                     >
-                                        {/* Logo de OpenSea */}
                                         <img
                                             src="https://static.seadn.io/logos/Logomark-White.png"
                                             alt="OpenSea"
@@ -279,11 +240,10 @@ const StudentDashboard = () => {
                             </motion.div>
                         ))}
                     </div>
-
                 </motion.main>
             </div>
         </Layout>
     );
 };
 
-export default StudentDashboard;
+export default StudentDetailDashboard; 

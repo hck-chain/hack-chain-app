@@ -19,6 +19,7 @@ import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getCertificatesByEducator } from '@/utils/web3Service';
 
 interface Student {
   id: number;
@@ -52,6 +53,8 @@ const EducatorDashboard = () => {
   const [userData, setUserData] = useState<any>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
+
 
   // Hook para crear certificado
   const { createCertificate, isLoading } = useCreateCertificate();
@@ -59,6 +62,7 @@ const EducatorDashboard = () => {
 
   // Verificar autenticación y obtener datos del usuario
   useEffect(() => {
+
     const loadProfile = async () => {
       try {
         const token = localStorage.getItem("authToken");
@@ -91,6 +95,14 @@ const EducatorDashboard = () => {
           email: data.user.email ?? "No email registered",
           role: "Educator",
         });
+
+
+        // Aquí no usamos userData, usamos directamente la wallet
+        const certCount = await getCertificatesByEducator(data.user.wallet_address);
+        console.log("Certificates fetched:", certCount);
+
+        setCertificatesIssued(certCount); // <-- directo, es un número
+
       } catch (err) {
         console.error("Dashboard load error:", err);
       }
@@ -335,8 +347,8 @@ const EducatorDashboard = () => {
                     <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                       <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Email</p>
-                        <p className="text-sm text-slate-200 truncate">{userData.email || "No email registered"}</p>
+                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Certificates Issued</p>
+                        <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : "No certificates issued yet"}</p>
                       </div>
                     </div>
 

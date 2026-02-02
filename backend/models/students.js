@@ -32,6 +32,11 @@ module.exports = (sequelize, DataTypes) => {
       targetKey: 'wallet_address',
       onDelete: 'CASCADE'
     });
+    Student.hasMany(models.Certificate, {  
+      foreignKey: 'student_wallet_address',
+      sourceKey: 'wallet_address',
+      as: 'certificates'
+    });
   };
 
   return Student;
