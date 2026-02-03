@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 
 const POLYGON_CHAIN_ID = '0x89';
 const CONTRACT_ADDRESS = '0x8D21aC87475eC2EE80fB149E376035F5E29DCa7C';
-
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 // ABI
 
 const CONTRACT_ABI = [
@@ -806,7 +806,7 @@ function App() {
         }
 
         try {
-            const response = await fetch("http://localhost:3001/api/issuers/mint", {
+            const response = await fetch(`${API_BASE_URL}/api/issuers/mint`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -849,7 +849,7 @@ function App() {
             const blockchain_tx_hash = tx.hash;
             const issue_date = new Date().toISOString().split('T')[0];
             try {
-                await fetch("http://localhost:3001/api/certificates/database", {
+                await fetch(`${API_BASE_URL}/api/certificates/database`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

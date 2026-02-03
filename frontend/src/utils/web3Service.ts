@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
 const CONTRACT_ADDRESS = '0x8D21aC87475eC2EE80fB149E376035F5E29DCa7C';
@@ -778,7 +779,7 @@ export const web3Service = {
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
-            await fetch("http://localhost:3001/api/issuers/increment-certificates", {
+            await fetch(`${API_BASE_URL}/api/issuers/increment-certificates`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -801,7 +802,7 @@ export const web3Service = {
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
-            const response = await fetch("http://localhost:3001/api/certificates/database", {
+            const response = await fetch(`${API_BASE_URL}/api/certificates/database`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -832,7 +833,7 @@ export const web3Service = {
 export async function getCertificatesByEducator(wallet: string) {
     console.log("getCertificatesByEducator called with wallet:", wallet); // 🔹 log frontend
 
-    const res = await fetch(`http://localhost:3001/api/issuers/${wallet}/certificates-count`);
+    const res = await fetch(`${API_BASE_URL}/api/issuers/${wallet}/certificates-count`);
     const data = await res.json();
 
     console.log("getCertificatesByEducator response:", data); // 🔹 log frontend

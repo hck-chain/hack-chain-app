@@ -21,7 +21,7 @@ import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface Student {
   id: number;
@@ -74,7 +74,7 @@ const EducatorDashboard = () => {
           return;
         }
 
-        const res = await fetch("http://localhost:3001/api/auth/me", {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -114,7 +114,7 @@ const EducatorDashboard = () => {
     // Fetch Students
     const fetchStudents = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/students');
+        const response = await fetch(`${API_BASE_URL}/api/students`);
         if (response.ok) {
           const data = await response.json();
           // The API returns { students: [...] } or just [...]? 
