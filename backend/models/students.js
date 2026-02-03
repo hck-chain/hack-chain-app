@@ -4,6 +4,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
+
     },
     wallet_address: {
       type: DataTypes.STRING(42),
@@ -38,6 +39,11 @@ module.exports = (sequelize, DataTypes) => {
       as: 'certificates'
     });
   };
+
+  // Relate students with certificates
+  Student.associate = (models) => {
+    Student.hasMany(models.Certificate, { foreignKey: 'studentId' });
+  }
 
   return Student;
 };

@@ -48,7 +48,7 @@ db.Student = require("./students")(sequelize, DataTypes);
 db.Issuer = require("./issuers")(sequelize, DataTypes);
 db.Recruiter = require("./recruiters")(sequelize, DataTypes);
 db.Certificate = require("./certificates")(sequelize, DataTypes);
-db.UserSession = require("./userSessions")(sequelize, DataTypes);
+=db.UserSession = require("./userSessions")(sequelize, DataTypes);
 
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {

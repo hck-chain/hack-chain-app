@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";         
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
+
 /**
  * @title HackToken
  * @dev ERC20 token with pausable transfers, minting, burning, and ownership transfer.
@@ -25,6 +26,7 @@ contract HackToken is ERC20, Pausable, Ownable {
 
     // --- Constructor ---
     
+
     /**
      * @dev Deploys the HackToken contract.
      * The token name and symbol are fixed in this implementation.
@@ -40,6 +42,7 @@ contract HackToken is ERC20, Pausable, Ownable {
     /// @dev Emitted when new tokens are minted.
     event TokenMinted(address to, uint256 amount);
     
+
     /// @dev Emitted when tokens are burned.
     event TokenBurned(address indexed from, uint256 amount);
 
@@ -57,6 +60,7 @@ contract HackToken is ERC20, Pausable, Ownable {
         if (amount_ == 0) revert AmountMustBeGreaterThanZero();
         if (mintedTokens + amount_ > maxSupply) revert MaxSupplyExceeded();
         mintedTokens += amount_;
+
         _mint(to_, amount_);
         emit TokenMinted(to_, amount_);
     }
@@ -70,6 +74,7 @@ contract HackToken is ERC20, Pausable, Ownable {
     function transferOwnershipCustom(address newOwner_) public onlyOwner {
         require(newOwner_ != address(0), "New owner cannot be zero address");
         require(newOwner_ != owner(), "New owner must be different from current owner");
+
         emit TransferNewOwner(owner(), newOwner_);
         transferOwnership(newOwner_);
     }
@@ -83,6 +88,7 @@ contract HackToken is ERC20, Pausable, Ownable {
     function burn(uint256 amount_) public onlyOwner whenNotPaused {
         if (balanceOf(msg.sender) < amount_) revert InsufficientBalance();
         if (amount_ == 0) revert AmountMustBeGreaterThanZero();
+
         _burn(msg.sender, amount_);
         emit TokenBurned(msg.sender, amount_);
     }
@@ -92,6 +98,7 @@ contract HackToken is ERC20, Pausable, Ownable {
      * @dev Only callable by the owner.
      */
      
+
     function pause() public onlyOwner {
         _pause();
     }
@@ -114,4 +121,5 @@ contract HackToken is ERC20, Pausable, Ownable {
         require(!paused(), "Pausable: token transfer while paused");
         super._update(from, to, amount);
     }
+
 }

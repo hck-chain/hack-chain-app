@@ -1,5 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const Certificate = sequelize.define("Certificate", {
+
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,

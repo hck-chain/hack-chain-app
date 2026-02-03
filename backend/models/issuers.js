@@ -44,5 +44,9 @@ module.exports = (sequelize, DataTypes) => {
     });
   };
 
+  Issuer.associate = (models) => {
+    Issuer.hasMany(models.Certificate, { foreignKey: 'issuerId' });
+  }
+
   return Issuer;
 };

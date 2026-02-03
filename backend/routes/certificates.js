@@ -10,6 +10,7 @@ const pinata = new PinataSDK({
 
 const { Certificate, Student, Issuer } = require("../models");
 const { GEOGRAPHY } = require("sequelize");
+
 const defaultCertificateCID = "bafybeibmeqeia5ta52vxbapor5mkens2uwau2xsy6oetrf6prlcfssm5le";
 
 // POST /api/certificates: Upload certificate metadata to Pinata
@@ -123,6 +124,7 @@ router.post("/database", async (req, res) => {
 
     // Check if issuer exists
     const issuer = await Issuer.findOne({ where: { wallet_address: issuer_wallet_address } });
+
     if (!issuer) {
       return res.status(404).json({ error: "Issuer not found" });
     }
@@ -137,6 +139,7 @@ router.post("/database", async (req, res) => {
       issue_date,
       token_id,
       is_revoked: false
+
     });
 
     res.status(201).json({
@@ -152,6 +155,7 @@ router.post("/database", async (req, res) => {
         is_revoked: certificate.is_revoked,
         created_at: certificate.created_at
       }
+
     });
 
   } catch (error) {
@@ -261,5 +265,6 @@ router.put("/database/:id/revoke", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 module.exports = router; 
