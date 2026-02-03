@@ -13,29 +13,33 @@ const path = require("path");
 const app = express();
 const port = process.env.PORT || 3001;
 
-
+// ---------- CORS ----------
+// Leer frontend origin desde env, con fallback a localhost para testing
 const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN || "http://localhost:5173", // tu frontend local
   "https://hackchain-ten.vercel.app",
-  "https://hack-chain-app-frontend-jpjb.vercel.app"
+  "https://hack-chain-app-frontend-jpjb.vercel.app",
+  "https://hack-chain-app-frontend-jpjb-jpewn1e9n.vercel.app"
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // permite requests server-side o Postman
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`Blocked CORS request from origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true
+  credentials: true // necesario si usas cookies o auth
 }));
 
-
-
+// ---------- Middleware ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Import routes
+// ---------- Rutas ----------
 const authRouter = require("./routes/auth");
 const usersRouter = require("./routes/users");
 const sessionsRouter = require("./routes/sessions");
@@ -45,7 +49,6 @@ const issuersRouter = require("./routes/issuers");
 const recruitersRouter = require("./routes/recruiters");
 const opensea = require("./routes/opensea");
 
-// Use routes
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
@@ -55,7 +58,7 @@ app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
 
-// Health check básico: verifica que la app está viva y la DB responde
+// ---------- Health check ----------
 app.get("/health", async (req, res) => {
   try {
     await db.sequelize.authenticate();
@@ -66,34 +69,31 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// 404 handler (si no coincide ninguna ruta)
+// ---------- 404 ----------
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// Error handler (middleware final)
+// ---------- Error handler ----------
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err && err.stack ? err.stack : err);
   const status = err.status && Number(err.status) || 500;
   res.status(status).json({ error: err.message || "Internal server error" });
 });
 
-// Sincronizar DB y arrancar servidor
+// ---------- Arrancar servidor ----------
 let server;
 (async () => {
   try {
-    // 1) Intentar autenticar la conexión (detecta credenciales/host/puerto incorrectos)
     await db.sequelize.authenticate();
     console.log("✅ Database connection authenticated.");
 
-    // 2) Sync (si prefieres migraiones en lugar de sync(), cámbialo)
     await db.sequelize.sync();
     console.log("✅ Database synchronized.");
 
-    // 3) Arrancar servidor
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
-      console.log(`🔗 Frontend origin: ${process.env.FRONTEND_ORIGIN}`);
+      console.log(`🔗 Frontend origin: ${process.env.FRONTEND_ORIGIN || "http://localhost:5173"}`);
     });
   } catch (err) {
     console.error("Failed to start server:", err);
@@ -101,7 +101,7 @@ let server;
   }
 })();
 
-// Graceful shutdown: cierra servidor y pool de DB
+// ---------- Graceful shutdown ----------
 async function shutdown(signal) {
   console.log(`\n⚠️  Received ${signal}. Shutting down gracefully...`);
   try {
@@ -111,7 +111,6 @@ async function shutdown(signal) {
       });
       console.log("HTTP server closed.");
     }
-    // cerrar sequelize
     if (db && db.sequelize) {
       await db.sequelize.close();
       console.log("Sequelize connection closed.");
