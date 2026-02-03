@@ -12,12 +12,34 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3001;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
+
+
+const allowedOrigins = [
+  "http://localhost:8080",       // para desarrollo local
+  /\.vercel\.app$/               // cualquier deploy de Vercel
+];
 
 app.use(cors({
-  origin: FRONTEND_ORIGIN,
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (ej. Postman)
+    if (!origin) return callback(null, true);
+
+    const match = allowedOrigins.some(o => {
+      if (o instanceof RegExp) return o.test(origin);
+      return o === origin;
+    });
+
+    if (match) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: ${origin} not allowed`));
+    }
+  },
   credentials: true
 }));
+
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
