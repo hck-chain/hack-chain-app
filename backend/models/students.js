@@ -4,7 +4,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
-
     },
     wallet_address: {
       type: DataTypes.STRING(42),
@@ -27,23 +26,22 @@ module.exports = (sequelize, DataTypes) => {
     updatedAt: 'updated_at'
   });
 
+  // Todas las asociaciones en un solo bloque
   Student.associate = (models) => {
+    // 1️⃣ Cada Student pertenece a un User
     Student.belongsTo(models.User, {
       foreignKey: 'wallet_address',
       targetKey: 'wallet_address',
       onDelete: 'CASCADE'
     });
-    Student.hasMany(models.Certificate, {  
+
+    // 2️⃣ Cada Student puede tener muchos Certificates
+    Student.hasMany(models.Certificate, {
       foreignKey: 'student_wallet_address',
       sourceKey: 'wallet_address',
       as: 'certificates'
     });
   };
-
-  // Relate students with certificates
-  Student.associate = (models) => {
-    Student.hasMany(models.Certificate, { foreignKey: 'studentId' });
-  }
 
   return Student;
 };
