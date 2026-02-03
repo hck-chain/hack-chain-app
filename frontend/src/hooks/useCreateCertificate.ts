@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { web3Service } from '@/utils/web3Service';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export interface CertificateData {
   studentName: string;
@@ -32,7 +33,7 @@ export const useCreateCertificate = () => {
         imageUri: data.imageUri
       };
 
-      const response = await fetch('http://localhost:3001/api/issuers/mint', {
+      const response = await fetch(`${API_BASE_URL}/api/issuers/mint`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

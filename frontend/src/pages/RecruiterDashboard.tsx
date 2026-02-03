@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface Recruiter {
     wallet_address: string;
@@ -40,7 +41,7 @@ const RecruiterDashboard = () => {
                 if (!token) return;
 
                 // Fetch recruiter info
-                const res = await fetch('http://localhost:3001/api/auth/me', {
+                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -51,7 +52,7 @@ const RecruiterDashboard = () => {
                 });
 
                 // Fetch students
-                const resStudents = await fetch('http://localhost:3001/api/students', {
+                const resStudents = await fetch(`${API_BASE_URL}/api/students`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const dataStudents = await resStudents.json();

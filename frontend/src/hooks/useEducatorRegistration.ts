@@ -11,7 +11,7 @@ import {
 } from '../types/auth';
 
 //API base URL --> adjust according to your configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 //API function register a new educator
 const registerEducator = async (educatorData: EducatorRegistrationRequestData & { wallet_address: string; role: string }): Promise<EducatorRegistrationResponse> => {

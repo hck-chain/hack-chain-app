@@ -9,9 +9,9 @@ import {
     ApiError,
     isApiError
 } from '../types/auth';
-
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 //API base URL --> adjust according to your configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
 
 //API function register a new user
 const registerUser = async (requestData: UserRegistrationRequestData & { wallet_address: string; role: string }): Promise<UserRegistrationResponse> => {
