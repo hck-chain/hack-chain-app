@@ -12,7 +12,7 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3001;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:8080";
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 
 app.use(cors({
   origin: FRONTEND_ORIGIN,
