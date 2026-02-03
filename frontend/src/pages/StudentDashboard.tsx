@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 
 interface Certificate {
     identifier: string;
@@ -40,7 +42,7 @@ const StudentDashboard = () => {
                 if (!token) return;
 
                 // Student info
-                const res = await fetch('http://localhost:3001/api/auth/me', {
+                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -52,7 +54,7 @@ const StudentDashboard = () => {
                 });
 
                 // Certificates
-                const certRes = await fetch('http://localhost:3001/api/opensea/certificates/', {
+                const certRes = await fetch(`${API_BASE_URL}/api/opensea/certificates/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
