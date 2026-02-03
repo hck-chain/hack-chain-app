@@ -15,24 +15,16 @@ const port = process.env.PORT || 3001;
 
 
 const allowedOrigins = [
-  "http://localhost:8080",       // para desarrollo local
-  /\.vercel\.app$/               // cualquier deploy de Vercel
+  "https://hackchain-ten.vercel.app",
+  "https://hack-chain-app-frontend-jpjb.vercel.app"
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // Permitir requests sin origin (ej. Postman)
-    if (!origin) return callback(null, true);
-
-    const match = allowedOrigins.some(o => {
-      if (o instanceof RegExp) return o.test(origin);
-      return o === origin;
-    });
-
-    if (match) {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS: ${origin} not allowed`));
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true
