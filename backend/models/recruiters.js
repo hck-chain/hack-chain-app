@@ -1,35 +1,38 @@
-const bcrypt = require("bcrypt");
-
-// TODO: Add functionality for counting how many students has a recruiter contacted
-
 module.exports = (sequelize, DataTypes) => {
   const Recruiter = sequelize.define("Recruiter", {
-    name: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
     },
-    lastName: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
+    wallet_address: {
+      type: DataTypes.STRING(42),
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'wallet_address'
+      },
+      onDelete: 'CASCADE'
     },
-    email: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
-    },
-    passwordHash: {
-      type: DataTypes.STRING,
-      allowNull: false
+    company_name: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     }
+  }, {
+    tableName: 'recruiters',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   });
 
-  // Hash password before saving
-  Recruiter.beforeCreate(async (recruiter) => {
-    const salt = await bcrypt.genSalt(10);
-    recruiter.passwordHash = await bcrypt.hash(recruiter.passwordHash, salt);
-  });
+  Recruiter.associate = (models) => {
+    Recruiter.belongsTo(models.User, {
+      foreignKey: 'wallet_address',
+      targetKey: 'wallet_address',
+      onDelete: 'CASCADE'
+    });
+  };
 
   return Recruiter;
 };

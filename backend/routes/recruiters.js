@@ -1,49 +1,112 @@
+// backend/routes/recruiters.js
 const express = require("express");
 const router = express.Router();
-const { Recruiter } = require("../models");
+const { Recruiter, User, Student } = require("../models");
+const { where } = require("sequelize");
 
-// POST /api/recruiter/register
-router.post("/register", async (req, res) => {
+// GET /api/recruiters
+router.get("/", async (req, res) => {
   try {
-    const { email, password, name, lastName } = req.body;
-
-    if (!email)
-      return res.status(400).json({ error: "Email required" });
-
-    if (!password)
-      return res.status(400).json({ error: "Password required" });
-
-    if (!name)
-      return res.status(400).json({ error: "Recruiter's mame required" });
-
-    if (!lastName)
-      return res.status(400).json({ error: "Recruiter's last name required" });
-
-    // Check if recruiter already exists
-    const existingByEmail = await Recruiter.findOne({ where: { email } });
-    if (existingByEmail)
-      return res.status(409).json({ error: "Recruiter already registered with that email" });
-
-    // Save recruiter with hashed password
-    const newRecruiter = await Recruiter.create({
-      name,
-      lastName,
-      email,
-      passwordHash: password,
+    const recruiters = await Recruiter.findAll({
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
     });
 
-    res.status(201).json({ 
-      message: "Recruiter registered", 
-      recruiter: {
-        email: newRecruiter.email,
-        name: newRecruiter.name,
-        lastName: newRecruiter.lastName,
-        lastName: newRecruiter.lastName,
-      } 
+    res.json({
+      recruiters: recruiters.map(recruiter => ({
+        id: recruiter.id,
+        wallet_address: recruiter.wallet_address,
+        company_name: recruiter.company_name,
+        user: recruiter.User,
+        created_at: recruiter.created_at
+      }))
     });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to register recruiter" });
+    res.status(500).json({ error: "Failed to fetch recruiters" });
+  }
+});
+
+// POST /api/recruiters/dashboard
+router.post("/dashboard", async (req, res) => {
+  try {
+    const { wallet_address } = req.body;
+    const recruiter = await Recruiter.findOne({ where: { wallet_address: wallet_address.toLowerCase() } });
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+    const students = await Student.findAll({
+      include: [{
+        model: User,
+        attributes: ["name", "lastname"]
+      }],
+      attributes: [
+        "field_of_study",
+        "wallet_address",
+        "created_at"
+      ]
+    });
+    res.status(200).json(students);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to get students list" });
+  }
+});
+
+// GET /api/recruiters/:wallet_address
+router.get("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+
+    const recruiter = await Recruiter.findOne({
+      where: { wallet_address: wallet_address.toLowerCase() },
+      include: [{
+        model: User,
+        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+      }]
+    });
+
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+
+    res.json({
+      recruiter: {
+        id: recruiter.id,
+        wallet_address: recruiter.wallet_address,
+        company_name: recruiter.company_name,
+        user: recruiter.User,
+        created_at: recruiter.created_at
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch recruiter" });
+  }
+});
+
+// PUT /api/recruiters/:wallet_address
+router.put("/:wallet_address", async (req, res) => {
+  try {
+    const { wallet_address } = req.params;
+    const { company_name } = req.body;
+
+    const recruiter = await Recruiter.findOne({ where: { wallet_address: wallet_address.toLowerCase() } });
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+
+    await recruiter.update({ company_name });
+
+    res.json({ message: "Recruiter updated successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update recruiter" });
   }
 });
 

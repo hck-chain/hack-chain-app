@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "opensea",
+      "source": "@opensea/v2.0#1pycv28mjcsswew",
+      "integrity": "sha512-bgqn/EUN687UmoMzROJf5Vb9VW39rLsn8GxkGSF4UdndZJ+/h94bFVoHsMP6a5sM/a1rgjeWq5JydRqlycDpRA==",
+      "installerVersion": "6.1.3"
+    }
+  ]
+}

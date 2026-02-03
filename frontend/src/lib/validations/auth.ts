@@ -1,107 +1,135 @@
 import { z } from "zod";
 
-export const userRegistrationSchema = z
-    .object({
-        name: z
-            .string()
-            .min(1, "Name is required")
-            .min(2, "Name must be at least 2 characters long")
-            .max(50, "Name must be at most 50 characters long")
-            .regex(/^[a-zA-ZÀ-ÿ\s]*$/, "Name can only contain letters and spaces"),
+export const userRegistrationSchema = z.object({
+    name: z
+        .string()
+        .min(1, "Name is required")
+        .min(2, "Name must be at least 2 characters long")
+        .max(50, "Name must be at most 50 characters long")
+        .regex(/^[a-zA-ZÀ-ÿ\s]*$/, "Name can only contain letters and spaces"),
 
-        lastName: z
-            .string()
-            .min(1, "Last name is required")
-            .min(2, "Last name must be at least 2 characters long")
-            .max(50, "Last name must be at most 50 characters long")
-            .regex(
-                /^[a-zA-ZÀ-ÿ\s]*$/,
-                "Last name can only contain letters and spaces"
-            ),
+    lastName: z
+        .string()
+        .min(1, "Last name is required")
+        .min(2, "Last name must be at least 2 characters long")
+        .max(50, "Last name must be at most 50 characters long")
+        .regex(
+            /^[a-zA-ZÀ-ÿ\s]*$/,
+            "Last name can only contain letters and spaces"
+        ),
 
-        age: z
-            .string()
-            .min(1, "Age is required")
-            .regex(/^[0-9]+$/, "Age must be a valid number")
-            .refine((val) => {
-                const age = parseInt(val);
-                return age >= 18 && age <= 100;
-            }, "Age must be between 18 and 100"),
+    email: z
+        .string()
+        .min(1, "Email is required")
+        .email("Please enter a valid email address")
+        .max(100, "Email must be at most 100 characters long"),
+});
 
-        email: z
-            .string()
-            .min(1, "Email is required")
-            .email("Please enter a valid email address")
-            .max(100, "Email must be at most 100 characters long"),
+//schema for sending data to the backend
+export const userRegistrationRequestSchema = z.object({
+    name: z.string(),
+    lastname: z.string(),
+    email: z.string().email(),
+});
 
-        password: z
-            .string()
-            .min(8, "Password must be at least 8 characters long")
-            .max(100, "Password must be at most 100 characters long")
-            .regex(
-                /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-            ),
+//recruiter registration schema
+export const recruiterRegistrationSchema = z.object({
+    name: z
+        .string()
+        .min(1, "Name is required")
+        .min(2, "Name must be at least 2 characters long")
+        .max(50, "Name must be at most 50 characters long")
+        .regex(/^[a-zA-ZÀ-ÿ\s]*$/, "Name can only contain letters and spaces"),
 
-        confirmPassword: z.string().min(1, "Please confirm your password"),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
-        path: ["confirmPassword"],
-    });
+    lastName: z
+        .string()
+        .min(1, "Last name is required")
+        .min(2, "Last name must be at least 2 characters long")
+        .max(50, "Last name must be at most 50 characters long")
+        .regex(
+            /^[a-zA-ZÀ-ÿ\s]*$/,
+            "Last name can only contain letters and spaces"
+        ),
 
+    companyName: z
+        .string()
+        .min(1, "Company Name is required")
+        .min(2, "Company Name must be at least 2 characters long")
+        .max(100, "Company Name must be at most 100 characters long"),
 
-    //schema for sending data to the backend (without confirmPassword)
-    export const userRegistrationRequestSchema = z.object({
-        name: z
-            .string()
-            .min(1, "Name is required")
-            .min(2, "Name must be at least 2 characters long")
-            .max(50, "Name must be at most 50 characters long")
-            .regex(/^[a-zA-ZÀ-ÿ\s]*$/, "Name can only contain letters and spaces"),
+    email: z
+        .string()
+        .min(1, "Email is required")
+        .email("Please enter a valid email address")
+        .max(100, "Email must be at most 100 characters long"),
+});
 
-        lastName: z
-            .string()
-            .min(1, "Last name is required")
-            .min(2, "Last name must be at least 2 characters long")
-            .max(50, "Last name must be at most 50 characters long")
-            .regex(
-                /^[a-zA-ZÀ-ÿ\s]*$/,
-                "Last name can only contain letters and spaces"
-            ),
+//schema for sending data to the backend
+export const recruiterRegistrationRequestSchema = z.object({
+    name: z.string(),
+    lastname: z.string(),
+    company_name: z.string(),
+    email: z.string().email(),
+});
 
-        age: z
-            .string()
-            .min(1, "Age is required")
-            .regex(/^[0-9]+$/, "Age must be a valid number")
-            .refine((val) => {
-                const age = parseInt(val);
-                return age >= 18 && age <= 100;
-            }, "Age must be between 18 and 100"),
+//educator registration schema
+export const educatorRegistrationSchema = z.object({
+    organizationName: z
+        .string()
+        .min(1, "Organization name is required")
+        .min(2, "Organization name must be at least 2 characters long")
+        .max(200, "Organization name must be at most 200 characters long")
+        .trim(),
 
-        email: z
-            .string()
-            .min(1, "Email is required")
-            .email("Please enter a valid email address")
-            .max(100, "Email must be at most 100 characters long"),
+    email: z
+        .string()
+        .min(1, "Email is required")
+        .email("Please enter a valid email address")
+        .max(100, "Email must be at most 100 characters long"),
+});
 
-        password: z
-            .string()
-            .min(8, "Password must be at least 8 characters long")
-            .max(100, "Password must be at most 100 characters long")
-            .regex(
-                /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-            ),
-    });
+//schema for sending educator data to the backend
+export const educatorRegistrationRequestSchema = z.object({
+    organization_name: z.string(),
+    email: z.string().email(),
+});
 
 export type UserRegistrationFormData = z.infer<typeof userRegistrationSchema>;
 export type UserRegistrationRequestData = z.infer<typeof userRegistrationRequestSchema>;
+export type RecruiterRegistrationFormData = z.infer<typeof recruiterRegistrationSchema>;
+export type RecruiterRegistrationRequestData = z.infer<typeof recruiterRegistrationRequestSchema>;
+export type EducatorRegistrationFormData = z.infer<typeof educatorRegistrationSchema>;
+export type EducatorRegistrationRequestData = z.infer<typeof educatorRegistrationRequestSchema>;
 
 //transform the response from the backend
 export const transformFormDataToRequest = (
     formData: UserRegistrationFormData
 ): UserRegistrationRequestData => {
-    const {confirmPassword, ...requestData} = formData;
-    return requestData;
+    return {
+        name: formData.name,
+        lastname: formData.lastName,
+        email: formData.email,
+    };
+};
+
+//transform recruiter form data for backend request
+export const transformRecruiterFormDataToRequest = (
+    formData: RecruiterRegistrationFormData
+): RecruiterRegistrationRequestData => {
+    return {
+        name: formData.name,
+        lastname: formData.lastName,
+        company_name: formData.companyName,
+        email: formData.email,
+    };
+};
+
+//transform educator form data for backend request
+export const transformEducatorFormDataToRequest = (
+    formData: EducatorRegistrationFormData
+): EducatorRegistrationRequestData => {
+    return {
+        organization_name: formData.organizationName,
+        email: formData.email,
+    };
 };

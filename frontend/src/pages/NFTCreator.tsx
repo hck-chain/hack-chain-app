@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas';
+import { useToast } from '@/hooks/use-toast';
 
 const NFTCreator = () => {
   const [form, setForm] = useState({
@@ -18,6 +19,7 @@ const NFTCreator = () => {
   });
   const [logoPreview, setLogoPreview] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.name === 'logo' && e.target.files && e.target.files[0]) {
@@ -46,8 +48,8 @@ const NFTCreator = () => {
     // Temporarily disable overlays/animations that can break rendering
     const prevShineDisplay = shine?.style.display;
     const prevGlareDisplay = glare?.style.display;
-    shine && (shine.style.display = 'none');
-    glare && (glare.style.display = 'none');
+    if (shine) shine.style.display = 'none';
+    if (glare) glare.style.display = 'none';
     card.classList.remove('active');
 
     try {
@@ -65,8 +67,18 @@ const NFTCreator = () => {
       link.download = `${title}.png`;
       link.href = dataUrl;
       link.click();
+      
+      toast({
+        title: "Success!",
+        description: "Certificate downloaded successfully.",
+      });
     } catch (err) {
       console.error('Failed to generate image', err);
+      toast({
+        title: "Error",
+        description: "Failed to download certificate.",
+        variant: "destructive",
+      });
     } finally {
       // Restore
       if (shine) shine.style.display = prevShineDisplay ?? '';
@@ -153,7 +165,11 @@ const NFTCreator = () => {
                 </div>
               )}
             </div>
-            <Button type="button" onClick={handleDownload} className="w-full mt-4">
+            <Button 
+              type="button" 
+              onClick={handleDownload} 
+              className="w-full mt-4"
+            >
               Download Certificate
             </Button>
           </form>

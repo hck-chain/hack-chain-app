@@ -1,43 +1,44 @@
-const bcrypt = require("bcrypt");
-
 module.exports = (sequelize, DataTypes) => {
   const Student = sequelize.define("Student", {
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    lastName: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    age: {
+    id: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      primaryKey: true,
+      autoIncrement: true
+
     },
-    email: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
+    wallet_address: {
+      type: DataTypes.STRING(42),
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'wallet_address'
+      },
+      onDelete: 'CASCADE'
     },
-    passwordHash: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    walletAddress: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    privateKey: {
-      type: DataTypes.STRING,
-      allowNull: false
+    field_of_study: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     }
+  }, {
+    tableName: 'students',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   });
 
-  // Hash password before saving
-  Student.beforeCreate(async (student) => {
-    const salt = await bcrypt.genSalt(10);
-    student.passwordHash = await bcrypt.hash(student.passwordHash, salt);
-  });
+  Student.associate = (models) => {
+    Student.belongsTo(models.User, {
+      foreignKey: 'wallet_address',
+      targetKey: 'wallet_address',
+      onDelete: 'CASCADE'
+    });
+    Student.hasMany(models.Certificate, {  
+      foreignKey: 'student_wallet_address',
+      sourceKey: 'wallet_address',
+      as: 'certificates'
+    });
+  };
 
   // Relate students with certificates
   Student.associate = (models) => {
