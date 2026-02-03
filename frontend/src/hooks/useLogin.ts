@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 
-const API_BASE_URL = "https://hack-chain-app.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface LoginCredentials {
   email: string;
@@ -32,6 +32,8 @@ interface ApiError {
 export const useLogin = () => {
   return useMutation<LoginResponse, Error, LoginCredentials>({
     mutationFn: async (credentials) => {
+      console.log("API_URL:", import.meta.env.VITE_API_URL);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
