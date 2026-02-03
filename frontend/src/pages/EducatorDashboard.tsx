@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
+import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+
 
 interface Student {
   id: number;
@@ -294,7 +296,7 @@ const EducatorDashboard = () => {
 
           {/* Header Section */}
           <header
-            className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+            className="mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
           >
             <div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
@@ -302,11 +304,15 @@ const EducatorDashboard = () => {
                   Educator Dashboard
                 </span>
               </h1>
+
               <p className="text-lg text-slate-400 font-light">
                 Create and issue blockchain-verified credentials with ease.
               </p>
             </div>
-
+            {/* Logo centrado */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+            </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -524,9 +530,9 @@ const EducatorDashboard = () => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="lg:col-span-7 order-1 lg:order-2 sticky top-8"
             >
-              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-12 flex flex-col items-center justify-center min-h-[600px] relative">
+              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
                 {/* "Preview" Label */}
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                   <span className="text-xs font-medium tracking-widest uppercase text-slate-400">Live Preview</span>
                 </div>
 
@@ -543,8 +549,8 @@ const EducatorDashboard = () => {
                   />
                 </div>
 
-                <div className="mt-12 text-center max-w-md">
-                  <h3 className="text-white font-semibold text-lg mb-2">Review before Minting</h3>
+                <div className="mt-3 text-center max-w-md">
+                  <h3 className="text-white font-semibold text-lg mb-1">Review before Minting</h3>
                   <p className="text-slate-500 text-sm">
                     This is exactly how the NFT metadata will appear. Once minted, the details are immutable on the blockchain.
                   </p>

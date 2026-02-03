@@ -31,6 +31,7 @@
     "url": "https://github.com/RicardoMuchacho/hack-chain"
   },
   "dependencies": {
+    "react-icons": "^5.5.0",
     "solc": "^0.8.30"
   }
 }

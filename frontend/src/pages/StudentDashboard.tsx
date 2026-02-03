@@ -7,17 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 interface Certificate {
-    identifier: string;   // tokenId real
-    contract: string;     // contract address real
+    identifier: string;
+    contract: string;
     name?: string;
     description?: string;
     image_url: string;
     display_image_url?: string;
     original_image_url?: string;
 }
-
 
 interface Student {
     wallet_address: string;
@@ -44,7 +44,6 @@ const StudentDashboard = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
-                console.log("la data es: ", data);
                 setStudent({
                     wallet_address: data.user.wallet_address,
                     name: data.user.name,
@@ -62,9 +61,6 @@ const StudentDashboard = () => {
                     body: JSON.stringify({ address: data.user.wallet_address }),
                 });
                 const certData = await certRes.json();
-
-                console.log("Certificates fetched from backend:", certData); // 🔹 depuración
-                certData.forEach((cert: Certificate) => console.log("Cert:", cert)); // 🔹 cada certificado
                 setCertificates(certData);
             } catch (err) {
                 console.error(err);
@@ -79,7 +75,6 @@ const StudentDashboard = () => {
         };
         loadData();
     }, [toast]);
-
 
     const handleLogout = () => {
         localStorage.removeItem('user');
@@ -98,11 +93,8 @@ const StudentDashboard = () => {
             : url;
     };
 
-    if (!student) {
-        return null;
-    }
+    if (!student) return null;
 
-    // 🔹 Función para abrir NFT en OpenSea
     const viewOnOpenSea = (cert: Certificate) => {
         const url = `https://opensea.io/assets/polygon/${cert.contract}/${cert.identifier}`;
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -112,24 +104,33 @@ const StudentDashboard = () => {
 
     return (
         <Layout>
-            <div className="min-h-screen relative font-sans text-slate-200">
+            <div className="min-h-screen relative font-body text-slate-200">
                 <motion.main
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="relative z-10 px-6 md:px-12 pt-12 pb-20 max-w-[1600px] mx-auto"
+                    className="relative z-10 px-6 md:px-12 pt-11 pb-20 max-w-[1600px] mx-auto"
                 >
+
+
                     {/* Header */}
-                    <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <header className="mb-14 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
-                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                            <h1 className="text-4xl md:text-5xl font-title font-bold tracking-tight mb-2">
+                                <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                                     Student Dashboard
                                 </span>
                             </h1>
-                            <p className="text-lg text-slate-400 font-light">
-                                View your tokenized certificates.                            </p>
+                            <p className="text-lg text-slate-400 font-body leading-relaxed">
+                                View your tokenized certificates.
+                            </p>
                         </div>
+                        {/* Logo centrado */}
+                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                            <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+                        </div>
+
+                        {/* User Popover */}
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -137,8 +138,10 @@ const StudentDashboard = () => {
                                     className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
                                 >
                                     <div className="flex flex-row items-baseline gap-1">
-                                        <span className="text-xs text-slate-400 font-medium">Welcome back,</span>
-                                        <span className="text-sm font-bold text-white">
+                                        <span className="text-xs text-slate-400 font-body font-medium">
+                                            Welcome back,
+                                        </span>
+                                        <span className="text-sm font-body font-bold text-white">
                                             {student.name || "Student"}
                                         </span>
                                     </div>
@@ -150,36 +153,37 @@ const StudentDashboard = () => {
                                     <ChevronDown className="h-4 w-4 text-slate-400" />
                                 </Button>
                             </PopoverTrigger>
+
                             <PopoverContent
                                 className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
                                 align="end"
                                 sideOffset={8}
                             >
                                 <div className="p-6 space-y-4">
-
                                     {/* Header */}
                                     <div className="flex items-center gap-4 pb-4 border-b border-white/10">
                                         <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
                                             <Award className="h-6 w-6 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-base font-bold text-white">
+                                            <h3 className="text-base font-title font-bold text-white">
                                                 {student.name || "Student"}
                                             </h3>
-                                            <p className="text-xs text-blue-400 font-medium">
-                                                {"Student"}
+                                            <p className="text-xs text-blue-400 font-body font-medium">
+                                                Student
                                             </p>
                                         </div>
                                     </div>
 
                                     {/* Info */}
                                     <div className="space-y-3">
-
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Mail className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Total Certificates</p>
-                                                <p className="text-sm text-slate-200 truncate">
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">
+                                                    Total Certificates
+                                                </p>
+                                                <p className="text-sm text-slate-200 font-body truncate">
                                                     {totalCertificates || "No certificate found"}
                                                 </p>
                                             </div>
@@ -188,16 +192,22 @@ const StudentDashboard = () => {
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Role</p>
-                                                <p className="text-sm text-slate-200">Student</p>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">
+                                                    Role
+                                                </p>
+                                                <p className="text-sm text-slate-200 font-body">
+                                                    {student.role}
+                                                </p>
                                             </div>
                                         </div>
 
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Wallet</p>
-                                                <p className="text-sm text-slate-200 font-mono">
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">
+                                                    Wallet
+                                                </p>
+                                                <p className="text-sm text-slate-200 font-mono font-body">
                                                     ••••{student.wallet_address.slice(-4)}
                                                 </p>
                                             </div>
@@ -208,25 +218,16 @@ const StudentDashboard = () => {
                                             <Button
                                                 onClick={handleLogout}
                                                 variant="outline"
-                                                className="
-                                                w-full
-                                                border-red-500/20
-                                                text-red-400
-                                                hover:bg-red-500/10
-                                                hover:text-red-300
-                                                hover:border-red-500/30
-                                                "
+                                                className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 font-body"
                                             >
                                                 <LogOut className="h-4 w-4 mr-2" />
                                                 Logout
                                             </Button>
                                         </div>
-
                                     </div>
                                 </div>
                             </PopoverContent>
                         </Popover>
-
                     </header>
 
                     {/* Certificates Grid */}
@@ -254,20 +255,8 @@ const StudentDashboard = () => {
                                 <div className="p-0 flex flex-col items-center gap-3">
                                     <button
                                         onClick={() => viewOnOpenSea(cert)}
-                                        className="
-                        px-4 py-2
-                        bg-gradient-to-r from-blue-500 to-indigo-600
-                        hover:from-blue-600 hover:to-indigo-700
-                        text-white
-                        text-sm font-semibold
-                        rounded-lg
-                        shadow-md hover:shadow-lg
-                        transition-all duration-300
-                        transform hover:-translate-y-0.5
-                        flex items-center gap-2
-                    "
+                                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-sm font-body font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center gap-2"
                                     >
-                                        {/* Logo de OpenSea */}
                                         <img
                                             src="https://static.seadn.io/logos/Logomark-White.png"
                                             alt="OpenSea"
@@ -279,7 +268,6 @@ const StudentDashboard = () => {
                             </motion.div>
                         ))}
                     </div>
-
                 </motion.main>
             </div>
         </Layout>

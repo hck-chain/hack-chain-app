@@ -91,7 +91,7 @@ router.post("/mint", async (req, res) => {
         console.error("Failed to parse Pinata response:", e);
         return res.status(500).json({ error: "Invalid response from Pinata" });
       }
-      const tokenUri = `ipfs://${data.cid}`;
+      const tokenUri = data.cid;
 
       return res.json({
         walletStudent,

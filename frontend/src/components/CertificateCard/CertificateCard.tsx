@@ -17,6 +17,7 @@ interface CertificateCardProps {
   issuer?: string;
   issueDate?: string;
   logoUrl?: string;
+  backgroundUrl?: string;
 }
 
 const hackChainLogo = "/images/logoHackchain.png";
@@ -260,11 +261,11 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
       style={cardStyle}
     >
       <section ref={cardRef} className="pc-card">
-      <div className="pc-inside">
+        <div className="pc-inside">
           <div className="pc-shine" />
           <div className="pc-glare" />
           <div className="pc-content">
-          <div className="pc-details">
+            <div className="pc-details">
               {/* Header Section */}
               <div className="flex justify-between px-10 items-start">
                 <div className="flex flex-col max-w-[80%]">
@@ -280,77 +281,77 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
                     ]}
                   />
                 </div>
-                  {/* <Award size={"48px"} color="gray"/> */}
-                  <img src={sealLogo} alt="Seal" className="absolute -top-2 right-0 w-16 h-16 border-radius-full" />
+                {/* <Award size={"48px"} color="gray"/> */}
+                <img src={sealLogo} alt="Seal" className="absolute -top-2 right-12 w-16 h-16 border-radius-full" />
               </div>
-              <hr className="mx-10 mt-4"/>     
-            <div className="flex flex-col gap-2 p-6">
-              {/* First Row: Awarded To and Issue Date */}
-              <div className="flex justify-between">
-                <div className="pc-section w-1/2 pr-2">
-                  <p className="text-sm text-gray-400">Awarded To</p>
-                  <GradientText
-                    text={name}
-                    fontSize={24}
-                    fontWeight={700}
-                    className="w-fit"
-                    gradientStops={[
-                      { offset: 0, color: "#ffffff" },
-                      { offset: 1, color: "#4a4ac0" },
-                    ]}
-                  />
-                </div>
-                <div className="pc-section w-1/2 pl-2">
-                  <p className="text-sm text-gray-400">Issue Date</p>
-                  <GradientText
-                    text={issueDate}
-                    fontSize={24}
-                    fontWeight={700}
-                    className="w-fit"
-                    gradientStops={[
-                      { offset: 0, color: "#ffffff" },
-                      { offset: 1, color: "#4a4ac0" },
-                    ]}
-                  />
-                </div>
-              </div>
-              {/* Second Row: Issuer and Logo */}
-              <div className="flex justify-between items-center pt-2">
-                <div className="pc-section w-1/2 pr-2">
-                  <p className="text-sm text-gray-400">Issued By</p>
-                  <GradientText
-                    text={issuer}
-                    fontSize={24}
-                    fontWeight={700}
-                    className="w-fit"
-                    gradientStops={[
-                      { offset: 0, color: "#ffffff" },
-                      { offset: 1, color: "#4a4ac0" },
-                    ]}
-                  />
-                </div>
-                {logoUrl ? (
-                  <div className="w-1/2 pl-2 flex justify-start">
-                      <img 
-                      src={logoUrl} 
-                      alt="Issuer Logo" 
-                      className="h-20 w-auto object-contain max-w-full"
-                      />
+              <hr className="mx-10 mt-4" />
+              <div className="flex flex-col gap-2 p-6">
+                {/* First Row: Awarded To and Issue Date */}
+                <div className="flex justify-between">
+                  <div className="pc-section w-1/2 pr-2">
+                    <p className="text-sm text-gray-400">Awarded To</p>
+                    <GradientText
+                      text={name}
+                      fontSize={24}
+                      fontWeight={700}
+                      className="w-fit"
+                      gradientStops={[
+                        { offset: 0, color: "#ffffff" },
+                        { offset: 1, color: "#4a4ac0" },
+                      ]}
+                    />
                   </div>
-                ) : (
-                  <div className="w-1/2 pl-2 flex justify-start">
-                      <img 
-                      src={hackChainLogo} 
-                      alt="Default Logo" 
-                      className="h-20 w-auto object-contain max-w-full"
-                      />
+                  <div className="pc-section w-1/2 pl-2">
+                    <p className="text-sm text-gray-400">Issue Date</p>
+                    <GradientText
+                      text={issueDate}
+                      fontSize={24}
+                      fontWeight={700}
+                      className="w-fit"
+                      gradientStops={[
+                        { offset: 0, color: "#ffffff" },
+                        { offset: 1, color: "#4a4ac0" },
+                      ]}
+                    />
                   </div>
-                )}
+                </div>
+                {/* Second Row: Issuer and Logo */}
+                <div className="flex justify-between items-center pt-2">
+                  <div className="pc-section w-1/2 pr-2">
+                    <p className="text-sm text-gray-400">Issued By</p>
+                    <GradientText
+                      text={issuer}
+                      fontSize={24}
+                      fontWeight={700}
+                      className="w-fit"
+                      gradientStops={[
+                        { offset: 0, color: "#ffffff" },
+                        { offset: 1, color: "#4a4ac0" },
+                      ]}
+                    />
+                  </div>
+                  {logoUrl ? (
+                    <div className="w-1/2 pl-2 flex justify-start">
+                      <img
+                        src={logoUrl}
+                        alt="Issuer Logo"
+                        className="h-20 w-auto object-contain max-w-full"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-1/2 pl-2 flex justify-start">
+                      <img
+                        src={hackChainLogo}
+                        alt="Default Logo"
+                        className="h-20 w-auto object-contain max-w-full"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          </div>
-      </div>
+        </div>
       </section>
     </div>
   );

@@ -4,8 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft } from 'lucide-react';
+import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 interface Certificate {
     identifier: string;
@@ -98,17 +99,18 @@ const StudentDetailDashboard = () => {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
-    if (!student) return <p className="text-center text-white mt-20">Loading student...</p>;
+    if (!student) return 0;
 
     return (
         <Layout>
-            <div className="min-h-screen relative font-sans text-slate-200">
+            <div className="min-h-screen relative font-body text-slate-200 px-6 md:px-12 pt-12 pb-20 max-w-[1600px] mx-auto">
                 <motion.main
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="relative z-10 px-6 md:px-12 pt-12 pb-20 max-w-[1600px] mx-auto"
+                    className="relative z-10"
                 >
+
                     {/* Header */}
                     <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
@@ -120,16 +122,21 @@ const StudentDetailDashboard = () => {
                                 <ArrowLeft className="h-5 w-5" /> Back
                             </Button>
                             <div>
-                                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
+                                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2 font-title">
                                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
                                         {student.name}
                                     </span>
                                 </h1>
-                                <p className="text-lg text-slate-400 font-light">
+                                <p className="text-lg text-slate-400 font-light font-body">
                                     Student details and certificates
                                 </p>
                             </div>
                         </div>
+                        {/* Logo centrado */}
+                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                            <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+                        </div>
+
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -137,8 +144,8 @@ const StudentDetailDashboard = () => {
                                     className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
                                 >
                                     <div className="flex flex-row items-baseline gap-1">
-                                        <span className="text-xs text-slate-400 font-medium">Student:</span>
-                                        <span className="text-sm font-bold text-white">
+                                        <span className="text-xs text-slate-400 font-body font-medium">Student:</span>
+                                        <span className="text-sm font-title font-bold text-white">
                                             {student.name}
                                         </span>
                                     </div>
@@ -159,36 +166,50 @@ const StudentDetailDashboard = () => {
                                             <Award className="h-6 w-6 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-base font-bold text-white">{student.name}</h3>
+                                            <h3 className="text-base font-title font-bold text-white">{student.name}</h3>
                                         </div>
                                     </div>
 
                                     {/* Info */}
                                     <div className="space-y-3">
+                                        {/* Certificates */}
+                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <Award className="h-4 w-4 text-slate-400 mt-0.5" />
+                                            <div>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Certificates</p>
+                                                <p className="text-sm text-slate-200 font-body">{student.total_certificates}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Field of Study */}
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Field of Study</p>
-                                                <p className="text-sm text-slate-200">{student.field_of_study}</p>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
+                                                <p className="text-sm text-slate-200 font-body">{student.field_of_study}</p>
                                             </div>
                                         </div>
 
+                                        {/* Wallet */}
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-semibold">Wallet</p>
-                                                <p className="text-sm text-slate-200 font-mono">••••{student.wallet_address.slice(-4)}</p>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Wallet</p>
+                                                <p className="text-sm text-slate-200 font-body">
+                                                    ••••{student.wallet_address.slice(-4)}
+                                                </p>
                                             </div>
                                         </div>
 
+                                        {/* Registered */}
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <p className="text-xs uppercase text-slate-500 font-semibold">Certificates</p>
-                                            <p className="text-sm text-slate-200">{student.total_certificates}</p>
-                                        </div>
-
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <p className="text-xs uppercase text-slate-500 font-semibold">Registered</p>
-                                            <p className="text-sm text-slate-200">{new Date(student.created_at || '').toLocaleDateString()}</p>
+                                            <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
+                                            <div>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Registered</p>
+                                                <p className="text-sm text-slate-200 font-body">
+                                                    {new Date(student.created_at || '').toLocaleDateString()}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -221,7 +242,7 @@ const StudentDetailDashboard = () => {
                                             bg-gradient-to-r from-blue-500 to-indigo-600
                                             hover:from-blue-600 hover:to-indigo-700
                                             text-white
-                                            text-sm font-semibold
+                                            text-sm font-body font-semibold
                                             rounded-lg
                                             shadow-md hover:shadow-lg
                                             transition-all duration-300
@@ -246,4 +267,4 @@ const StudentDetailDashboard = () => {
     );
 };
 
-export default StudentDetailDashboard; 
+export default StudentDetailDashboard;
