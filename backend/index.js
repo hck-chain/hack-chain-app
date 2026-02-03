@@ -16,24 +16,28 @@ const port = process.env.PORT || 3001;
 // ---------- CORS ----------
 // Leer frontend origin desde env, con fallback a localhost para testing
 const allowedOrigins = [
-  process.env.FRONTEND_ORIGIN || "http://localhost:5173", // tu frontend local
+  process.env.FRONTEND_ORIGIN,
   "https://hackchain-ten.vercel.app",
-  "https://hack-chain-app-frontend-jpjb.vercel.app",
-  "https://hack-chain-app-frontend-jpjb-jpewn1e9n.vercel.app"
+  "https://hack-chain-app-frontend-jpjb.vercel.app"
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // permite requests server-side o Postman
+  origin: function (origin, callback) {
+    // 1️⃣ Si no hay origin (server-side request, Postman, curl...)
+    if (!origin) return callback(null, true);
+
+    // 2️⃣ Si el origin está en la lista de permitidos
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`Blocked CORS request from origin: ${origin}`);
-      callback(new Error("Not allowed by CORS"));
+      return callback(null, true);
     }
+
+    // 3️⃣ Si no está permitido
+    console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true // necesario si usas cookies o auth
 }));
+
 
 // ---------- Middleware ----------
 app.use(express.json());
