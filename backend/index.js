@@ -1,4 +1,3 @@
-// backend/index.js
 require("dotenv").config();
 
 const express = require("express");
@@ -22,13 +21,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permitir requests sin origin (Postman, server-side)
     if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
     callback(new Error("Not allowed by CORS"));
   },
@@ -58,20 +52,14 @@ app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
 
-// Servir build React
+// ---------- Servir build React ----------
 app.use(express.static(path.join(__dirname, 'frontend/build')));
 
-// Redirigir todo lo demás a index.html
-app.get('/:any*', (req, res) => {
+// Redirigir **todas las rutas que no sean API** a index.html
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) return next(); // Dejar pasar rutas API
   res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
 });
-
-
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log('Server running');
-});
-
 
 // ---------- Health check ----------
 app.get("/health", async (req, res) => {
