@@ -86,7 +86,7 @@ router.post("/register", async (req, res) => {
       roleData: roleSpecificData
     });
 
-    wallet_address = "";
+   // wallet_address = "";
 
   } catch (err) {
     console.error(err);
