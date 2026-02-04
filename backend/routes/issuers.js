@@ -80,7 +80,7 @@ router.post("/mint", async (req, res) => {
       imageCID: imageUri,
     };
 
-    const pinataRes = await fetch("https://hackchain.app/api/certificates/", {
+    const pinataRes = await fetch("https://hack-chain-app.onrender.com/api/certificates/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(uri)
