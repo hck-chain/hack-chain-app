@@ -822,7 +822,7 @@ export const web3Service = {
                 return false;
             }
 
-            alert("Certificate minted and saved successfully!");
+            //alert("Certificate minted and saved successfully!");
             return true;
         } catch (err) {
             console.error("Minting or DB saving failed:", err);
