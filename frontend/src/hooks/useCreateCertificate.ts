@@ -26,7 +26,7 @@ export const useCreateCertificate = () => {
 
       // 1. Backend: Validate Student & Pin Metadata to IPFS
       const payload = {
-        student_wallet_address: data.studentWallet,
+        studentWalletAddress: data.studentWallet,
         nameStudent: data.studentName,
         professor: professorWallet,
         courseName: data.courseName,

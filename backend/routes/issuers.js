@@ -48,14 +48,14 @@ router.post("/authorize", async (req, res) => {
 // POST /api/issuers/mint
 router.post("/mint", async (req, res) => {
   try {
-    const { student_wallet_address, nameStudent, professor, courseName, imageUri } = req.body;
+    const { studentWalletAddress, nameStudent, professor, courseName, imageUri } = req.body;
 
-    if (!student_wallet_address || !nameStudent || !professor || !courseName || !imageUri) {
+    if (!studentWalletAddress || !nameStudent || !professor || !courseName || !imageUri) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     // Normalizamos wallets a minúsculas
-    const studentWalletLower = student_wallet_address.toLowerCase();
+    const student_wallet_address = studentWalletAddress.toLowerCase();
     const professorLower = professor.toLowerCase();
 
     // Verificamos existencia de student e issuer
@@ -96,33 +96,11 @@ router.post("/mint", async (req, res) => {
 
     const tokenUri = pinataData.cid;
 
-    // Creamos certificado en DB
-    const certificate = await Certificate.create({
-      student_wallet_address: studentWalletLower,
-      issuer_wallet_address: professorLower,
-      title: courseName,
-      description: `Certificado de ${courseName} otorgado a ${nameStudent}`,
-      certificate_hash,
-      token_id,
-      issue_date: fecha,
-    });
-
-    // Incrementamos contador de certificados del issuer
-    await Issuer.increment(
-      { certificates_issued: 1 },
-      { where: { wallet_address: professorLower } }
-    );
-
     return res.json({
-      success: true,
-      certificate: {
-        id: certificate.id,
-        student_wallet_address: certificate.student_wallet_address,
-        issuer_wallet_address: certificate.issuer_wallet_address,
-        courseName: certificate.title,
-        tokenUri,
-        issue_date: certificate.issue_date
-      }
+      student_wallet_address,
+      nameStudent,
+      courseName,
+      tokenUri
     });
 
   } catch (err) {
