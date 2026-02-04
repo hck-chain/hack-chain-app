@@ -14,30 +14,26 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // ---------- CORS ----------
-// Leer frontend origin desde env, con fallback a localhost para testing
+// Solo permitir tu dominio de frontend
 const allowedOrigins = [
-  process.env.FRONTEND_ORIGIN,
-  "https://hackchain-ten.vercel.app",
-  "https://hack-chain-app-frontend-jpjb.vercel.app"
+  "https://hackchain.app"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // 1️⃣ Si no hay origin (server-side request, Postman, curl...)
+    // Permitir requests sin origin (Postman, server-side)
     if (!origin) return callback(null, true);
 
-    // 2️⃣ Si el origin está en la lista de permitidos
+    // Permitir solo tu dominio
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    // 3️⃣ Si no está permitido
     console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
     callback(new Error("Not allowed by CORS"));
   },
-  credentials: true // necesario si usas cookies o auth
+  credentials: true
 }));
-
 
 // ---------- Middleware ----------
 app.use(express.json());
@@ -97,7 +93,7 @@ let server;
 
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
-      console.log(`🔗 Frontend origin: ${process.env.FRONTEND_ORIGIN || "http://localhost:5173"}`);
+      console.log(`🔗 Frontend origin: https://hackchain.app`);
     });
   } catch (err) {
     console.error("Failed to start server:", err);
