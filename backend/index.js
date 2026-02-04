@@ -56,9 +56,9 @@ app.use("/api/opensea", opensea);
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Redirigir todo lo demás a index.html (compatible con Express 4+)
-app.get('/*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
-});
+// app.get('/*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+// });
 
 
 // ---------- Health check ----------
