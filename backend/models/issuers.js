@@ -39,8 +39,6 @@ module.exports = (sequelize, DataTypes) => {
       sourceKey: 'wallet_address'
     });
 
-    // Si usas issuerId como FK en Certificate
-    Issuer.hasMany(models.Certificate, { foreignKey: 'issuerId' });
   };
 
   return Issuer;
