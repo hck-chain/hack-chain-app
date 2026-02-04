@@ -9,6 +9,7 @@ import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+const IPFS_PUBLIC_GATEWAY = 'https://ipfs.io/ipfs/';
 
 
 interface Certificate {
@@ -90,10 +91,29 @@ const StudentDashboard = () => {
 
     const resolveImage = (url?: string) => {
         if (!url) return '';
-        return url.startsWith('ipfs://')
-            ? url.replace('ipfs://', 'https://ipfs.io/ipfs/')
-            : url;
+
+        // ipfs://CID
+        if (url.startsWith('ipfs://')) {
+            return IPFS_PUBLIC_GATEWAY + url.replace('ipfs://', '');
+        }
+
+        // https://bafy...
+        if (/^https?:\/\/bafy/i.test(url)) {
+            const cid = url.replace(/^https?:\/\//, '');
+            return IPFS_PUBLIC_GATEWAY + cid;
+        }
+
+        // any gateway /ipfs/CID
+        const ipfsIndex = url.indexOf('/ipfs/');
+        if (ipfsIndex !== -1) {
+            const cid = url.substring(ipfsIndex + 6);
+            return IPFS_PUBLIC_GATEWAY + cid;
+        }
+
+        // fallback (normal https image)
+        return url;
     };
+
 
     if (!student) return null;
 
@@ -251,7 +271,12 @@ const StudentDashboard = () => {
                                         )}
                                         alt={`Certificate ${cert.identifier}`}
                                         className="w-full h-auto object-contain"
+                                        onError={(e) => {
+                                            (e.currentTarget as HTMLImageElement).src =
+                                                '/images/certificate-placeholder.png';
+                                        }}
                                     />
+
                                 </div>
 
                                 <div className="p-0 flex flex-col items-center gap-3">
