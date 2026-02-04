@@ -55,8 +55,8 @@ app.use("/api/opensea", opensea);
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Redirigir todo lo demás a index.html
-app.get('*', (req, res) => {
+// Redirigir todo lo demás a index.html (compatible con Express 4+)
+app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
