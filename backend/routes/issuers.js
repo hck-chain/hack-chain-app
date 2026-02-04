@@ -59,7 +59,7 @@ router.post("/mint", async (req, res) => {
     const professorLower = professor.toLowerCase();
 
     // Verificamos existencia de student e issuer
-    const studentExists = await Student.findOne({ where: { wallet_address: studentWalletLower } });
+    const studentExists = await Student.findOne({ where: { wallet_address: student_wallet_address } });
     const issuerExists = await Issuer.findOne({ where: { wallet_address: professorLower } });
 
     if (!studentExists) return res.status(404).json({ error: "Student not found" });
