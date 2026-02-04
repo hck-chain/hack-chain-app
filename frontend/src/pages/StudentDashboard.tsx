@@ -90,17 +90,9 @@ const StudentDashboard = () => {
 
     const resolveImage = (url?: string) => {
         if (!url) return '';
-
-        if (url.startsWith('ipfs://')) {
-            const cid = url.replace('ipfs://', '');
-            // Reemplazar con URL pública de IPFS
-            return `https://ipfs.io/ipfs/${cid}`;
-
-            // Opcional si usas NFT.storage privado:
-            // return `https://ipfs.io/ipfs/${cid}?token=${import.meta.env.VITE_NFT_STORAGE_KEY}`;
-        }
-
-        return url;
+        return url.startsWith('ipfs://')
+            ? url.replace('ipfs://', 'https://ipfs.io/ipfs/')
+            : url;
     };
 
     if (!student) return null;
