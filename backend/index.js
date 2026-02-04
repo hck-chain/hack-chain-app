@@ -52,14 +52,14 @@ app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
 
-// ---------- Servir build React ----------
-app.use(express.static(path.join(__dirname, 'frontend/build')));
+// Servir build Vite
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Redirigir **todas las rutas que no sean API** a index.html
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) return next(); // Dejar pasar rutas API
-  res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
+// Redirigir todo lo demás a index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
+
 
 // ---------- Health check ----------
 app.get("/health", async (req, res) => {
