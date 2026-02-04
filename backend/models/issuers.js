@@ -15,15 +15,8 @@ module.exports = (sequelize, DataTypes) => {
       },
       onDelete: 'CASCADE',
     },
-    organization_name: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    certificates_issued: {            // <-- Agregado
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    }
+    organization_name: { type: DataTypes.STRING(255), allowNull: false },
+    certificates_issued: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false }
   }, {
     tableName: 'issuers',
     underscored: true,
@@ -33,20 +26,22 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Issuer.associate = (models) => {
+    // Asociar con User
     Issuer.belongsTo(models.User, {
       foreignKey: 'wallet_address',
       targetKey: 'wallet_address',
       onDelete: 'CASCADE'
     });
+
+    // Asociaciones con certificados
     Issuer.hasMany(models.Certificate, {
       foreignKey: 'issuer_wallet_address',
       sourceKey: 'wallet_address'
     });
-  };
 
-  Issuer.associate = (models) => {
+    // Si usas issuerId como FK en Certificate
     Issuer.hasMany(models.Certificate, { foreignKey: 'issuerId' });
-  }
+  };
 
   return Issuer;
 };

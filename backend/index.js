@@ -1,5 +1,4 @@
 // backend/index.js
-// Cargar variables de entorno lo antes posible
 require("dotenv").config();
 
 const express = require("express");
@@ -13,8 +12,10 @@ const path = require("path");
 const app = express();
 const port = process.env.PORT || 3001;
 
+// ---------- Trust proxy (Render, Vercel, etc.) ----------
+app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
+
 // ---------- CORS ----------
-// Solo permitir tu dominio de frontend
 const allowedOrigins = [
   "https://hackchain.app"
 ];
@@ -24,7 +25,6 @@ app.use(cors({
     // Permitir requests sin origin (Postman, server-side)
     if (!origin) return callback(null, true);
 
-    // Permitir solo tu dominio
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -125,5 +125,4 @@ async function shutdown(signal) {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-// Export app para tests (supertest) si se necesita
 module.exports = app;
