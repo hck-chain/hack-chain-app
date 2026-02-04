@@ -109,6 +109,7 @@ router.get("/:cid", async (req, res) => {
 router.post("/database", async (req, res) => {
   try {
     const {
+      student_wallet_address,
       issuer_wallet_address,
       title,
       description,
@@ -117,6 +118,11 @@ router.post("/database", async (req, res) => {
       token_id,
       issue_date
     } = req.body;
+
+    if (!student_wallet_address) {
+      return res.status(400).json({ error: "student_wallet_address is required" });
+    }
+
 
     if (!issuer_wallet_address || !title || !issue_date) {
       return res.status(400).json({ error: "Issuer wallet address, title, and issue date are required" });
@@ -131,6 +137,7 @@ router.post("/database", async (req, res) => {
 
     // Create certificate
     const certificate = await Certificate.create({
+      student_wallet_address,
       issuer_wallet_address,
       title,
       description,
