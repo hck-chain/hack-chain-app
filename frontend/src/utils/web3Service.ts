@@ -807,6 +807,7 @@ export const web3Service = {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     issuer_wallet_address: issuerWallet,
+                    student_wallet_address: studentWallet,  
                     title: courseName,
                     description: "Tokenized HackChain Certificate",
                     certificate_hash: tokenUri,
