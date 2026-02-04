@@ -61,9 +61,6 @@ app.use("/api/opensea", opensea);
 // Servir build React
 app.use(express.static(path.join(__dirname, 'frontend/build')));
 
-// Rutas API
-app.use('/api', require('./routes/api'));
-
 // Redirigir todo lo demás a index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
