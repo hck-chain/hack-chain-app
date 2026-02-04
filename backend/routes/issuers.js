@@ -44,13 +44,13 @@ router.post("/authorize", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+//|| !certificate_hash || !token_id)
 // POST /api/issuers/mint
 router.post("/mint", async (req, res) => {
   try {
-    const { student_wallet_address, nameStudent, professor, courseName, imageUri, certificate_hash, token_id } = req.body;
+    const { student_wallet_address, nameStudent, professor, courseName, imageUri } = req.body;
 
-    if (!student_wallet_address || !nameStudent || !professor || !courseName || !imageUri || !certificate_hash || !token_id) {
+    if (!student_wallet_address || !nameStudent || !professor || !courseName || !imageUri) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
