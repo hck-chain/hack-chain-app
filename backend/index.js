@@ -58,6 +58,22 @@ app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
 
+// Servir build React
+app.use(express.static(path.join(__dirname, 'frontend/build')));
+
+// Rutas API
+app.use('/api', require('./routes/api'));
+
+// Redirigir todo lo demás a index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log('Server running');
+});
+
+
 // ---------- Health check ----------
 app.get("/health", async (req, res) => {
   try {
