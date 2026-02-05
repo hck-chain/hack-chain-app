@@ -7,7 +7,8 @@ const pinata = new PinataSDK({
   pinataGateway: process.env.GATEWAY_URL,
 });
 
-const { Certificate, Student, Issuer } = require("../models");
+// Importamos los modelos Y también 'sequelize' (la instancia conectada)
+const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { GEOGRAPHY } = require("sequelize");
 
 // POST /api/certificates: Upload certificate metadata to Pinata
