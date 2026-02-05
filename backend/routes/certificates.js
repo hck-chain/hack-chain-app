@@ -121,6 +121,15 @@ router.post("/database", async (req, res) => {
       token_id, issue_date
     } = req.body;
 
+
+    console.log("VALOR RECIBIDO COMO ISSUER:", issuer_wallet_address);
+    if (!issuer_wallet_address || !issuer_wallet_address.startsWith("0x")) {
+      return res.status(400).json({
+        error: "Dato inválido",
+        details: `Se esperaba una wallet (0x...), pero se recibió: "${issuer_wallet_address}"`
+      });
+    }
+
     // 1. Validaciones básicas
     if (!student_wallet_address || !issuer_wallet_address || !title) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
