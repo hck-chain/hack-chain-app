@@ -177,28 +177,46 @@ const EducatorDashboard = () => {
     const card = cardRef.current?.querySelector('.pc-card') as HTMLElement;
     if (!card) return null;
 
-    const canvas = await html2canvas(card, {
-      backgroundColor: "#0b0b0b",
-      scale: 2,
-      useCORS: true,
-    });
+    // Desactivar efectos antes de capturar
+    const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+    const glare = card.querySelector('.pc-glare') as HTMLElement | null;
 
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/png")
-    );
+    const prevShineDisplay = shine?.style.display;
+    const prevGlareDisplay = glare?.style.display;
 
-    if (!blob) return null;
+    if (shine) shine.style.display = 'none';
+    if (glare) glare.style.display = 'none';
+    card.classList.remove('active');
 
-    const formData = new FormData();
-    formData.append("file", blob, "certificate.png");
+    try {
+      const canvas = await html2canvas(card, {
+        backgroundColor: "#0b0b0b",
+        scale: 2,
+        useCORS: true,
+      });
 
-    const res = await fetch(`${API_BASE_URL}/api/upload/image`, {
-      method: "POST",
-      body: formData,
-    });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png")
+      );
 
-    const data = await res.json();
-    return data.cid; // 
+      if (!blob) return null;
+
+      const formData = new FormData();
+      formData.append("file", blob, "certificate.png");
+
+      const res = await fetch(`${API_BASE_URL}/api/upload/image`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      return data.cid;
+
+    } finally {
+      // Restaurar efectos después de capturar
+      if (shine) shine.style.display = prevShineDisplay ?? '';
+      if (glare) glare.style.display = prevGlareDisplay ?? '';
+    }
   };
 
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -248,7 +266,7 @@ const EducatorDashboard = () => {
       };
 
       // Enviar al hook logic
-      const success = await createCertificate(certificateData, userData.walletAddress);
+      const success = await createCertificate(certificateData, form.issuer);
 
       if (success) {
         // Limpiar formulario después de crear
