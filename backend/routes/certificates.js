@@ -1,5 +1,6 @@
 const express = require("express");
 const { PinataSDK } = require("pinata");
+const multer = require("multer");
 
 const router = express.Router();
 
@@ -11,7 +12,35 @@ const pinata = new PinataSDK({
 const { Certificate, Student, Issuer } = require("../models");
 const { GEOGRAPHY } = require("sequelize");
 
-const defaultCertificateCID = "bafybeibmeqeia5ta52vxbapor5mkens2uwau2xsy6oetrf6prlcfssm5le";
+router.post("/image", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file provided" });
+    }
+
+    const file = new File(
+      [req.file.buffer],
+      req.file.originalname,
+      { type: req.file.mimetype }
+    );
+
+    const result = await pinata.upload.public.file(file, {
+      pinataMetadata: {
+        name: `certificate-image-${Date.now()}`
+      }
+    });
+
+    res.json({
+      cid: result.cid,
+      ipfsUrl: `ipfs://${result.cid}`
+    });
+
+  } catch (err) {
+    console.error("Pinata image upload error:", err);
+    res.status(500).json({ error: "Failed to upload image" });
+  }
+});
+
 
 // POST /api/certificates: Upload certificate metadata to Pinata
 router.post("/", async (req, res) => {

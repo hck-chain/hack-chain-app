@@ -1,4 +1,3 @@
-import Navbar from '@/components/Navbar';
 import Layout from '@/components/Layout';
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +44,7 @@ const EducatorDashboard = () => {
     issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     logo: '',
-    imageUri: '', // To store the image URI if we uploaded one, though currently we handle local preview mostly
+    imageUri: '',
   });
 
   const [wallet, setWallet] = useState<string>("");
@@ -174,6 +173,34 @@ const EducatorDashboard = () => {
     }
   };
 
+  const uploadCertificateImage = async (): Promise<string | null> => {
+    const card = cardRef.current?.querySelector('.pc-card') as HTMLElement;
+    if (!card) return null;
+
+    const canvas = await html2canvas(card, {
+      backgroundColor: "#0b0b0b",
+      scale: 2,
+      useCORS: true,
+    });
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/png")
+    );
+
+    if (!blob) return null;
+
+    const formData = new FormData();
+    formData.append("file", blob, "certificate.png");
+
+    const res = await fetch(`${API_BASE_URL}/api/upload/image`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    return data.cid; // 
+  };
+
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
@@ -199,36 +226,55 @@ const EducatorDashboard = () => {
     }
 
     // Preparar datos para enviar al hook
-    // Note: imageUri is mocked here as we don't have a real file upload to IPFS in this step yet,
-    // but the backend might expect it. We'll pass the logo blob URL or a placeholder.
-    // In a real app, we'd upload the image first.
-    // For this implementation, we focus on the logic flow.
 
-    const certificateData = {
-      studentName: form.studentName,
-      studentWallet: form.studentWallet,
-      courseName: form.certificateTitle, // Using title as course name
-      imageUri: "bafybeia4ndso2yw4fkfhpfbkyzhgldbs4qkqocpaqk34jbgw7azpsuxjom", // Placeholder as we aren't uploading the image file yet
-    };
-
-    // Enviar al hook logic
-    const success = await createCertificate(certificateData, userData.walletAddress);
-
-    if (success) {
-      // Limpiar formulario después de crear
-      setForm({
-        certificateType: '',
-        certificateTitle: '',
-        studentName: '',
-        studentWallet: '',
-        issuer: '',
-        issueDate: new Date().toISOString().split('T')[0],
-        logo: '',
-        imageUri: '',
+    try {
+      toast({
+        title: "Uploading image",
+        description: "Generating certificate image...",
       });
-      setLogoPreview('');
+
+      const imageCID = await uploadCertificateImage();
+
+      if (!imageCID) {
+        throw new Error("Image upload failed");
+      }
+
+
+      const certificateData = {
+        studentName: form.studentName,
+        studentWallet: form.studentWallet,
+        courseName: form.certificateTitle, // Using title as course name
+        imageUri: imageCID,
+      };
+
+      // Enviar al hook logic
+      const success = await createCertificate(certificateData, userData.walletAddress);
+
+      if (success) {
+        // Limpiar formulario después de crear
+        setForm({
+          certificateType: '',
+          certificateTitle: '',
+          studentName: '',
+          studentWallet: '',
+          issuer: '',
+          issueDate: new Date().toISOString().split('T')[0],
+          logo: '',
+          imageUri: '',
+        });
+        setLogoPreview('');
+      }
+
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to create certificate",
+        variant: "destructive",
+      });
+
     }
-  };
+  }
 
   const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

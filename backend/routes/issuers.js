@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
+const multer = require("multer");
 
 // GET /api/issuers
 router.get("/", async (req, res) => {
