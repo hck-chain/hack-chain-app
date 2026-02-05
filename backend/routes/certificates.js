@@ -112,66 +112,42 @@ router.get("/:cid", async (req, res) => {
   }
 });
 
-// POST /api/certificates/database
+// POST /api/certificates/database optimizado
 router.post("/database", async (req, res) => {
   try {
-    let {
-      student_wallet_address,
-      issuer_wallet_address,
-      title,
-      description,
-      certificate_hash,
-      blockchain_tx_hash,
-      token_id,
-      issue_date
+    const {
+      student_wallet_address, issuer_wallet_address, title,
+      description, certificate_hash, blockchain_tx_hash,
+      token_id, issue_date
     } = req.body;
 
-    // 1. Validaciones iniciales
-    if (!student_wallet_address || !issuer_wallet_address || !title || !issue_date) {
+    // 1. Validaciones básicas
+    if (!student_wallet_address || !issuer_wallet_address || !title) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    // 2. Limpieza profunda de las wallets (Minúsculas y sin espacios)
-    // El .trim() elimina saltos de línea o espacios invisibles que rompen la búsqueda
-    const clean_issuer_wallet = issuer_wallet_address.toLowerCase().trim();
-    const clean_student_wallet = student_wallet_address.toLowerCase().trim();
+    // 2. Normalización inmediata
+    const cleanIssuerWallet = issuer_wallet_address.toLowerCase().trim();
+    const cleanStudentWallet = student_wallet_address.toLowerCase().trim();
 
-    // 3. Log de depuración (Míralo en los logs de Render)
-    console.log(`Verificando emisor en DB: [${clean_issuer_wallet}]`);
-
-    // 4. Búsqueda del emisor
-    // Usamos Sequelize.where con LOWER y TRIM para que la búsqueda sea idéntica a la DB
+    // 3. Búsqueda optimizada (asumiendo que los datos en DB ya están en minúsculas)
     const issuer = await Issuer.findOne({
-      where: sequelize.where(
-        sequelize.fn('TRIM', sequelize.fn('LOWER', sequelize.col('wallet_address'))),
-        clean_issuer_wallet
-      )
+      where: { wallet_address: cleanIssuerWallet }
     });
-    
+
     if (!issuer) {
-      // Sacamos todo lo que haya en la tabla para comparar
-      const allIssuers = await Issuer.findAll({ attributes: ['wallet_address'], raw: true });
-
-      console.log("--- DEBUG DE WALLETS ---");
-      console.log("Wallet buscada:", clean_issuer_wallet);
-      console.log("Wallets en DB:", JSON.stringify(allIssuers));
-      console.log("------------------------");
-
       return res.status(404).json({
-        error: "Issuer not found",
-        debug_info: {
-          buscada: clean_issuer_wallet,
-          encontradas_en_db: allIssuers
-        }
+        error: "Emisor no autorizado",
+        details: `La wallet ${cleanIssuerWallet} no está registrada como emisor permitido.`
       });
     }
 
-    // 5. Crear el certificado utilizando las wallets ya limpias
+    // 4. Creación del certificado
     const certificate = await Certificate.create({
-      student_wallet_address: clean_student_wallet,
-      issuer_wallet_address: clean_issuer_wallet,
+      student_wallet_address: cleanStudentWallet,
+      issuer_wallet_address: cleanIssuerWallet,
       title,
-      description: description || "Tokenized HackChain Certificate",
+      description: description || "Certificado Tokenizado HackChain",
       certificate_hash,
       blockchain_tx_hash,
       issue_date,
@@ -179,23 +155,14 @@ router.post("/database", async (req, res) => {
       is_revoked: false
     });
 
-    // 6. Respuesta exitosa
     res.status(201).json({
-      message: "Certificate created successfully",
-      certificate: {
-        id: certificate.token_id,
-        issuer_wallet_address: certificate.issuer_wallet_address,
-        title: certificate.title,
-        blockchain_tx_hash: certificate.blockchain_tx_hash,
-        token_id: certificate.token_id,
-        issue_date: certificate.issue_date,
-        created_at: certificate.created_at
-      }
+      message: "Certificado sincronizado con éxito",
+      id: certificate.id
     });
 
   } catch (error) {
-    console.error("Error creating certificate:", error);
-    res.status(500).json({ error: "Internal server error", details: error.message });
+    console.error("Error en la sincronización de DB:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
