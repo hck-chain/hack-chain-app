@@ -14,12 +14,14 @@ const { GEOGRAPHY } = require("sequelize");
 router.post("/", async (req, res) => {
   try {
     const { name, course, professor, date, imageCID } = req.body;
+
     if (!name || !course || !professor || !date || !imageCID) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
     const metadata = {
       name: `Certificate for ${name}`,
-      description: `First version of the HackChain Tokenized Certificate`,
+      description: "HackChain Tokenized Certificate",
       image: `ipfs://${imageCID}`,
       attributes: [
         { trait_type: "Student", value: name },
@@ -28,15 +30,22 @@ router.post("/", async (req, res) => {
         { trait_type: "Date", value: date },
       ],
     };
+
     const result = await pinata.upload.public.json(metadata, {
-      pinataMetadata: { name: `Certificate for ${name}` },
+      pinataMetadata: { name: `Certificate-${name}` },
     });
-    res.json({ cid: result.cid });
-  } catch (error) {
-    console.error(error);
+
+    res.json({
+      cid: result.cid,
+      uri: `ipfs://${result.cid}`,
+    });
+
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to upload metadata" });
   }
 });
+
 
 // POST /api/certificates/link
 router.post("/link", async (req, res) => {

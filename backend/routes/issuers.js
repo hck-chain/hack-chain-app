@@ -3,7 +3,6 @@ const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
-const multer = require("multer");
 
 // GET /api/issuers
 router.get("/", async (req, res) => {
@@ -49,64 +48,35 @@ router.post("/authorize", async (req, res) => {
 // POST /api/issuers/mint
 router.post("/mint", async (req, res) => {
   try {
-    const { studentWalletAddress, nameStudent, professor, courseName, imageUri } = req.body;
+    const {
+      studentWalletAddress,
+      professor,
+      tokenUri
+    } = req.body;
 
-    if (!studentWalletAddress || !nameStudent || !professor || !courseName || !imageUri) {
+    if (!studentWalletAddress || !professor || !tokenUri) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Normalizamos wallets a minúsculas
-    const student_wallet_address = studentWalletAddress.toLowerCase();
-    const professorLower = professor.toLowerCase();
-
-    // Verificamos existencia de student e issuer
-    const studentExists = await Student.findOne({ where: { wallet_address: student_wallet_address } });
-    const issuerExists = await Issuer.findOne({ where: { wallet_address: professorLower } });
-
-    if (!studentExists) return res.status(404).json({ error: "Student not found" });
-    if (!issuerExists) return res.status(404).json({ error: "Issuer not found" });
-
-    const professorName = issuerExists.organization_name;
-
-    // Fecha actual
-    const hoy = new Date();
-    const fecha = `${hoy.getFullYear()}-${hoy.getMonth() + 1}-${hoy.getDate()}`;
-
-    // Generamos URI para IPFS / Pinata
-    const uri = {
-      name: nameStudent,
-      course: courseName,
-      professor: professorName,
-      date: fecha,
-      imageCID: imageUri,
-    };
-
-    const pinataRes = await fetch("https://hack-chain-app.onrender.com/api/certificates/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(uri)
+    const student = await Student.findOne({
+      where: { wallet_address: studentWalletAddress.toLowerCase() }
     });
 
-    let pinataData;
-    try {
-      pinataData = await pinataRes.json();
-    } catch (e) {
-      console.error("Failed to parse Pinata response:", e);
-      return res.status(500).json({ error: "Invalid response from Pinata" });
-    }
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: professor.toLowerCase() }
+    });
 
-    const tokenUri = pinataData.cid;
+    if (!student) return res.status(404).json({ error: "Student not found" });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
     return res.json({
-      student_wallet_address,
-      nameStudent,
-      courseName,
+      ok: true,
       tokenUri
     });
 
   } catch (err) {
-    console.error("Error creating certificate:", err);
-    return res.status(500).json({ error: "Failed to create certificate" });
+    console.error(err);
+    res.status(500).json({ error: "Mint validation failed" });
   }
 });
 

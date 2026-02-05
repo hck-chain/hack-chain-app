@@ -1,48 +1,37 @@
 const express = require("express");
 const multer = require("multer");
-const axios = require("axios");
-const FormData = require("form-data");
+const { PinataSDK } = require("pinata");
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+const pinata = new PinataSDK({
+    pinataJwt: process.env.PINATA_JWT,
+    pinataGateway: process.env.GATEWAY_URL,
 });
 
+// POST /api/upload/image
 router.post("/image", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: "No file provided" });
         }
 
-        const formData = new FormData();
-        formData.append("file", req.file.buffer, {
-            filename: req.file.originalname,
-            contentType: req.file.mimetype,
-        });
-
-        const response = await axios.post(
-            "https://uploads.pinata.cloud/v3/files",
-            formData,
+        const result = await pinata.upload.public.file(
+            new Blob([req.file.buffer]),
             {
-                headers: {
-                    ...formData.getHeaders(),
-                    Authorization: `Bearer ${process.env.PINATA_JWT}`,
+                pinataMetadata: {
+                    name: req.file.originalname,
                 },
             }
         );
 
-        const cid = response.data.data.cid;
-
-        res.json({
-            success: true,
-            cid,
-            ipfsUrl: `ipfs://${cid}`,
-            gatewayUrl: `${process.env.GATEWAY_URL}/ipfs/${cid}`,
+        return res.json({
+            cid: result.cid,
+            uri: `ipfs://${result.cid}`,
         });
-    } catch (error) {
-        console.error("Pinata upload error:", error.response?.data || error.message);
+    } catch (err) {
+        console.error("Upload image error:", err);
         res.status(500).json({ error: "Failed to upload image" });
     }
 });
