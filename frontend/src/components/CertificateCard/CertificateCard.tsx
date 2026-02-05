@@ -282,7 +282,7 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
                   />
                 </div>
                 {/* <Award size={"48px"} color="gray"/> */}
-                <img src={sealLogo} alt="Seal" className="absolute -top-2 right-12 w-16 h-16 border-radius-full" />
+                <img src={sealLogo} alt="Seal" className="absolute -top-6 right-12 w-16 h-16 border-radius-full" />
               </div>
               <hr className="mx-10 mt-4" />
               <div className="flex flex-col gap-2 p-6">

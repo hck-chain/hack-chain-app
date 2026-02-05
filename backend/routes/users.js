@@ -58,6 +58,7 @@ router.post("/register", async (req, res) => {
     if (role === 'student') {
       roleSpecificData = await Student.create({
         wallet_address: wallet_address.toLowerCase(),
+        field_of_study: "Test participant"
       });
     } else if (role === 'issuer') {
       roleSpecificData = await Issuer.create({
@@ -86,7 +87,7 @@ router.post("/register", async (req, res) => {
       roleData: roleSpecificData
     });
 
-   // wallet_address = "";
+    // wallet_address = "";
 
   } catch (err) {
     console.error(err);
