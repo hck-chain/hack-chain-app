@@ -51,7 +51,8 @@ export const useCreateCertificate = () => {
       const tokenUri = `ipfs://${metaData.cid}`;
 
       // 3️⃣ Mint NFT on-chain
-      await web3Service.mintCertificateOnChain(
+      // 3️⃣ Mint NFT on-chain
+      const { success, txHash, tokenId } = await web3Service.mintCertificateOnChain(
         data.studentWallet,
         data.studentName,
         data.courseName,
@@ -59,9 +60,34 @@ export const useCreateCertificate = () => {
         issuerWallet
       );
 
+      if (!success) throw new Error("Mint failed");
+
+
+      // 5️⃣ Guardar en la base de datos
+      // 5️⃣ Guardar en la base de datos
+      const dbRes = await fetch(`${API}/api/certificates/database`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          student_wallet_address: data.studentWallet,
+          issuer_wallet_address: issuerWallet,
+          title: data.courseName,
+          description: "HackChain Tokenized Certificate",
+          certificate_hash: data.imageCID,
+          blockchain_tx_hash: txHash,
+          token_id: tokenId,
+          issue_date: today,
+        }),
+      });
+
+
+      if (!dbRes.ok) {
+        throw new Error("Failed to save certificate in the database");
+      }
+
       toast({
         title: "Certificate minted",
-        description: "NFT successfully created 🎉",
+        description: "NFT successfully created!",
       });
 
       return true;

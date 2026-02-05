@@ -764,8 +764,8 @@ export const web3Service = {
         courseName: string,
         tokenUri: string,
         issuerWallet: string
-    ): Promise<boolean> => {
-        if (!window.ethereum) return false;
+    ): Promise<{ success: boolean; txHash?: string; tokenId?: string }> => {
+        if (!window.ethereum) return { success: false };
 
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -779,26 +779,18 @@ export const web3Service = {
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
-            await fetch(`${API_BASE_URL}/api/issuers/increment-certificates`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    issuerWallet
+            // Obtener tokenId del evento Transfer
+            const transferEvent = receipt.logs
+                .map(log => {
+                    try {
+                        return contract.interface.parseLog(log);
+                    } catch (error) {
+                        return null;
+                    }
                 })
-            });
-
-            const transferEvent = receipt.logs.map(log => {
-                try {
-                    return contract.interface.parseLog(log);
-                } catch (error) {
-                    return null;
-                }
-            })
                 .find(event => event?.name === "Transfer");
-            const tokenId = transferEvent.args.tokenId.toString();
 
+            const tokenId = transferEvent?.args?.tokenId.toString() || undefined;
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
@@ -807,7 +799,7 @@ export const web3Service = {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     issuer_wallet_address: issuerWallet,
-                    student_wallet_address: studentWallet,  
+                    student_wallet_address: studentWallet,
                     title: courseName,
                     description: "Tokenized HackChain Certificate",
                     certificate_hash: tokenUri,
@@ -819,16 +811,17 @@ export const web3Service = {
 
             if (!response.ok) {
                 console.error("Failed to save certificate in DB");
-                return false;
+                return { success: false };
             }
 
-            //alert("Certificate minted and saved successfully!");
-            return true;
+            return { success: true, txHash: tx.hash, tokenId };
+
         } catch (err) {
             console.error("Minting or DB saving failed:", err);
-            return false;
+            return { success: false };
         }
     }
+
 };
 
 export async function getCertificatesByEducator(wallet: string) {
