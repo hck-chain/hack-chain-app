@@ -810,8 +810,13 @@ export const web3Service = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json(); // 👈 Esto te dirá si fue "Issuer not found" o "404"
-                console.error("Failed to save certificate in DB");
+                try {
+                    const errorData = await response.json();
+                    console.error("❌ Error del servidor al guardar en DB:", errorData);
+                    // Esto te dirá si es "Issuer not found", "Missing fields", etc.
+                } catch (parseError) {
+                    console.error("❌ El servidor respondió con error pero no envió JSON:", response.status);
+                }
                 return { success: false };
             }
 
