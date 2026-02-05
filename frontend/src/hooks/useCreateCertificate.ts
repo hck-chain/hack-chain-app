@@ -13,7 +13,7 @@ export const useCreateCertificate = () => {
     setIsLoading(true);
 
     try {
-      // 1️⃣ Obtener Identidad Real del Emisor
+      // 1️⃣ Obtener Identidad Real del Emisor (0x...)
       const token = localStorage.getItem("authToken");
       const authRes = await fetch(`${API}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -21,42 +21,40 @@ export const useCreateCertificate = () => {
 
       if (!authRes.ok) throw new Error("No se pudo verificar la identidad del emisor.");
       const authData = await authRes.json();
+      const realIssuerWallet = authData.user.wallet_address; // El 0xc97d...
 
-      // EXTREMA VIGILANCIA AQUÍ:
-      const realIssuerWallet = authData.user.wallet_address;
-      console.log("!!! WALLET EXTRAIDA DE AUTH:", realIssuerWallet);
-
-      // 2️⃣ Subir a Pinata
+      // 2️⃣ Subir Metadatos a Pinata
       const metaRes = await fetch(`${API}/api/certificates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: data.studentName,
           course: data.courseName,
-          professor: organizationName, // Aquí sí va el nombre legible
+          professor: organizationName, // Nombre para el NFT
           date: new Date().toISOString().split("T")[0],
           imageCID: data.imageCID,
         }),
       });
 
-      if (!metaRes.ok) throw new Error("Error al subir metadatos");
+      if (!metaRes.ok) throw new Error("Error al subir metadatos a IPFS");
       const metaData = await metaRes.json();
+      const tokenUri = `ipfs://${metaData.cid}`;
 
-      // 3️⃣ Minado On-Chain
+      // 3️⃣ Minado en Blockchain (Llamando a tu nueva versión limpia)
+      // Ahora solo pasamos 4 argumentos, tal como definiste en web3Service
       const { success, txHash, tokenId } = await web3Service.mintCertificateOnChain(
         data.studentWallet,
         data.studentName,
         data.courseName,
-        `ipfs://${metaData.cid}`,
-        organizationName
+        tokenUri
       );
 
-      if (!success) throw new Error("El minado falló en la blockchain");
+      if (!success) throw new Error("El minado en la red falló.");
 
-      // 4️⃣ Sincronización con DB (EL PUNTO DEL ERROR)
+      // 4️⃣ Sincronización con Base de Datos
       const payloadDB = {
-        student_wallet_address: data.studentWallet,
-        issuer_wallet_address: realIssuerWallet, // <--- REVISA QUE ESTO NO SEA 'organizationName'
+        student_wallet_address: data.studentWallet.toLowerCase().trim(),
+        issuer_wallet_address: realIssuerWallet.toLowerCase().trim(), // ✅ HEX REAL
         title: data.courseName,
         description: "HackChain Tokenized Certificate",
         certificate_hash: data.imageCID,
@@ -65,9 +63,7 @@ export const useCreateCertificate = () => {
         issue_date: new Date().toISOString().split("T")[0],
       };
 
-      // 🔥 LOG CRÍTICO: Mira tu consola antes de que falle
-      console.log("👉 PAYLOAD ANTES DE ENVIAR:", JSON.stringify(payloadDB));
-      alert("Lo que voy a enviar al servidor es: " + payloadDB.issuer_wallet_address);
+      console.log("🚀 Sincronizando con DB:", payloadDB);
 
       const dbRes = await fetch(`${API}/api/certificates/database`, {
         method: "POST",
@@ -75,18 +71,21 @@ export const useCreateCertificate = () => {
         body: JSON.stringify(payloadDB),
       });
 
-      const dbData = await dbRes.json();
-
       if (!dbRes.ok) {
-        throw new Error(dbData.details || dbData.error || "Error al guardar en DB");
+        const errorDetail = await dbRes.json();
+        throw new Error(errorDetail.details || "Error al guardar en la base de datos.");
       }
 
-      toast({ title: "¡Éxito!", description: "Certificado creado y guardado." });
+      toast({ title: "¡Éxito!", description: "Certificado emitido y registrado en HackChain." });
       return true;
 
     } catch (err: any) {
-      console.error("🔥 Error detallado:", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      console.error("🔥 Error en el flujo:", err);
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
       return false;
     } finally {
       setIsLoading(false);

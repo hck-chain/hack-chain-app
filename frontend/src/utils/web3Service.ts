@@ -758,12 +758,12 @@ export const web3Service = {
         }
     },
 
+    // web3Service.ts (Versión limpia)
     mintCertificateOnChain: async (
         studentWallet: string,
         studentName: string,
         courseName: string,
-        tokenUri: string,
-        issuerWallet: string
+        tokenUri: string
     ): Promise<{ success: boolean; txHash?: string; tokenId?: string }> => {
         if (!window.ethereum) return { success: false };
 
@@ -772,58 +772,22 @@ export const web3Service = {
             const signer = provider.getSigner();
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-            console.log(`Minting certificate for ${studentName} (${studentWallet})...`);
-
-            // Minteo en blockchain
             const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
             const receipt = await tx.wait();
-            console.log("Transaction confirmed:", tx.hash);
 
-            // Obtener tokenId del evento Transfer
             const transferEvent = receipt.logs
                 .map(log => {
-                    try {
-                        return contract.interface.parseLog(log);
-                    } catch (error) {
-                        return null;
-                    }
+                    try { return contract.interface.parseLog(log); }
+                    catch (e) { return null; }
                 })
                 .find(event => event?.name === "Transfer");
 
-            const tokenId = transferEvent?.args?.tokenId.toString() || undefined;
+            const tokenId = transferEvent?.args?.tokenId.toString();
 
-            // Guardar en la base de datos
-            const issue_date = new Date().toISOString().split('T')[0];
-            const response = await fetch(`${API_BASE_URL}/api/certificates/database`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    issuer_wallet_address: issuerWallet.toLocaleLowerCase(),
-                    student_wallet_address: studentWallet.toLocaleLowerCase(),
-                    title: courseName,
-                    description: "Tokenized HackChain Certificate",
-                    certificate_hash: tokenUri,
-                    blockchain_tx_hash: tx.hash,
-                    token_id: tokenId,
-                    issue_date
-                })
-            });
-
-            if (!response.ok) {
-                try {
-                    const errorData = await response.json();
-                    console.error("❌ Error del servidor al guardar en DB:", errorData);
-                    // Esto te dirá si es "Issuer not found", "Missing fields", etc.
-                } catch (parseError) {
-                    console.error("❌ El servidor respondió con error pero no envió JSON:", response.status);
-                }
-                return { success: false };
-            }
-
-            return { success: true, txHash: tx.hash, tokenId };
+            return { success: true, txHash: tx.hash, tokenId }; // Solo devolvemos datos de blockchain
 
         } catch (err) {
-            console.error("Minting or DB saving failed:", err);
+            console.error("Blockchain minting failed:", err);
             return { success: false };
         }
     }
