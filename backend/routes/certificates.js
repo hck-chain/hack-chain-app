@@ -125,31 +125,45 @@ router.post("/database", async (req, res) => {
       issue_date
     } = req.body;
 
-    if (!student_wallet_address) {
-      return res.status(400).json({ error: "student_wallet_address is required" });
+    // 1. Validaciones iniciales
+    if (!student_wallet_address || !issuer_wallet_address || !title || !issue_date) {
+      return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    if (!issuer_wallet_address || !title || !issue_date) {
-      return res.status(400).json({ error: "Issuer wallet address, title, and issue date are required" });
-    }
+    // 2. Limpieza profunda de las wallets (Minúsculas y sin espacios)
+    // El .trim() elimina saltos de línea o espacios invisibles que rompen la búsqueda
+    const clean_issuer_wallet = issuer_wallet_address.toLowerCase().trim();
+    const clean_student_wallet = student_wallet_address.toLowerCase().trim();
 
-    // 🔹 Convertimos a minúsculas
-    issuer_wallet_address = issuer_wallet_address.toLowerCase();
-    student_wallet_address = student_wallet_address.toLowerCase();
+    // 3. Log de depuración (Míralo en los logs de Render)
+    console.log(`Verificando emisor en DB: [${clean_issuer_wallet}]`);
 
-    // Check if issuer exists
-    const issuer = await Issuer.findOne({ where: { wallet_address: issuer_wallet_address } });
+    // 4. Búsqueda del emisor
+    // Usamos Sequelize.where con LOWER y TRIM para que la búsqueda sea idéntica a la DB
+    const issuer = await Issuer.findOne({
+      where: sequelize.where(
+        sequelize.fn('TRIM', sequelize.fn('LOWER', sequelize.col('wallet_address'))),
+        clean_issuer_wallet
+      )
+    });
 
     if (!issuer) {
-      return res.status(404).json({ error: "Issuer not found" });
+      // Si falla, listamos lo que hay en la DB para entender por qué
+      const allIssuers = await Issuer.findAll({ attributes: ['wallet_address'], raw: true });
+      console.error("❌ Emisor no encontrado. Wallets en DB:", allIssuers.map(i => i.wallet_address));
+
+      return res.status(404).json({
+        error: "Issuer not found",
+        details: "La wallet del profesor no está registrada o tiene caracteres invisibles."
+      });
     }
 
-    // Create certificate
+    // 5. Crear el certificado utilizando las wallets ya limpias
     const certificate = await Certificate.create({
-      student_wallet_address,
-      issuer_wallet_address,
+      student_wallet_address: clean_student_wallet,
+      issuer_wallet_address: clean_issuer_wallet,
       title,
-      description,
+      description: description || "Tokenized HackChain Certificate",
       certificate_hash,
       blockchain_tx_hash,
       issue_date,
@@ -157,27 +171,25 @@ router.post("/database", async (req, res) => {
       is_revoked: false
     });
 
+    // 6. Respuesta exitosa
     res.status(201).json({
       message: "Certificate created successfully",
       certificate: {
         id: certificate.token_id,
         issuer_wallet_address: certificate.issuer_wallet_address,
         title: certificate.title,
-        description: certificate.description,
-        certificate_hash: certificate.certificate_hash,
         blockchain_tx_hash: certificate.blockchain_tx_hash,
+        token_id: certificate.token_id,
         issue_date: certificate.issue_date,
-        is_revoked: certificate.is_revoked,
         created_at: certificate.created_at
       }
     });
 
   } catch (error) {
     console.error("Error creating certificate:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
-
 
 // GET /api/certificates/database
 router.get("/database", async (req, res) => {
