@@ -42,6 +42,7 @@ const studentsRouter = require("./routes/students");
 const issuersRouter = require("./routes/issuers");
 const recruitersRouter = require("./routes/recruiters");
 const opensea = require("./routes/opensea");
+const uploadRoutes = require("./routes/upload");
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
@@ -51,6 +52,7 @@ app.use("/api/students", studentsRouter);
 app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
+app.use("/api/upload", uploadRoutes);
 
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
