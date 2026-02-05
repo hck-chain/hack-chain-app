@@ -58,8 +58,9 @@ export default function Login() {
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
                   Welcome Back to
+                  <br />
                   <span className="bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent">
-                    {" "}Hack Chain
+                    HackChain
                   </span>
                 </h1>
 
