@@ -810,6 +810,7 @@ export const web3Service = {
             });
 
             if (!response.ok) {
+                const errorData = await response.json(); // 👈 Esto te dirá si fue "Issuer not found" o "404"
                 console.error("Failed to save certificate in DB");
                 return { success: false };
             }
