@@ -266,7 +266,7 @@ const EducatorDashboard = () => {
       };
 
       // Enviar al hook logic
-      const success = await createCertificate(certificateData, form.issuer);
+      const success = await createCertificate(certificateData, userData.wallet_address);
 
       if (success) {
         // Limpiar formulario después de crear
