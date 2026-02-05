@@ -147,15 +147,22 @@ router.post("/database", async (req, res) => {
         clean_issuer_wallet
       )
     });
-
+    
     if (!issuer) {
-      // Si falla, listamos lo que hay en la DB para entender por qué
+      // Sacamos todo lo que haya en la tabla para comparar
       const allIssuers = await Issuer.findAll({ attributes: ['wallet_address'], raw: true });
-      console.error("❌ Emisor no encontrado. Wallets en DB:", allIssuers.map(i => i.wallet_address));
+
+      console.log("--- DEBUG DE WALLETS ---");
+      console.log("Wallet buscada:", clean_issuer_wallet);
+      console.log("Wallets en DB:", JSON.stringify(allIssuers));
+      console.log("------------------------");
 
       return res.status(404).json({
         error: "Issuer not found",
-        details: "La wallet del profesor no está registrada o tiene caracteres invisibles."
+        debug_info: {
+          buscada: clean_issuer_wallet,
+          encontradas_en_db: allIssuers
+        }
       });
     }
 
