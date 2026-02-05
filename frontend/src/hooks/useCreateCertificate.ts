@@ -9,7 +9,7 @@ interface CertificateData {
   studentName: string;
   studentWallet: string;
   courseName: string;
-  imageCID: string; // 👈 YA SUBIDA
+  imageCID: string;
 }
 
 export const useCreateCertificate = () => {
