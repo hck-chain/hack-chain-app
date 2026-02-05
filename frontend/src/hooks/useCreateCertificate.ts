@@ -16,58 +16,67 @@ export const useCreateCertificate = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const createCertificate = async (data: CertificateData, issuerWallet: string) => {
+  const createCertificate = async (data: CertificateData, organizationName: string) => {
     setIsLoading(true);
 
-    // 🕵️ DEBUG inicial: ¿Qué recibimos del Dashboard?
-    console.log("🚀 [DEBUG] Datos recibidos en el Hook:", {
-      student: data.studentWallet,
-      issuer: issuerWallet
-    });
-
     try {
-      // 1️⃣ Validate wallet
+      // 1️⃣ Obtener la Wallet Real (Resolución de Identidad)
+      // En lugar de confiar en el string "redlinux", preguntamos al servidor quién es el usuario actual
+      const token = localStorage.getItem("authToken");
+      const authRes = await fetch(`${API}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!authRes.ok) throw new Error("No se pudo verificar la identidad del emisor.");
+
+      const authData = await authRes.json();
+      const realIssuerWallet = authData.user.wallet_address; // Aquí obtenemos el 0xc97d...
+
+      console.log(`🔍 [RESOLVER] Nombre: ${organizationName} -> Wallet: ${realIssuerWallet}`);
+
+      // 2️⃣ Validar wallet del estudiante
       if (!ethers.utils.isAddress(data.studentWallet)) {
         throw new Error("Invalid student wallet");
       }
 
-      // 2️⃣ Upload metadata (JSON)
       const today = new Date().toISOString().split("T")[0];
+
+      // 3️⃣ Subir Metadatos (Pinata)
+      // Aquí podemos seguir enviando el nombre para que el NFT se vea bien
       const metaRes = await fetch(`${API}/api/certificates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: data.studentName,
           course: data.courseName,
-          professor: issuerWallet,
+          professor: organizationName, // Nombre legible para el NFT
           date: today,
           imageCID: data.imageCID,
         }),
       });
 
       if (!metaRes.ok) throw new Error("Failed to upload metadata");
-
       const metaData = await metaRes.json();
       const tokenUri = `ipfs://${metaData.cid}`;
 
-      // 3️⃣ Mint NFT on-chain
-      console.log("🏗️ [DEBUG] Iniciando minado On-Chain...");
+      // 4️⃣ Minar NFT On-Chain
+      // Usamos la wallet real para el minado si el contrato lo requiere, 
+      // o el nombre si es para visualización.
       const { success, txHash, tokenId } = await web3Service.mintCertificateOnChain(
         data.studentWallet,
         data.studentName,
         data.courseName,
         tokenUri,
-        issuerWallet
+        organizationName
       );
 
       if (!success) throw new Error("Mint failed");
 
-      console.log("✅ [DEBUG] Minado exitoso:", { txHash, tokenId });
-
-      // 5️⃣ Guardar en la base de datos (EL PUNTO CRÍTICO)
+      // 5️⃣ Guardar en Base de Datos (PUNTO CRÍTICO)
+      // Usamos 'realIssuerWallet' (el 0xc97d...) para que la DB haga match
       const payloadDB = {
         student_wallet_address: data.studentWallet,
-        issuer_wallet_address: issuerWallet, // 👈 VIGILA ESTO EN LA CONSOLA
+        issuer_wallet_address: realIssuerWallet,
         title: data.courseName,
         description: "HackChain Tokenized Certificate",
         certificate_hash: data.imageCID,
@@ -76,8 +85,6 @@ export const useCreateCertificate = () => {
         issue_date: today,
       };
 
-      console.log("📡 [DEBUG] Intentando guardar en DB. Payload:", payloadDB);
-
       const dbRes = await fetch(`${API}/api/certificates/database`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,26 +92,18 @@ export const useCreateCertificate = () => {
       });
 
       if (!dbRes.ok) {
-        // 🚨 DEBUG: Si falla, capturamos la respuesta del backend
         const errorDetail = await dbRes.json();
-        console.error("❌ [DEBUG] Error detallado del Backend:", errorDetail);
-
-        // Si el backend envió información de depuración, la mostramos
-        if (errorDetail.debug_info) {
-          console.table(errorDetail.debug_info.encontradas_en_db);
-        }
-
         throw new Error(errorDetail.error || "Failed to save in DB");
       }
 
-      toast({ title: "Certificate minted", description: "NFT successfully created!" });
+      toast({ title: "Success", description: "Certificate minted and saved in DB!" });
       return true;
 
     } catch (err: any) {
-      console.error("🔥 [DEBUG] Catch del Hook:", err);
+      console.error("🔥 Error en el Hook:", err);
       toast({
         title: "Error",
-        description: err.message || "Mint failed",
+        description: err.message,
         variant: "destructive",
       });
       return false;
