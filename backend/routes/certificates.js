@@ -114,7 +114,7 @@ router.get("/:cid", async (req, res) => {
 // POST /api/certificates/database
 router.post("/database", async (req, res) => {
   try {
-    const {
+    let {
       student_wallet_address,
       issuer_wallet_address,
       title,
@@ -129,10 +129,13 @@ router.post("/database", async (req, res) => {
       return res.status(400).json({ error: "student_wallet_address is required" });
     }
 
-
     if (!issuer_wallet_address || !title || !issue_date) {
       return res.status(400).json({ error: "Issuer wallet address, title, and issue date are required" });
     }
+
+    // 🔹 Convertimos a minúsculas
+    issuer_wallet_address = issuer_wallet_address.toLowerCase();
+    student_wallet_address = student_wallet_address.toLowerCase();
 
     // Check if issuer exists
     const issuer = await Issuer.findOne({ where: { wallet_address: issuer_wallet_address } });
@@ -152,7 +155,6 @@ router.post("/database", async (req, res) => {
       issue_date,
       token_id,
       is_revoked: false
-
     });
 
     res.status(201).json({
@@ -168,7 +170,6 @@ router.post("/database", async (req, res) => {
         is_revoked: certificate.is_revoked,
         created_at: certificate.created_at
       }
-
     });
 
   } catch (error) {
@@ -176,6 +177,7 @@ router.post("/database", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 // GET /api/certificates/database
 router.get("/database", async (req, res) => {
