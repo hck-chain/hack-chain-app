@@ -24,6 +24,7 @@ export const useCreateCertificate = () => {
 
       // EXTREMA VIGILANCIA AQUÍ:
       const realIssuerWallet = authData.user.wallet_address;
+      console.log("!!! WALLET EXTRAIDA DE AUTH:", realIssuerWallet);
 
       // 2️⃣ Subir a Pinata
       const metaRes = await fetch(`${API}/api/certificates`, {
@@ -65,7 +66,8 @@ export const useCreateCertificate = () => {
       };
 
       // 🔥 LOG CRÍTICO: Mira tu consola antes de que falle
-      console.log("🚀 ENVIANDO A /api/certificates/database:", payloadDB);
+      console.log("👉 PAYLOAD ANTES DE ENVIAR:", JSON.stringify(payloadDB));
+      alert("Lo que voy a enviar al servidor es: " + payloadDB.issuer_wallet_address);
 
       const dbRes = await fetch(`${API}/api/certificates/database`, {
         method: "POST",
