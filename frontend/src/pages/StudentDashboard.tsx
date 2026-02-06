@@ -51,7 +51,7 @@ const StudentDashboard = () => {
                     wallet_address: data.user.wallet_address,
                     name: data.user.name,
                     email: data.user.email,
-                    role: data.modelName || 'Student',
+                    role:'Student',
                 });
 
                 // Certificates

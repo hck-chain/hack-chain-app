@@ -55,7 +55,7 @@ router.post("/link", async (req, res) => {
     if (!token_id) {
       return res.status(400).json({ error: "Token ID is required" });
     }
-    const certificate_url = `https://opensea.io/item/polygon/0x8d21ac87475ec2ee80fb149e376035f5e29dca7c/${token_id}`;
+    const certificate_url = `https://opensea.io/item/polygon/0x61d2e94543DD498b7FD86450f1fC8135cB60021C/${token_id}`;
     const verified = await fetch(certificate_url, {
       method: "GET"
     })
