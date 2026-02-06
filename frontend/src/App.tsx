@@ -16,7 +16,6 @@ import Login from "./pages/Login";
 
 // PRUEBAS //////////////////////////
 import React from "react";
-import MintCertificate from "./utils/mintCertificate.jsx";
 import RecruiterDashboard from "./pages/RecruiterDashboard.js";
 import StudentDetailDashboard from './pages/StudentDetailDashboard.tsx';
 // PRUEBAS /////////////////////////
@@ -42,7 +41,6 @@ const App = () => (
           <Route path="/register/user" element={<RegisterUser />} />
           <Route path="/register/recruiter" element={<RegisterRecruiter />} />
           <Route path="/register/issuer" element={<RegisterEducator />} />
-          <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
