@@ -182,15 +182,6 @@ const StudentDetailDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* Field of Study */}
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
-                                                <p className="text-sm text-slate-200 font-body">{student.field_of_study}</p>
-                                            </div>
-                                        </div>
-
                                         {/* Wallet */}
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                             <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
