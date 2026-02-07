@@ -771,6 +771,12 @@ export const web3Service = {
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
+
+
+            // AGREGA ESTO:
+            console.log("🔥 LLEGÓ EL MOMENTO DE LA VERDAD 🔥");
+            console.log("Valor exacto de CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
+            console.log("Tipo de dato:", typeof CONTRACT_ADDRESS);
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
             const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
