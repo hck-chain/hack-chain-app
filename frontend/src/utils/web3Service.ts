@@ -2,7 +2,8 @@ import { ethers } from 'ethers';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+//const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+const CONTRACT_ADDRESS = "0x61d2e94543DD498b7FD86450f1fC8135cB60021C";
 const CONTRACT_ABI = [
     {
         "type": "constructor",

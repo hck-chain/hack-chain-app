@@ -726,7 +726,8 @@ async function authorizeIssuer(issuerAddress) {
     const ownerWallet = new ethers.Wallet(process.env.POLYGON_OWNER_PRIVATE_KEY, provider);
 
     const contract = new ethers.Contract(
-        process.env.VITE_CONTRACT_ADDRESS,
+        //process.env.VITE_CONTRACT_ADDRESS,
+        "0x61d2e94543DD498b7FD86450f1fC8135cB60021C",
         CONTRACT_ABI,
         ownerWallet
     );
