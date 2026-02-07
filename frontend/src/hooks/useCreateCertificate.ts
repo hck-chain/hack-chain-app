@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { web3Service } from "@/utils/web3Service";
-import { ethers } from "ethers";
 
 const API = import.meta.env.VITE_API_URL;
 

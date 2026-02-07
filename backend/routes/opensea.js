@@ -2,7 +2,7 @@ const opensea = require("@api/opensea");
 const express = require("express");
 const router = express.Router();
 opensea.auth(process.env.OPENSEA_API_KEY);
-const CONTRACT_ADDRESS = "0x61d2e94543DD498b7FD86450f1fC8135cB60021C".toLowerCase();
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS.toLowerCase();
 
 // Collection /api/opensea/collection/:slug
 router.get("/collection/:slug", async (req, res) => {
