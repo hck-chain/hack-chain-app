@@ -23,7 +23,7 @@ router.get("/collection/:slug", async (req, res) => {
 router.post("/certificates/", async (req, res) => {
   try {
     const { address } = req.body;
-    const slug = "firstversion";
+    const slug = "hackchainfirstversion";
 
     const { data } = await opensea.get_nfts_by_account({
       limit: 200,
@@ -141,7 +141,3 @@ router.get("/certificates/:educator", async (req, res) => {
 
 
 module.exports = router;
-
-// Slug -> hack-certificate-196949664
-// Slug 2 -> First version
-

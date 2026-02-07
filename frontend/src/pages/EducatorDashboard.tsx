@@ -269,7 +269,7 @@ const EducatorDashboard = () => {
       const success = await createCertificate(certificateData, form.issuer);
 
       if (success) {
-        // Limpiar formulario después de crear
+        setCertificatesIssued((prev) => prev + 1);
         setForm({
           certificateType: '',
           certificateTitle: '',
