@@ -153,7 +153,7 @@ router.post(
 router.get("/me", authenticate, async (req, res) => {
   try {
     const result = await getUserFromToken(req.auth); // req.auth tiene wallet
-    if (!result) return res.status(404).json({ error: "User not found" });
+    if (!result) return res.status(404).json({ error: "User not found!" });
 
     res.json(result); // esto ya incluye email
   } catch (e) {
