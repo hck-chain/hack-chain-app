@@ -502,7 +502,7 @@ const EducatorDashboard = () => {
                         <SelectContent className="bg-slate-900 border-white/10 text-white">
                           {students.map((student) => (
                             <SelectItem key={student.id} value={student.user.wallet_address}>
-                              {student.user.name} ({student.user.wallet_address.slice(0, 6)}...{student.user.wallet_address.slice(-4)})
+                              {student.user.name} {student.user.lastname} ({student.user.wallet_address.slice(0, 6)}...{student.user.wallet_address.slice(-4)})
                             </SelectItem>
                           ))}
                         </SelectContent>
