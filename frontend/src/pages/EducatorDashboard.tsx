@@ -29,6 +29,7 @@ interface Student {
   user: {
     id: number;
     name: string;
+    lastname: string;
     wallet_address: string;
     email: string;
   };
@@ -168,7 +169,7 @@ const EducatorDashboard = () => {
       setForm({
         ...form,
         studentWallet: selectedStudent.user.wallet_address,
-        studentName: selectedStudent.user.name
+        studentName: `${selectedStudent.user.name} ${selectedStudent.user.lastname}`
       });
     }
   };
