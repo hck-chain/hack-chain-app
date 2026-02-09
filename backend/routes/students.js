@@ -70,7 +70,7 @@ router.get("/:wallet_address", async (req, res) => {
         wallet_address: student.wallet_address,
         field_of_study: student.field_of_study,
         user: student.User,
-        total_certificates: totalCertificates, // ✅ número correcto
+        total_certificates: totalCertificates, 
         created_at: student.created_at
       }
     });
