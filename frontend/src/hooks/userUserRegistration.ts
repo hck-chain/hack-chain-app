@@ -55,14 +55,18 @@ export const useUserRegistration = () => {
                 throw new Error("MetaMask not detected");
             }
 
-            await window.ethereum.request({
-                method: "wallet_requestPermissions",
-                params: [{ eth_accounts: {} }],
-            });
+            // await window.ethereum.request({
+            //     method: "wallet_requestPermissions",
+            //     params: [{ eth_accounts: {} }],
+            // });
 
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
             });
+
+            if (!accounts || accounts.length === 0) {
+                throw new Error("No account selected");
+            }
 
             const walletAddress = accounts[0];
 
