@@ -1,4 +1,3 @@
-import Navbar from '@/components/Navbar';
 import Layout from '@/components/Layout';
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +18,22 @@ import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getCertificatesByEducator } from '@/utils/web3Service';
+import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+interface Student {
+  id: number;
+  wallet_address: string;
+  field_of_study: string;
+  user: {
+    id: number;
+    name: string;
+    lastname: string;
+    wallet_address: string;
+    email: string;
+  };
+}
 
 interface Student {
   id: number;
@@ -49,6 +64,8 @@ const EducatorDashboard = () => {
   const [userData, setUserData] = useState<any>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
+
 
   // Hook para crear certificado
   const { createCertificate, isLoading } = useCreateCertificate();
@@ -181,7 +198,7 @@ const EducatorDashboard = () => {
       });
       setLogoPreview('');
     }
-  };
+  }
 
   const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -249,7 +266,7 @@ const EducatorDashboard = () => {
 
           {/* Header Section */}
           <header
-            className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+            className="mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
           >
             <div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
@@ -257,11 +274,15 @@ const EducatorDashboard = () => {
                   Educator Dashboard
                 </span>
               </h1>
+
               <p className="text-lg text-slate-400 font-light">
                 Create and issue blockchain-verified credentials with ease.
               </p>
             </div>
-
+            {/* Logo centrado */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+            </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -270,7 +291,7 @@ const EducatorDashboard = () => {
                 >
                   <div className="flex flex-row items-baseline gap-1">
                     <span className="text-sm text-slate-400 font-medium">Welcome back,</span>
-                    <span className="text-sm font-bold text-white">{userData.name || "Educator"}</span>
+                    <span className="text-sm font-bold text-white">{userData.organization_name || "Educator"}</span>
                   </div>
                   <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                     <Award className="h-5 w-5 text-white" />
@@ -291,7 +312,7 @@ const EducatorDashboard = () => {
                       <Award className="h-7 w-7 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-base font-bold text-white">{userData.name || "My Organization"}</h3>
+                      <h3 className="text-base font-bold text-white">{userData.organization_name || "My Organization"}</h3>
                       <p className="text-xs text-purple-400 font-medium">{userData.role || "Issuer"}</p>
                     </div>
                   </div>
@@ -302,8 +323,8 @@ const EducatorDashboard = () => {
                     <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                       <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Email</p>
-                        <p className="text-sm text-slate-200 truncate">{userData.email || "email@org.com"}</p>
+                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Certificates Issued</p>
+                        <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : "No certificates issued yet"}</p>
                       </div>
                     </div>
 
@@ -312,7 +333,7 @@ const EducatorDashboard = () => {
                       <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Role</p>
-                        <p className="text-sm text-slate-200">Educator / {userData.role || "Issuer"}</p>
+                        <p className="text-sm text-slate-200">Educator</p>
                       </div>
                     </div>
 
@@ -479,9 +500,9 @@ const EducatorDashboard = () => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="lg:col-span-7 order-1 lg:order-2 sticky top-8"
             >
-              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-12 flex flex-col items-center justify-center min-h-[600px] relative">
+              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
                 {/* "Preview" Label */}
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                   <span className="text-xs font-medium tracking-widest uppercase text-slate-400">Live Preview</span>
                 </div>
 
@@ -498,8 +519,8 @@ const EducatorDashboard = () => {
                   />
                 </div>
 
-                <div className="mt-12 text-center max-w-md">
-                  <h3 className="text-white font-semibold text-lg mb-2">Review before Minting</h3>
+                <div className="mt-3 text-center max-w-md">
+                  <h3 className="text-white font-semibold text-lg mb-1">Review before Minting</h3>
                   <p className="text-slate-500 text-sm">
                     This is exactly how the NFT metadata will appear. Once minted, the details are immutable on the blockchain.
                   </p>

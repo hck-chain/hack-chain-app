@@ -1,6 +1,5 @@
 const express = require("express");
 const { PinataSDK } = require("pinata");
-
 const router = express.Router();
 
 const pinata = new PinataSDK({
@@ -8,20 +7,22 @@ const pinata = new PinataSDK({
   pinataGateway: process.env.GATEWAY_URL,
 });
 
-const { Certificate, Student, Issuer } = require("../models");
+// Importamos los modelos Y también 'sequelize' (la instancia conectada)
+const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { GEOGRAPHY } = require("sequelize");
-const defaultCertificateCID = "bafybeibmeqeia5ta52vxbapor5mkens2uwau2xsy6oetrf6prlcfssm5le";
 
 // POST /api/certificates: Upload certificate metadata to Pinata
 router.post("/", async (req, res) => {
   try {
     const { name, course, professor, date, imageCID } = req.body;
+
     if (!name || !course || !professor || !date || !imageCID) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
     const metadata = {
       name: `Certificate for ${name}`,
-      description: `First version of the HackChain Tokenized Certificate`,
+      description: "HackChain Tokenized Certificate",
       image: `ipfs://${imageCID}`,
       attributes: [
         { trait_type: "Student", value: name },
@@ -30,15 +31,22 @@ router.post("/", async (req, res) => {
         { trait_type: "Date", value: date },
       ],
     };
+
     const result = await pinata.upload.public.json(metadata, {
-      pinataMetadata: { name: `Certificate for ${name}` },
+      pinataMetadata: { name: `Certificate-${name}` },
     });
-    res.json({ cid: result.cid });
-  } catch (error) {
-    console.error(error);
+
+    res.json({
+      cid: result.cid,
+      uri: `ipfs://${result.cid}`,
+    });
+
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to upload metadata" });
   }
 });
+
 
 // POST /api/certificates/link
 router.post("/link", async (req, res) => {
@@ -47,7 +55,7 @@ router.post("/link", async (req, res) => {
     if (!token_id) {
       return res.status(400).json({ error: "Token ID is required" });
     }
-    const certificate_url = `https://opensea.io/item/polygon/0x8d21ac87475ec2ee80fb149e376035f5e29dca7c/${token_id}`;
+    const certificate_url = `https://opensea.io/item/polygon/0x61d2e94543DD498b7FD86450f1fC8135cB60021C/${token_id}`;
     const verified = await fetch(certificate_url, {
       method: "GET"
     })
@@ -104,59 +112,66 @@ router.get("/:cid", async (req, res) => {
   }
 });
 
-// POST /api/certificates/database
+// POST /api/certificates/database optimizado
 router.post("/database", async (req, res) => {
   try {
     const {
-      issuer_wallet_address,
-      title,
-      description,
-      certificate_hash,
-      blockchain_tx_hash,
-      tokenId,
-      issue_date
+      student_wallet_address, issuer_wallet_address, title,
+      description, certificate_hash, blockchain_tx_hash,
+      token_id, issue_date
     } = req.body;
 
-    if (!issuer_wallet_address || !title || !issue_date) {
-      return res.status(400).json({ error: "Issuer wallet address, title, and issue date are required" });
+
+    console.log("VALOR RECIBIDO COMO ISSUER:", issuer_wallet_address);
+    if (!issuer_wallet_address || !issuer_wallet_address.startsWith("0x")) {
+      return res.status(400).json({
+        error: "Dato inválido",
+        details: `Se esperaba una wallet (0x...), pero se recibió: "${issuer_wallet_address}"`
+      });
     }
 
-    // Check if issuer exists
-    const issuer = await Issuer.findOne({ where: { wallet_address: issuer_wallet_address } });
+    // 1. Validaciones básicas
+    if (!student_wallet_address || !issuer_wallet_address || !title) {
+      return res.status(400).json({ error: "Faltan campos obligatorios" });
+    }
+
+    // 2. Normalización inmediata
+    const cleanIssuerWallet = issuer_wallet_address.toLowerCase().trim();
+    const cleanStudentWallet = student_wallet_address.toLowerCase().trim();
+
+    // 3. Búsqueda optimizada (asumiendo que los datos en DB ya están en minúsculas)
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: cleanIssuerWallet }
+    });
+
     if (!issuer) {
-      return res.status(404).json({ error: "Issuer not found" });
+      return res.status(404).json({
+        error: "Emisor no autorizado",
+        details: `La wallet ${cleanIssuerWallet} no está registrada como emisor permitido.`
+      });
     }
 
-    // Create certificate
+    // 4. Creación del certificado
     const certificate = await Certificate.create({
-      issuer_wallet_address,
+      student_wallet_address: cleanStudentWallet,
+      issuer_wallet_address: cleanIssuerWallet,
       title,
-      description,
+      description: description || "Certificado Tokenizado HackChain",
       certificate_hash,
       blockchain_tx_hash,
       issue_date,
-      tokenId,
+      token_id,
       is_revoked: false
     });
 
     res.status(201).json({
-      message: "Certificate created successfully",
-      certificate: {
-        id: certificate.id,
-        issuer_wallet_address: certificate.issuer_wallet_address,
-        title: certificate.title,
-        description: certificate.description,
-        certificate_hash: certificate.certificate_hash,
-        blockchain_tx_hash: certificate.blockchain_tx_hash,
-        issue_date: certificate.issue_date,
-        is_revoked: certificate.is_revoked,
-        created_at: certificate.created_at
-      }
+      message: "Certificado sincronizado con éxito",
+      id: certificate.id
     });
 
   } catch (error) {
-    console.error("Error creating certificate:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error en la sincronización de DB:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
@@ -261,5 +276,6 @@ router.put("/database/:id/revoke", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 module.exports = router; 

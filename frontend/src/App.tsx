@@ -7,7 +7,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NFTCreator from "./pages/NFTCreator";
 import EducatorDashboard from "./pages/EducatorDashboard";
-import  RegisterLanding  from "./pages/RegisterLanding";
+import StudentDashboard from "./pages/StudentDashboard";
+import RegisterLanding from "./pages/RegisterLanding";
 import { RegisterUser } from "./pages/RegisterUser";
 import { RegisterRecruiter } from "./pages/RegisterRecruiter";
 import RegisterEducator from "./pages/RegisterEducator";
@@ -15,7 +16,8 @@ import Login from "./pages/Login";
 
 // PRUEBAS //////////////////////////
 import React from "react";
-import MintCertificate from "./utils/mintCertificate.jsx";
+import RecruiterDashboard from "./pages/RecruiterDashboard.js";
+import StudentDetailDashboard from './pages/StudentDetailDashboard.tsx';
 // PRUEBAS /////////////////////////
 
 
@@ -31,12 +33,14 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/nft-creator" element={<NFTCreator />} />
           <Route path="/educator/dashboard" element={<EducatorDashboard />} />
+          <Route path="/dashboard/student" element={<StudentDashboard />} />
+          <Route path="/dashboard/recruiter" element={<RecruiterDashboard />} />
+          <Route path="/recruiter/student/:wallet_address" element={<StudentDetailDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterLanding />} />
           <Route path="/register/user" element={<RegisterUser />} />
           <Route path="/register/recruiter" element={<RegisterRecruiter />} />
           <Route path="/register/issuer" element={<RegisterEducator />} />
-          <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

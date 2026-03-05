@@ -11,7 +11,7 @@ import {
 } from '../types/auth';
 
 //API base URL --> adjust according to your configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 //API function register a new recruiter
 const registerRecruiter = async (recruiterData: RecruiterRegistrationRequestData & { wallet_address: string; role: string }): Promise<RecruiterRegistrationResponse> => {
@@ -54,14 +54,18 @@ export const useRecruiterRegistration = () => {
                 throw new Error("MetaMask not detected");
             }
 
-            await window.ethereum.request({
-                method: "wallet_requestPermissions",
-                params: [{ eth_accounts: {} }],
-            });
+            // await window.ethereum.request({
+            //     method: "wallet_requestPermissions",
+            //     params: [{ eth_accounts: {} }],
+            // });
 
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
             });
+
+            if (!accounts || accounts.length === 0) {
+                throw new Error("No account selected");
+            }
 
             const walletAddress = accounts[0];
 

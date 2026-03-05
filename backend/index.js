@@ -1,5 +1,3 @@
-// backend/index.js
-// Cargar variables de entorno lo antes posible
 require("dotenv").config();
 
 const express = require("express");
@@ -14,14 +12,31 @@ const app = express();
 const port = process.env.PORT || 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 
+// ---------- Trust proxy (Render, Vercel, etc.) ----------
+app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
+
+// ---------- CORS ----------
+const allowedOrigins = [
+  "https://hackchain.app",
+  "https://www.hackchain.app"
+
+];
+
 app.use(cors({
-  origin: FRONTEND_ORIGIN,
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
+    callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
+
+// ---------- Middleware ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Import routes
+// ---------- Rutas ----------
 const authRouter = require("./routes/auth");
 const usersRouter = require("./routes/users");
 const sessionsRouter = require("./routes/sessions");
@@ -30,8 +45,8 @@ const studentsRouter = require("./routes/students");
 const issuersRouter = require("./routes/issuers");
 const recruitersRouter = require("./routes/recruiters");
 const opensea = require("./routes/opensea");
+const uploadRoutes = require("./routes/upload");
 
-// Use routes
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
@@ -40,8 +55,18 @@ app.use("/api/students", studentsRouter);
 app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
+app.use("/api/upload", uploadRoutes);
 
-// Health check básico: verifica que la app está viva y la DB responde
+// Servir build Vite
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Redirigir todo lo demás a index.html (compatible con Express 4+)
+// app.get('/*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+// });
+
+
+// ---------- Health check ----------
 app.get("/health", async (req, res) => {
   try {
     await db.sequelize.authenticate();
@@ -52,34 +77,31 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// 404 handler (si no coincide ninguna ruta)
+// ---------- 404 ----------
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// Error handler (middleware final)
+// ---------- Error handler ----------
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err && err.stack ? err.stack : err);
   const status = err.status && Number(err.status) || 500;
   res.status(status).json({ error: err.message || "Internal server error" });
 });
 
-// Sincronizar DB y arrancar servidor
+// ---------- Arrancar servidor ----------
 let server;
 (async () => {
   try {
-    // 1) Intentar autenticar la conexión (detecta credenciales/host/puerto incorrectos)
     await db.sequelize.authenticate();
     console.log("✅ Database connection authenticated.");
 
-    // 2) Sync (si prefieres migraiones en lugar de sync(), cámbialo)
     await db.sequelize.sync();
     console.log("✅ Database synchronized.");
 
-    // 3) Arrancar servidor
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
-      console.log(`🔗 Frontend origin: ${process.env.FRONTEND_ORIGIN}`);
+      console.log(`🔗 Frontend origin: https://hackchain.app`);
     });
   } catch (err) {
     console.error("Failed to start server:", err);
@@ -87,7 +109,7 @@ let server;
   }
 })();
 
-// Graceful shutdown: cierra servidor y pool de DB
+// ---------- Graceful shutdown ----------
 async function shutdown(signal) {
   console.log(`\n⚠️  Received ${signal}. Shutting down gracefully...`);
   try {
@@ -97,7 +119,6 @@ async function shutdown(signal) {
       });
       console.log("HTTP server closed.");
     }
-    // cerrar sequelize
     if (db && db.sequelize) {
       await db.sequelize.close();
       console.log("Sequelize connection closed.");
@@ -112,5 +133,4 @@ async function shutdown(signal) {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-// Export app para tests (supertest) si se necesita
 module.exports = app;

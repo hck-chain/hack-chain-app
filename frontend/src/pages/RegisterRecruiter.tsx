@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Building, Users, Shield, Search, Zap, CheckCircle } from "lucide-react";
+import { ArrowLeft, Building, Users, Shield, Search } from "lucide-react";
 import { RecruiterRegistrationForm } from "@/components/auth/recruiterRegistrationForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,183 +9,160 @@ import hackChainLogo from "/images/logoHackchain.png";
 
 export function RegisterRecruiter() {
   return (
-    <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col">
-      {/* Background Animation - Continuous and always running */}
+    <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
+      {/* Background */}
       <div className="absolute inset-0 z-0 bg-background" />
       <div className="absolute inset-0 z-10">
         <BackgroundAnimation />
         <FloatingElements />
       </div>
-      
-      {/* Page Content with entrance animations */}
+
+      {/* Content */}
       <div className="relative z-20 animate-in fade-in duration-700 flex flex-col flex-1">
-        {/* Sticky header with full-width border, consistent with RegisterLanding */}
+
+        {/* Header */}
         <div className="z-30 w-full border-b border-white/10 bg-background/80 backdrop-blur mb-6 min-h-[56px]">
           <div className="flex items-center justify-between max-w-6xl mx-auto px-4 pt-6 pb-3">
-            {/* Logo and Brand */}
+
+            {/* Logo */}
             <div className="flex items-center gap-2 justify-start">
               <img
                 src={hackChainLogo}
                 alt="Hack Chain Logo"
                 className="h-9 w-9 md:h-10 md:w-10 drop-shadow-lg"
               />
-              <span className="text-xl md:text-2xl font-bold gradient-text drop-shadow-lg tracking-tight">
-                Hack Chain
+              <span className="text-xl md:text-2xl font-exo font-bold gradient-text drop-shadow-lg tracking-tight">
+                HackChain
               </span>
             </div>
-            {/* Back to RegisterLanding */}
+
+            {/* Back */}
             <Link to="/register" className="flex items-center gap-2 group">
-              <span className="text-sm md:text-base font-medium text-muted-foreground group-hover:text-primary transition-colors">Back to Register</span>
-              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-green-400 transition-colors">
+                Back to Register
+              </span>
+              <ArrowLeft className="h-4 w-4 text-slate-300 group-hover:text-green-400 transition-colors" />
             </Link>
+
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main */}
         <div className="relative z-10 container mx-auto px-4 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
           <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
-            
-            {/* Left Side - Information */}
+
+            {/* Left - Info */}
             <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-300">
+
+              {/* Header Text */}
               <div className="space-y-4">
-                <h1 className="text-4xl font-bold text-white leading-tight">
+                <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
                   Find and Verify
-                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent"> Top Professional Talent</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                    Top Professional Talent
+                  </span>
                 </h1>
-                
-                <p className="text-lg text-slate-300 leading-relaxed">
-                  Join as a recruiter and access the world's largest platform for verified 
+                <p className="text-lg text-slate-300 font-lato leading-relaxed">
+                  Join as a recruiter and access the world's largest platform for verified
                   professionals across all industries with blockchain-authenticated skills.
                 </p>
               </div>
 
-              {/* Features - Solo Recruiter */}
+              {/* Features */}
               <div className="space-y-6">
-                {/* Recruiter - Destacado */}
                 <div className="flex items-start gap-4 group p-6 glass rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all duration-300">
                   <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
                     <Building className="h-8 w-8 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Recruiter Experience</h3>
-                    <p className="text-slate-300 mb-4">
+                    <h3 className="text-xl font-exo font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                      Recruiter Experience
+                    </h3>
+                    <p className="text-slate-300 font-lato mb-4">
                       Connect with certified professionals across all industries and verify their skills with confidence.
                     </p>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                        <span className="text-sm text-slate-400">Access verified talent pool</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                        <span className="text-sm text-slate-400">Verify blockchain certificates instantly</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                        <span className="text-sm text-slate-400">Advanced search and filtering tools</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                        <span className="text-sm text-slate-400">Direct contact with top candidates</span>
-                      </div>
+                      {["Access verified talent pool", "Verify blockchain certificates instantly", "Advanced search and filtering tools", "Direct contact with top candidates"].map((text, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
+                          <span className="text-sm text-slate-400 font-lato">{text}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 {/* Additional Benefits */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 p-4 glass rounded-lg border border-emerald-500/20 hover:border-emerald-500/30 transition-all duration-200">
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
-                      <Search className="h-5 w-5 text-white" />
+                  {[
+                    { icon: Search, title: "Smart Search", desc: "Find ideal candidates in seconds", color: "emerald" },
+                    { icon: Shield, title: "Verified Skills", desc: "Blockchain-authenticated", color: "emerald" }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 p-4 glass rounded-lg border border-emerald-500/20 hover:border-emerald-500/30 transition-all duration-200">
+                      <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
+                        <item.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-exo font-semibold text-emerald-400">{item.title}</h4>
+                        <p className="text-xs text-slate-400 font-lato">{item.desc}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-emerald-400">Smart Search</h4>
-                      <p className="text-xs text-slate-400">Find ideal candidates in seconds</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 p-4 glass rounded-lg border border-emerald-500/20 hover:border-emerald-500/30 transition-all duration-200">
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-emerald-400">Verified Skills</h4>
-                      <p className="text-xs text-slate-400">Blockchain-authenticated</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Call to action for existing users */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-6 border border-slate-700/50 hover:bg-slate-800/70 transition-all duration-200">
-                <p className="text-sm text-slate-300 mb-3">
+              {/* CTA */}
+              <div className="bg-slate-900/70 backdrop-blur-sm rounded-lg p-6 border border-green-500/30 hover:border-green-500/50 hover:bg-slate-900/85 transition-all duration-200">
+                <p className="text-sm text-slate-300 font-lato mb-3">
                   Already have a recruiter account?
                 </p>
                 <Link to="/login">
-                  <Button variant="outline" size="sm" className="hover:scale-105 transition-transform duration-200 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700">
+                  <Button variant="outline" size="sm" className="hover:scale-105 transition-transform duration-200 border-green-500 text-slate-300 hover:text-white hover:bg-green-700 font-lato">
                     Sign In Instead
                   </Button>
                 </Link>
               </div>
+
             </div>
 
-            {/* Right Side - Registration Form */}
+            {/* Right - Form */}
             <div className="flex justify-center animate-in slide-in-from-right duration-700 delay-500">
-              <Card className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 border border-green-500/30 hover:border-green-500/50 bg-gradient-to-br from-slate-900/95 via-green-900/20 to-slate-900/95 backdrop-blur-xl">
-                <CardHeader className="space-y-1 text-center">
+              <Card className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 border border-green-500/30 hover:border-green-500/50 bg-gradient-to-br from-slate-900/95 via-green-900/20 to-slate-900/95 backdrop-blur-xl rounded-2xl">
+                <CardHeader className="space-y-1 text-center font-lato">
                   <div className="flex justify-center mb-2">
                     <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
                       <Building className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                  <CardTitle className="text-2xl font-exo font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                     Create Recruiter Account
                   </CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardDescription className="text-slate-300 font-lato">
                     Enter your information to start finding top cybersecurity talent
                   </CardDescription>
                 </CardHeader>
-                
-                <CardContent>
+
+                <CardContent className="font-lato text-slate-300">
                   <RecruiterRegistrationForm />
                 </CardContent>
               </Card>
             </div>
+
           </div>
         </div>
 
         {/* Footer */}
-        <footer className="relative z-10 border-t border-slate-700/50 bg-slate-900/50 backdrop-blur animate-in slide-in-from-bottom duration-700 delay-700 mt-auto">
+        <footer className="relative z-10 border-t border-green-500/20 bg-slate-900/50 backdrop-blur animate-in slide-in-from-bottom duration-700 delay-700 mt-auto font-lato">
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-400">
-                © 2025 Hack Chain. Connecting verified professionals with leading companies across all industries.
+              <p className="text-sm text-slate-300 font-lato">
+                © 2025 HackChain. Non-Fungible Talent.
               </p>
-              
-              <div className="flex gap-6 text-sm">
-                <Link 
-                  to="/privacy" 
-                  className="text-slate-400 hover:text-white transition-all duration-200 hover:scale-105"
-                >
-                  Privacy Policy
-                </Link>
-                <Link 
-                  to="/terms" 
-                  className="text-slate-400 hover:text-white transition-all duration-200 hover:scale-105"
-                >
-                  Terms of Service
-                </Link>
-                <Link 
-                  to="/help" 
-                  className="text-slate-400 hover:text-white transition-all duration-200 hover:scale-105"
-                >
-                  Help
-                </Link>
-              </div>
             </div>
           </div>
         </footer>
-        
+
       </div>
     </div>
   );
