@@ -1,4 +1,3 @@
-import Navbar from '@/components/Navbar';
 import Layout from '@/components/Layout';
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6,12 +5,35 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas';
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getCertificatesByEducator } from '@/utils/web3Service';
+import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+interface Student {
+  id: number;
+  wallet_address: string;
+  field_of_study: string;
+  user: {
+    id: number;
+    name: string;
+    lastname: string;
+    wallet_address: string;
+    email: string;
+  };
+}
 
 const EducatorDashboard = () => {
   const navigate = useNavigate();
@@ -19,57 +41,99 @@ const EducatorDashboard = () => {
     certificateType: '',
     certificateTitle: '',
     studentName: '',
+    studentWallet: '',
     issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     logo: '',
+    imageUri: '',
   });
+
+  const [wallet, setWallet] = useState<string>("");
+  const [organizationName, setOrganizationName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
+  const [students, setStudents] = useState<Student[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
+
 
   // Hook para crear certificado
-  const { createCertificate, isLoading, error, success } = useCreateCertificate();
+  const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
 
   // Verificar autenticación y obtener datos del usuario
   useEffect(() => {
-    // BYPASS AUTH FOR DEVELOPMENT
-    /* 
-    const userStr = localStorage.getItem('user');
-    const token = localStorage.getItem('authToken');
-    
-    if (!userStr || !token) {
-      toast({
-        title: "Authentication Required",
-        description: "Please login to access this page.",
-        variant: "destructive",
-      });
-      navigate('/login');
-      return;
-    }
 
-    const user = JSON.parse(userStr);
-    
-    // Verificar que sea un Issuer
-    if (user.role !== 'Issuer') {
-      toast({
-        title: "Access Denied",
-        description: "This page is only for educators.",
-        variant: "destructive",
-      });
-      navigate('/');
-      return;
-    }
-    setUserData(user);
-    */
+    const loadProfile = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
 
-    // MOCK USER DATA
-    setUserData({
-      name: "Test Educator",
-      email: "educator@test.com",
-      role: "Issuer",
-      walletAddress: "0x1234567890abcdef1234567890abcdef12345678"
-    });
+        if (!token) {
+          console.error("No auth token found");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        console.log("AUTH /me RESPONSE 👉", data);
+
+        if (!res.ok) {
+          console.error("Auth error:", data);
+          return;
+        }
+
+        // data.user viene de ISSUERS
+        // data.modelName === "issuer"
+        setUserData({
+          organization_name: data.user.organization_name,
+          walletAddress: data.user.wallet_address,
+          email: data.user.email ?? "No email registered",
+          role: "Educator",
+        });
+
+
+        // Aquí no usamos userData, usamos directamente la wallet
+        const certCount = await getCertificatesByEducator(data.user.wallet_address);
+        console.log("Certificates fetched:", certCount);
+
+        setCertificatesIssued(certCount); // <-- directo, es un número
+
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      }
+    };
+
+    loadProfile();
+    // Fetch Students
+    const fetchStudents = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/students`);
+        if (response.ok) {
+          const data = await response.json();
+          // The API returns { students: [...] } or just [...]? 
+          // Based on file read: res.json({ students: ... })
+          if (data.students) {
+            setStudents(data.students);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch students", error);
+        toast({
+          title: "Error",
+          description: "Failed to load student list.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchStudents();
 
   }, [navigate, toast]);
 
@@ -89,11 +153,70 @@ const EducatorDashboard = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
+        // Ideally upload image here to get a URI, or assume backend handles it. 
+        // For now keeping local preview logic.
       };
       reader.readAsDataURL(file);
       setForm({ ...form, logo: URL.createObjectURL(file) });
     } else {
       setForm({ ...form, [e.target.name]: e.target.value });
+    }
+  };
+
+  const handleStudentChange = (walletAddress: string) => {
+    const selectedStudent = students.find(s => s.user.wallet_address === walletAddress);
+    if (selectedStudent) {
+      setForm({
+        ...form,
+        studentWallet: selectedStudent.user.wallet_address,
+        studentName: `${selectedStudent.user.name} ${selectedStudent.user.lastname}`
+      });
+    }
+  };
+
+  const uploadCertificateImage = async (): Promise<string | null> => {
+    const card = cardRef.current?.querySelector('.pc-card') as HTMLElement;
+    if (!card) return null;
+
+    // Desactivar efectos antes de capturar
+    const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+    const glare = card.querySelector('.pc-glare') as HTMLElement | null;
+
+    const prevShineDisplay = shine?.style.display;
+    const prevGlareDisplay = glare?.style.display;
+
+    if (shine) shine.style.display = 'none';
+    if (glare) glare.style.display = 'none';
+    card.classList.remove('active');
+
+    try {
+      const canvas = await html2canvas(card, {
+        backgroundColor: "#0b0b0b",
+        scale: 2,
+        useCORS: true,
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png")
+      );
+
+      if (!blob) return null;
+
+      const formData = new FormData();
+      formData.append("file", blob, "certificate.png");
+
+      const res = await fetch(`${API_BASE_URL}/api/upload/image`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      return data.cid;
+
+    } finally {
+      // Restaurar efectos después de capturar
+      if (shine) shine.style.display = prevShineDisplay ?? '';
+      if (glare) glare.style.display = prevGlareDisplay ?? '';
     }
   };
 
@@ -112,50 +235,65 @@ const EducatorDashboard = () => {
     }
 
     // Validar campos requeridos
-    if (!form.certificateTitle || !form.studentName || !form.issuer) {
+    if (!form.certificateTitle || !form.studentName || !form.issuer || !form.studentWallet) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields, including selecting a student.",
         variant: "destructive",
       });
       return;
     }
 
-    // Preparar datos para enviar al backend
-    const certificateData = {
-      issuer_wallet_address: userData.walletAddress,
-      title: form.certificateTitle,
-      description: `${form.certificateType || 'Certificate'} issued to ${form.studentName} by ${form.issuer}`,
-      issue_date: form.issueDate,
-    };
+    // Preparar datos para enviar al hook
 
-    // Enviar al backend
-    const result = await createCertificate(certificateData);
-
-    if (result) {
+    try {
       toast({
-        title: "Success!",
-        description: `Certificate created successfully with ID: ${result.certificate.id}`,
+        title: "Uploading image",
+        description: "Generating certificate image...",
       });
 
-      // Limpiar formulario después de crear
-      setForm({
-        certificateType: '',
-        certificateTitle: '',
-        studentName: '',
-        issuer: '',
-        issueDate: new Date().toISOString().split('T')[0],
-        logo: '',
-      });
-      setLogoPreview('');
-    } else {
+      const imageCID = await uploadCertificateImage();
+
+      if (!imageCID) {
+        throw new Error("Image upload failed");
+      }
+
+
+      const certificateData = {
+        studentName: form.studentName,
+        studentWallet: form.studentWallet,
+        courseName: form.certificateTitle, // Using title as course name
+        imageCID: imageCID,
+      };
+
+      // Enviar al hook logic
+      const success = await createCertificate(certificateData, form.issuer);
+
+      if (success) {
+        setCertificatesIssued((prev) => prev + 1);
+        setForm({
+          certificateType: '',
+          certificateTitle: '',
+          studentName: '',
+          studentWallet: '',
+          issuer: '',
+          issueDate: new Date().toISOString().split('T')[0],
+          logo: '',
+          imageUri: '',
+        });
+        setLogoPreview('');
+      }
+
+    } catch (err) {
+      console.error(err);
       toast({
         title: "Error",
-        description: error || "Failed to create certificate",
+        description: "Failed to create certificate",
         variant: "destructive",
       });
+
     }
-  };
+  }
 
   const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -198,7 +336,6 @@ const EducatorDashboard = () => {
         title: "Error",
         description: "Failed to download certificate preview.",
         variant: "destructive",
-
       });
     } finally {
       if (shine) shine.style.display = prevShineDisplay ?? '';
@@ -207,7 +344,7 @@ const EducatorDashboard = () => {
   };
 
   if (!userData) {
-    return null; // O un loading spinner
+    return null;
   }
 
   return (
@@ -224,7 +361,7 @@ const EducatorDashboard = () => {
 
           {/* Header Section */}
           <header
-            className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+            className="mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
           >
             <div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
@@ -232,11 +369,15 @@ const EducatorDashboard = () => {
                   Educator Dashboard
                 </span>
               </h1>
+
               <p className="text-lg text-slate-400 font-light">
                 Create and issue blockchain-verified credentials with ease.
               </p>
             </div>
-
+            {/* Logo centrado */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+            </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -245,7 +386,7 @@ const EducatorDashboard = () => {
                 >
                   <div className="flex flex-row items-baseline gap-1">
                     <span className="text-sm text-slate-400 font-medium">Welcome back,</span>
-                    <span className="text-sm font-bold text-white">{userData.name || "Educator"}</span>
+                    <span className="text-sm font-bold text-white">{userData.organization_name || "Educator"}</span>
                   </div>
                   <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                     <Award className="h-5 w-5 text-white" />
@@ -266,7 +407,7 @@ const EducatorDashboard = () => {
                       <Award className="h-7 w-7 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-base font-bold text-white">{userData.name || "My Organization"}</h3>
+                      <h3 className="text-base font-bold text-white">{userData.organization_name || "My Organization"}</h3>
                       <p className="text-xs text-purple-400 font-medium">{userData.role || "Issuer"}</p>
                     </div>
                   </div>
@@ -277,8 +418,8 @@ const EducatorDashboard = () => {
                     <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                       <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Email</p>
-                        <p className="text-sm text-slate-200 truncate">{userData.email || "email@org.com"}</p>
+                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Certificates Issued</p>
+                        <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : "No certificates issued yet"}</p>
                       </div>
                     </div>
 
@@ -287,7 +428,7 @@ const EducatorDashboard = () => {
                       <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Role</p>
-                        <p className="text-sm text-slate-200">Educator / {userData.role || "Issuer"}</p>
+                        <p className="text-sm text-slate-200">Educator</p>
                       </div>
                     </div>
 
@@ -354,14 +495,21 @@ const EducatorDashboard = () => {
 
                     <div className="group/input">
                       <Label htmlFor="studentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Student Name</Label>
-                      <Input
-                        id="studentName"
-                        name="studentName"
-                        value={form.studentName}
-                        onChange={handleChange}
-                        placeholder="Recipient's Full Name"
-                        className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
-                      />
+                      <Select onValueChange={handleStudentChange} value={form.studentWallet}>
+                        <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-12">
+                          <SelectValue placeholder="Select a student" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                          {students.map((student) => (
+                            <SelectItem key={student.id} value={student.user.wallet_address}>
+                              {student.user.name} {student.user.lastname} ({student.user.wallet_address.slice(0, 6)}...{student.user.wallet_address.slice(-4)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-slate-500 mt-1 pl-1">
+                        Selected Wallet: {form.studentWallet || "None"}
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -436,20 +584,6 @@ const EducatorDashboard = () => {
                       Preview
                     </Button>
                   </div>
-
-                  {/* Messages */}
-                  {success && (
-                    <div className="mt-4 p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                      <p className="text-sm text-green-300">Certificate successfully minted on-chain!</p>
-                    </div>
-                  )}
-                  {error && (
-                    <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <p className="text-sm text-red-400">{error}</p>
-                    </div>
-                  )}
-
                 </form>
               </div>
             </motion.div>
@@ -461,9 +595,9 @@ const EducatorDashboard = () => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="lg:col-span-7 order-1 lg:order-2 sticky top-8"
             >
-              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-12 flex flex-col items-center justify-center min-h-[600px] relative">
+              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
                 {/* "Preview" Label */}
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                   <span className="text-xs font-medium tracking-widest uppercase text-slate-400">Live Preview</span>
                 </div>
 
@@ -480,8 +614,8 @@ const EducatorDashboard = () => {
                   />
                 </div>
 
-                <div className="mt-12 text-center max-w-md">
-                  <h3 className="text-white font-semibold text-lg mb-2">Review before Minting</h3>
+                <div className="mt-3 text-center max-w-md">
+                  <h3 className="text-white font-semibold text-lg mb-1">Review before Minting</h3>
                   <p className="text-slate-500 text-sm">
                     This is exactly how the NFT metadata will appear. Once minted, the details are immutable on the blockchain.
                   </p>

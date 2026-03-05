@@ -1,5 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const Certificate = sequelize.define("Certificate", {
+
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -13,6 +14,15 @@ module.exports = (sequelize, DataTypes) => {
         key: 'wallet_address'
       }
     },
+    student_wallet_address: {        // <-- NUEVO
+      type: DataTypes.STRING(42),
+      allowNull: false,
+      references: {
+        model: 'students',
+        key: 'wallet_address'
+      },
+      onDelete: 'CASCADE'
+    },
     title: {
       type: DataTypes.STRING(255),
       allowNull: false
@@ -22,12 +32,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true
     },
     certificate_hash: {
-      type: DataTypes.STRING(64),
+      type: DataTypes.STRING(128),
       unique: true,
       allowNull: false
     },
     blockchain_tx_hash: {
-      type: DataTypes.STRING(66),
+      type: DataTypes.STRING(128),
       allowNull: true
     },
     token_id: {
@@ -54,6 +64,11 @@ module.exports = (sequelize, DataTypes) => {
     Certificate.belongsTo(models.Issuer, {
       foreignKey: 'issuer_wallet_address',
       targetKey: 'wallet_address'
+    });
+    Certificate.belongsTo(models.Student, {   // <-- NUEVO
+      foreignKey: 'student_wallet_address',
+      targetKey: 'wallet_address',
+      as: 'student'
     });
   };
 

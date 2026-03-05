@@ -11,7 +11,7 @@ import {
 } from '../types/auth';
 
 //API base URL --> adjust according to your configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 //API function register a new educator
 const registerEducator = async (educatorData: EducatorRegistrationRequestData & { wallet_address: string; role: string }): Promise<EducatorRegistrationResponse> => {
@@ -55,14 +55,18 @@ export const useEducatorRegistration = () => {
                 throw new Error("MetaMask not detected");
             }
 
-            await window.ethereum.request({
-                method: "wallet_requestPermissions",
-                params: [{ eth_accounts: {} }],
-            });
+            // await window.ethereum.request({
+            //     method: "wallet_requestPermissions",
+            //     params: [{ eth_accounts: {} }],
+            // });
 
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
             });
+
+            if (!accounts || accounts.length === 0) {
+                throw new Error("No account selected");
+            }
 
             const walletAddress = accounts[0];
             async function authorizeIssuer(walletAddress) {
@@ -86,7 +90,7 @@ export const useEducatorRegistration = () => {
                 return data;
             }
 
-            await authorizeIssuer(walletAddress); 
+            await authorizeIssuer(walletAddress);
             /////////////////////////////////////////////////////////////////////////////////////
 
             // Merge with wallet address and role

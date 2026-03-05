@@ -14,26 +14,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('student', 'issuer', 'recruiter'),
       allowNull: false
     },
-    name: {
-      type: DataTypes.STRING(50),
-      allowNull: true
-    },
-    lastname: {
-      type: DataTypes.STRING(50),
-      allowNull: true
-    },
-    email: {
-      type: DataTypes.STRING(255),
-      allowNull: true
-    },
-    nonce: {
-      type: DataTypes.STRING(32),
-      allowNull: false
-    },
-    is_active: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
-    }
+    name: { type: DataTypes.STRING(50), allowNull: true },
+    lastname: { type: DataTypes.STRING(50), allowNull: true },
+    email: { type: DataTypes.STRING(255), allowNull: true },
+    nonce: { type: DataTypes.STRING(32), allowNull: false },
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, {
     tableName: 'users',
     underscored: true,

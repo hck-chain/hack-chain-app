@@ -2,9 +2,6 @@
 const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
-const students = require("../models/students");
-const { getUserFromToken } = require("../middleware/auth.js");
-const { route } = require("./recruiters.js");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 
 // GET /api/issuers
@@ -34,78 +31,52 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/issuers/authorize
-
 router.post("/authorize", async (req, res) => {
   try {
     const { issuer } = req.body;
-    if (!issuer) {
-      return res.status(400).json({ error: "Issuer address required" })
-    }
+    if (!issuer) return res.status(400).json({ error: "Issuer address required" });
+
     const txHash = await authorizeIssuer(issuer);
-    res.json({
-      succes: true,
-      txHash
-    });
+    res.json({ succes: true, txHash });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-})
-
+});
+//|| !certificate_hash || !token_id)
 // POST /api/issuers/mint
 router.post("/mint", async (req, res) => {
   try {
-    const { walletStudent, nameStudent, professor, courseName, imageUri } = req.body;
-    if (!walletStudent || !nameStudent || !professor || !courseName || !imageUri) {
+    const {
+      studentWalletAddress,
+      professor,
+      tokenUri
+    } = req.body;
+
+    if (!studentWalletAddress || !professor || !tokenUri) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const walletExists = await Student.findOne({ where: { wallet_address: walletStudent.toLowerCase() } });
-    const professorExists = await Issuer.findOne({ where: { wallet_address: professor.toLowerCase() } });
-    if (!professorExists) {
-      throw new Error(`No se encontró un issuer con la wallet ${professor}`);
-    }
-    const professorName = professorExists.organization_name;
 
-    if (walletExists) {
+    const student = await Student.findOne({
+      where: { wallet_address: studentWalletAddress.toLowerCase() }
+    });
 
-      const hoy = new Date();
-      const fecha = `${hoy.getFullYear()}-${hoy.getMonth() + 1}-${hoy.getDate()}`;
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: professor.toLowerCase() }
+    });
 
-      const uri = {
-        "name": nameStudent,
-        "course": courseName,
-        "professor": professorName,
-        "date": `${fecha}`,
-        "imageCID": imageUri,
-      };
-      const pinata = await fetch("http://localhost:3001/api/certificates/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(uri)
-      });
+    if (!student) return res.status(404).json({ error: "Student not found" });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
-      let data;
-      try {
-        data = await pinata.json();
-      } catch (e) {
-        console.error("Failed to parse Pinata response:", e);
-        return res.status(500).json({ error: "Invalid response from Pinata" });
-      }
-      const tokenUri = `ipfs://${data.cid}`;
-
-      return res.json({
-        walletStudent,
-        nameStudent,
-        courseName,
-        tokenUri
-      });
-    } else {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    return res.json({
+      ok: true,
+      tokenUri
+    });
 
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Incorrect data" })
+    res.status(500).json({ error: "Mint validation failed" });
   }
 });
 
@@ -128,9 +99,7 @@ router.get("/:wallet_address", async (req, res) => {
       ]
     });
 
-    if (!issuer) {
-      return res.status(404).json({ error: "Issuer not found" });
-    }
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
     res.json({
       issuer: {
@@ -156,9 +125,7 @@ router.put("/:wallet_address", async (req, res) => {
     const { organization_name } = req.body;
 
     const issuer = await Issuer.findOne({ where: { wallet_address } });
-    if (!issuer) {
-      return res.status(404).json({ error: "Issuer not found" });
-    }
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
     await issuer.update({ organization_name });
 
@@ -167,6 +134,45 @@ router.put("/:wallet_address", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update issuer" });
+  }
+});
+
+// POST /api/issuers/increment-certificates
+router.post("/increment-certificates", async (req, res) => {
+  try {
+    const { issuerWallet } = req.body;
+    if (!issuerWallet) return res.status(400).json({ error: "issuerWallet required" });
+
+    await Issuer.increment(
+      { certificates_issued: 1 },
+      { where: { wallet_address: issuerWallet.toLowerCase() } }
+    );
+
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error("Increment error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// GET /api/issuers/:wallet/certificates-count
+router.get("/:wallet/certificates-count", async (req, res) => {
+  try {
+    const { wallet } = req.params;
+
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: wallet.toLowerCase() },
+      attributes: ["certificates_issued"],
+    });
+
+    res.json({
+      total: issuer?.certificates_issued || 0,
+    });
+
+  } catch (e) {
+    console.error("Error fetching certificates:", e);
+    res.status(500).json({ total: 0 });
   }
 });
 

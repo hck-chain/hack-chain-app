@@ -27,6 +27,7 @@ contract HackTokenERC20Test is Test {
 
     // ------------------------------------------------------------------------
     // ADMIN-ONLY TESTS
+
     // ------------------------------------------------------------------------
 
     /// @notice Tests that only the owner can mint tokens.
@@ -36,6 +37,7 @@ contract HackTokenERC20Test is Test {
 
         vm.prank(admin);
         _hacktoken.mintTokens(recipient, amount);
+ main
     }
 
     /// @notice Tests that only the owner can transfer ownership.
@@ -61,6 +63,7 @@ contract HackTokenERC20Test is Test {
         _hacktoken.transferOwnershipCustom(admin);
     }
 
+
     /// @notice Tests that only the owner can pause the contract.
     function testPauseOwnerOnlyAdmin() public {
         vm.prank(admin);
@@ -79,12 +82,14 @@ contract HackTokenERC20Test is Test {
 
     function testTransferOwnerGood() public {
         address newAddress = vm.addr(6);
+
         vm.prank(admin);
         _hacktoken.transferOwnershipCustom(newAddress);
     }
 
     // ------------------------------------------------------------------------
     // MINT TESTS
+
     // ------------------------------------------------------------------------
 
     /// @notice Tests that the owner can mint tokens to a recipient.
@@ -93,6 +98,7 @@ contract HackTokenERC20Test is Test {
         uint256 amount = 100 ether;
         vm.prank(admin);
         _hacktoken.mintTokens(recipient, amount);
+
         assertEq(_hacktoken.balanceOf(recipient), amount, "Recipient should have minted tokens");
         assertEq(_hacktoken.totalSupply(), amount, "Total supply should match minted amount");
     }

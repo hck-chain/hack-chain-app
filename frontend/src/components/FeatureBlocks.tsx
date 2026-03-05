@@ -35,7 +35,7 @@ const FeatureBlocks = () => {
     {
       Icon: Globe,
       title: 'Global Recognition',
-      description: 'Certificates recognized worldwide by leading cybersecurity firms and tech companies.',
+      description: 'Certificates recognized worldwide by all companies.',
       color: 'from-indigo-500 to-purple-500',
     },
   ];
@@ -43,36 +43,43 @@ const FeatureBlocks = () => {
   return (
     <section id="certificates" className="py-20 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Section Header */}
         <div className="text-center mb-16 animate-in fade-in duration-700 slide-in-from-top">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+          <h2 className="font-title text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
             Why Choose <span className="gradient-text">HackChain</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            The future of cybersecurity certification is here. Built on blockchain, 
+
+          <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto">
+            The future of certification is here. Built on blockchain,
             verified by experts, and recognized globally.
           </p>
         </div>
 
+        {/* Feature Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className={`glass rounded-2xl p-8 glass-hover group animate-in fade-in duration-700 slide-in-from-bottom delay-${100 + index * 100}`}
             >
-              <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+              <div
+                className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
+              >
                 <feature.Icon className="w-8 h-8 text-white" />
               </div>
-              
-              <h3 className="text-2xl font-bold mb-4 gradient-text">
+
+              <h3 className="font-title text-2xl font-bold mb-4 gradient-text">
                 {feature.title}
               </h3>
-              
-              <p className="text-muted-foreground leading-relaxed">
+
+              <p className="font-body text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>
             </div>
           ))}
         </div>
+
       </div>
     </section>
   );

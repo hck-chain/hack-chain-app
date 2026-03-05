@@ -1,6 +1,8 @@
-const { ethers } = require("ethers");
-require("dotenv").config();
+import { ethers } from 'ethers';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const CONTRACT_ABI = [
     {
         "type": "constructor",
@@ -721,21 +723,91 @@ const CONTRACT_ABI = [
     }
 ]
 
-async function authorizeIssuer(issuerAddress) {
-    const provider = new ethers.JsonRpcProvider(process.env.POLYGON_RPC_URL);
-    const ownerWallet = new ethers.Wallet(process.env.POLYGON_OWNER_PRIVATE_KEY, provider);
+export const web3Service = {
+    connectWallet: async (): Promise<string | null> => {
+        if (!window.ethereum) {
+            alert("Please install MetaMask!");
+            return null;
+        }
 
-    const contract = new ethers.Contract(
-        process.env.VITE_CONTRACT_ADDRESS,
-        CONTRACT_ABI,
-        ownerWallet
-    );
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const account = accounts[0];
 
-    const tx = await contract.authorizeIssuer(issuerAddress)
-    await tx.wait();
-    return tx.hash;
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== POLYGON_CHAIN_ID) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: POLYGON_CHAIN_ID }],
+                    });
+                } catch (switchError: any) {
+                    if (switchError.code === 4902) {
+                        alert("Please add Polygon Mainnet to MetaMask manually.");
+                    } else {
+                        console.error("Failed to switch chain:", switchError);
+                    }
+                    return null;
+                }
+            }
+
+            return account;
+        } catch (err) {
+            console.error("Wallet connection failed:", err);
+            return null;
+        }
+    },
+
+    // web3Service.ts (Versión limpia)
+    mintCertificateOnChain: async (
+        studentWallet: string,
+        studentName: string,
+        courseName: string,
+        tokenUri: string
+    ): Promise<{ success: boolean; txHash?: string; tokenId?: string }> => {
+        if (!window.ethereum) return { success: false };
+
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+
+
+            // AGREGA ESTO:
+            console.log("🔥 LLEGÓ EL MOMENTO DE LA VERDAD 🔥");
+            console.log("Valor exacto de CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
+            console.log("Tipo de dato:", typeof CONTRACT_ADDRESS);
+            const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+            const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
+            const receipt = await tx.wait();
+
+            const transferEvent = receipt.logs
+                .map(log => {
+                    try { return contract.interface.parseLog(log); }
+                    catch (e) { return null; }
+                })
+                .find(event => event?.name === "Transfer");
+
+            const tokenId = transferEvent?.args?.tokenId.toString();
+
+            return { success: true, txHash: tx.hash, tokenId }; // Solo devolvemos datos de blockchain
+
+        } catch (err) {
+            console.error("Blockchain minting failed:", err);
+            return { success: false };
+        }
+    }
+
+};
+
+export async function getCertificatesByEducator(wallet: string) {
+    console.log("getCertificatesByEducator called with wallet:", wallet); // 🔹 log frontend
+
+    const res = await fetch(`${API_BASE_URL}/api/issuers/${wallet}/certificates-count`);
+    const data = await res.json();
+
+    console.log("getCertificatesByEducator response:", data); // 🔹 log frontend
+    return data.total;
 }
 
-module.exports = {
-    authorizeIssuer
-};
+
