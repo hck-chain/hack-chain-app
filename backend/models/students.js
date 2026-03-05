@@ -4,6 +4,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
+
     },
     wallet_address: {
       type: DataTypes.STRING(42),
@@ -34,6 +35,12 @@ module.exports = (sequelize, DataTypes) => {
       targetKey: 'wallet_address',
       onDelete: 'CASCADE'
     });
+    Student.hasMany(models.Certificate, {  
+      foreignKey: 'student_wallet_address',
+      sourceKey: 'wallet_address',
+      as: 'certificates'
+    });
+  };
 
     // 2️⃣ Cada Student puede tener muchos Certificates
     Student.hasMany(models.Certificate, {

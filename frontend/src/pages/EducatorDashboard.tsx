@@ -20,20 +20,7 @@ import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-interface Student {
-  id: number;
-  wallet_address: string;
-  field_of_study: string;
-  user: {
-    id: number;
-    name: string;
-    lastname: string;
-    wallet_address: string;
-    email: string;
-  };
-}
 
 interface Student {
   id: number;
@@ -60,6 +47,9 @@ const EducatorDashboard = () => {
     imageUri: '', // To store the image URI if we uploaded one, though currently we handle local preview mostly
   });
 
+  const [wallet, setWallet] = useState<string>("");
+  const [organizationName, setOrganizationName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -73,14 +63,53 @@ const EducatorDashboard = () => {
 
   // Verificar autenticación y obtener datos del usuario
   useEffect(() => {
-    // Basic Mock Data for dev context if local storage is empty
-    setUserData({
-      name: "Test Educator",
-      email: "educator@test.com",
-      role: "Issuer",
-      walletAddress: "0x1234567890abcdef1234567890abcdef12345678"
-    });
 
+    const loadProfile = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+
+        if (!token) {
+          console.error("No auth token found");
+          return;
+        }
+
+        const res = await fetch("http://localhost:3001/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        console.log("AUTH /me RESPONSE 👉", data);
+
+        if (!res.ok) {
+          console.error("Auth error:", data);
+          return;
+        }
+
+        // data.user viene de ISSUERS
+        // data.modelName === "issuer"
+        setUserData({
+          organization_name: data.user.organization_name,
+          walletAddress: data.user.wallet_address,
+          email: data.user.email ?? "No email registered",
+          role: "Educator",
+        });
+
+
+        // Aquí no usamos userData, usamos directamente la wallet
+        const certCount = await getCertificatesByEducator(data.user.wallet_address);
+        console.log("Certificates fetched:", certCount);
+
+        setCertificatesIssued(certCount); // <-- directo, es un número
+
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      }
+    };
+
+    loadProfile();
     // Fetch Students
     const fetchStudents = async () => {
       try {
@@ -178,7 +207,7 @@ const EducatorDashboard = () => {
       studentName: form.studentName,
       studentWallet: form.studentWallet,
       courseName: form.certificateTitle, // Using title as course name
-      imageUri: "ipfs://placeholder-cid", // Placeholder as we aren't uploading the image file yet
+      imageUri: "bafybeia4ndso2yw4fkfhpfbkyzhgldbs4qkqocpaqk34jbgw7azpsuxjom", // Placeholder as we aren't uploading the image file yet
     };
 
     // Enviar al hook logic

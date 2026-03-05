@@ -8,7 +8,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface Recruiter {
     wallet_address: string;
@@ -41,7 +40,7 @@ const RecruiterDashboard = () => {
                 if (!token) return;
 
                 // Fetch recruiter info
-                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                const res = await fetch('http://localhost:3001/api/auth/me', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -52,7 +51,7 @@ const RecruiterDashboard = () => {
                 });
 
                 // Fetch students
-                const resStudents = await fetch(`${API_BASE_URL}/api/students`, {
+                const resStudents = await fetch('http://localhost:3001/api/students', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const dataStudents = await resStudents.json();
@@ -215,7 +214,7 @@ const RecruiterDashboard = () => {
                         )}
                     </header>
 
-                    {/* Student Grid */}
+                    {/* Grid de estudiantes */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {students.map((student) => (
                             <motion.div
@@ -224,38 +223,34 @@ const RecruiterDashboard = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.35 }}
                                 className="bg-slate-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.5)] 
-                hover:scale-[1.03] hover:shadow-[0_15px_40px_rgba(0,0,0,0.6)] transition-all cursor-pointer flex flex-col justify-between"
+                                    hover:scale-[1.03] hover:shadow-[0_15px_40px_rgba(0,0,0,0.6)] transition-all cursor-pointer"
                                 onClick={() => navigate(`/recruiter/student/${student.wallet_address}`)}
                             >
-                                {/* Header: Name and Status Icon */}
-                                <div className="flex items-center justify-between mb-6">
-                                    <p className="text-white font-extrabold text-lg md:text-xl font-title leading-tight">
-                                        {student.name}
-                                    </p>
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <p className="text-white font-extrabold text-lg md:text-xl font-title">{student.name}</p>
+                                        <p className="text-slate-400 text-sm font-body">••••{student.wallet_address.slice(-4)}</p>
+                                    </div>
                                     {student.is_active ? (
-                                        <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
+                                        <CheckCircle className="h-5 w-5 text-green-400" />
                                     ) : (
-                                        <XCircle className="h-5 w-5 text-red-400 shrink-0" />
+                                        <XCircle className="h-5 w-5 text-red-400" />
                                     )}
                                 </div>
 
-                                {/* Information Pills Container */}
-                                <div className="flex flex-wrap gap-2">
-                                    {/* Wallet Pill */}
-                                    <div className="bg-slate-500/10 text-slate-400 text-[10px] px-3 py-1 rounded-full font-medium font-body border border-white/5 uppercase tracking-wider">
-                                        {student.wallet_address.slice(0, 6)}...{student.wallet_address.slice(-4)}
-                                    </div>
-
-                                    {/* Certificates Pill */}
-                                    <div className="bg-indigo-500/20 text-indigo-200 text-xs px-3 py-1 rounded-full font-medium font-body border border-indigo-500/10">
+                                {/* Info pills adaptados */}
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="bg-blue-500/20 text-blue-200 text-xs px-3 py-1 rounded-full font-medium font-body">
+                                        {student.field_of_study}
+                                    </span>
+                                    <span className="bg-indigo-500/20 text-indigo-200 text-xs px-3 py-1 rounded-full font-medium font-body">
                                         {student.total_certificates} {student.total_certificates === 1 ? 'Certificate' : 'Certificates'}
-                                    </div>
-
-                                    {/* Registration Date Pill */}
-                                    <div className="bg-blue-500/20 text-blue-200 text-xs px-3 py-1 rounded-full font-medium font-body border border-blue-500/10">
-                                        {new Date(student.created_at).toLocaleDateString()}
-                                    </div>
+                                    </span>
                                 </div>
+
+                                {/* Footer */}
+                                <p className="text-slate-400 text-xs mt-1 font-body">Registered: {new Date(student.created_at).toLocaleDateString()}</p>
                             </motion.div>
                         ))}
                     </div>

@@ -27,7 +27,7 @@ const ValueProposition = () => {
               </div>
 
               <h3 className="font-title text-2xl font-bold mb-4 gradient-text">
-                Talent
+                Student
               </h3>
 
               <p className="font-body text-muted-foreground">
