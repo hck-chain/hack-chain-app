@@ -1,0 +1,265 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "process": "Process",
+    "build": "Build",
+    "signIn": "Sign In",
+    "getStarted": "Get Started",
+    "about": "About Us"
+  },
+  "hero": {
+    "title1": "Verified skills for the ",
+    "title2": "Digital age",
+    "subTitle1": "HackChain is the trusted standard for blockchain-based certification.",
+    "subTitle2": "Verify skills, issue NFT certificates, and connect talent with real opportunities.",
+    "infrastructure": "Built on trusted Web3 infrastructure"
+  },
+  "valueProp": {
+    "title1": "How It ",
+    "title2": "Works",
+    "subTitle": "From learning to employment — your journey in the Web3 professional certification ecosystem",
+    "step1Title": "Talent",
+    "step1Desc": "Complete professional courses and pass rigorous assessments in your field of expertise",
+    "step2Title": "NFT Certificate",
+    "step2Desc": "Receive a blockchain-verified NFT certificate that proves your expertise",
+    "step3Title": "Recruiter",
+    "step3Desc": "Employers instantly verify credentials and hire top verified talent",
+    "trust1": "Tamper-proof",
+    "trust2": "Instant verification",
+    "trust3": "Global recognition"
+  },
+  "features": {
+    "title1": "Why Choose ",
+    "title2": "HackChain",
+    "subTitle": "The future of certification is here. Built on blockchain, verified by experts, and recognized globally.",
+    "items": {
+      "nft": {
+        "title": "NFT Certificates",
+        "description": "Blockchain-verified credentials that can't be forged or faked. Own your achievements forever."
+      },
+      "recruiter": {
+        "title": "Recruiter Verification",
+        "description": "Instant credential verification for employers. No more fake certificates or lengthy background checks."
+      },
+      "dao": {
+        "title": "DAO Governance",
+        "description": "Community-driven platform decisions. Vote on new certifications, standards, and platform improvements."
+      },
+      "security": {
+        "title": "Security First",
+        "description": "Built with blockchain security for all professionals. Maximum protection for your credentials."
+      },
+      "instant": {
+        "title": "Instant Verification",
+        "description": "Real-time credential verification powered by smart contracts. No waiting, no paperwork."
+      },
+      "global": {
+        "title": "Global Recognition",
+        "description": "Certificates recognized worldwide by all companies."
+      }
+    }
+  },
+  "cta": {
+    "title1": "Start building your ",
+    "title2": "identity",
+    "title3": " today",
+    "description": "Join thousands of professionals adopting blockchain-verified credentials to build trusted, verifiable, and global digital identities.",
+    "stats": {
+      "247": {
+        "title": "24/7",
+        "subtitle": "Verification"
+      },
+      "free": {
+        "title": "Free",
+        "subtitle": "Registration"
+      },
+      "instant": {
+        "title": "Instant",
+        "subtitle": "NFT Issuance"
+      },
+      "global": {
+        "title": "Global",
+        "subtitle": "Recognition"
+      }
+    }
+  },
+  "footer": {
+    "copyright": "© 2025 HackChain. Non-Fungible Talent."
+  },
+  "team": {
+    "title": "Meet the team",
+    "subtitle": "making HackChain a reality",
+    "roles": {
+      "ceo": "Founder & CEO",
+      "cybersecurityAnalyst": "Cybersecurity Analyst",
+      "frontendDeveloper": "Frontend Developer",
+      "brandManager": "Brand Manager",
+      "backendDeveloper": "Backend Developer",
+      "businessDevelopment": "Business Development Manager",
+      "marketing": "Marketing",
+      "devOpsEngineer": "DevOps Engineer"
+    },
+    "aboutBlock": {
+      "title": "About us?",
+      "p1": "HackChain is an educational-labor ecosystem that links Talent, Educators, and Recruiters in order to promote constant learning and transparency in recruitment processes.",
+      "p2": "We believe Web3 technology should be accessible, decentralized, and designed to empower real users. Our goal is to accompany professionals in their growth with immutable tools and credentials that truly make a difference.",
+      "p3": "Our vision is to become the global standard for talent verification, creating a world where every acquired skill is recognized globally without barriers or intermediaries, effectively bridging the gap between education and employment."
+    }
+  },
+  "login": {
+    "backHome": "Back to Home",
+    "welcome": "Welcome back to ",
+    "description": "Sign in to access your blockchain-verified professional identity.",
+    "secure": {
+      "title": "Secure Access",
+      "desc": "Web3 authentication"
+    },
+    "verified": {
+      "title": "Verified Credentials",
+      "desc": "Immutable records"
+    },
+    "signIn": "Sign in to your account",
+    "enterCredentials": "Use your email or Web3 wallet to access your professional profile and verified certificates.",
+    "newTo": "New to HackChain?",
+    "createAccount": "Create an account"
+  },
+  "loginForm": {
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "signInBtn": "Sign In",
+    "signingInBtn": "Signing In...",
+    "continueWith": "Or continue with",
+    "connectMetaMask": "Connect MetaMask",
+    "noAccount": "Don't have an account?",
+    "createOne": "Create one",
+    "success": "Signed in successfully!"
+  },
+  "registerLanding": {
+    "backHome": "Back to Home",
+    "title1": "Join the Web3",
+    "title2": "Professional Network",
+    "description": "Choose how you want to participate in the future of verified professional credentials.",
+    "student": {
+      "title": "I'm a Student",
+      "desc": "Build your verified professional portfolio",
+      "p1": "Earn blockchain-verified certificates",
+      "p2": "Showcase your skills as NFTs",
+      "p3": "Connect with top global recruiters",
+      "btn": "Register as Student"
+    },
+    "educator": {
+      "title": "I'm an Educator",
+      "desc": "Issue tamper-proof certificates",
+      "p1": "Create and issue NFT certificates",
+      "p2": "Validate student achievements",
+      "p3": "Build institutional trust on-chain",
+      "btn": "Register as Educator"
+    },
+    "recruiter": {
+      "title": "I'm a Recruiter",
+      "desc": "Hire verified top talent",
+      "p1": "Access a pool of verified professionals",
+      "p2": "Instantly verify candidate credentials",
+      "p3": "Streamline your hiring process",
+      "btn": "Register as Recruiter"
+    },
+    "alreadyHave": "Already have an account?",
+    "signInInstead": "Sign In Instead"
+  },
+  "registerUser": {
+    "back": "Back to Register",
+    "title1": "Join the Future of",
+    "title2": " Professional Certification",
+    "desc": "Create your student account and start earning blockchain-verified certificates that prove your expertise in any professional field.",
+    "expTitle": "Student Experience",
+    "expDesc": "Join thousands of students earning blockchain-verified certificates across all professional fields and skills.",
+    "p1": "Complete professional courses in any field",
+    "p2": "Earn NFT certificates that prove your skills",
+    "p3": "Build a verifiable professional portfolio",
+    "p4": "Connect directly with top recruiters",
+    "already": "Already have an account?",
+    "signIn": "Sign In Instead",
+    "formTitle": "Create Student Account",
+    "formDesc": "Enter your information to get started with Hack Chain"
+  },
+  "registerEducator": {
+    "back": "Back to Register",
+    "title1": "Empower the Next",
+    "title2": "Generation of Professionals",
+    "desc": "Join as an educator and issue blockchain-verified certificates that prove student achievements in any field - from technology and business to arts and sciences.",
+    "expTitle": "Educator Experience",
+    "expDesc": "Issue tamper-proof blockchain certificates and build trust with industry partners through verifiable credentials.",
+    "p1": "Issue blockchain-secured certificates",
+    "p2": "Track student progress and achievements",
+    "p3": "Build institutional trust with recruiters",
+    "p4": "White-label customization available",
+    "b1Title": "Issue Certificates",
+    "b1Desc": "Blockchain-verified credentials",
+    "b2Title": "Manage Students",
+    "b2Desc": "Centralized dashboard",
+    "already": "Already have an educator account?",
+    "signIn": "Sign In Instead",
+    "formTitle": "Create Educator Account",
+    "formDesc": "Register your institution to start issuing verified certificates"
+  },
+  "registerRecruiter": {
+    "back": "Back to Register",
+    "title1": "Find and Verify",
+    "title2": "Top Professional Talent",
+    "desc": "Join as a recruiter and access the world's largest platform for verified professionals across all industries with blockchain-authenticated skills.",
+    "expTitle": "Recruiter Experience",
+    "expDesc": "Connect with certified professionals across all industries and verify their skills with confidence.",
+    "p1": "Access verified talent pool",
+    "p2": "Verify blockchain certificates instantly",
+    "p3": "Advanced search and filtering tools",
+    "p4": "Direct contact with top candidates",
+    "b1Title": "Smart Search",
+    "b1Desc": "Find ideal candidates in seconds",
+    "b2Title": "Verified Skills",
+    "b2Desc": "Blockchain-authenticated",
+    "already": "Already have a recruiter account?",
+    "signIn": "Sign In Instead",
+    "formTitle": "Create Recruiter Account",
+    "formDesc": "Enter your information to start finding top talent"
+  },
+  "registrationForm": {
+    "success": "Account created successfully!",
+    "registerAnother": "Register Another User",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter your name",
+    "lastNameLabel": "Last Name",
+    "lastNamePlaceholder": "Enter your last name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email address",
+    "creating": "Creating Account...",
+    "create": "Create Account"
+  },
+  "educatorForm": {
+    "success": "Institution registered successfully!",
+    "registerAnother": "Register Another Institution",
+    "nameLabel": "Institution Name",
+    "namePlaceholder": "Enter institution name",
+    "websiteLabel": "Website",
+    "websitePlaceholder": "https://www.example.edu",
+    "emailLabel": "Official Email",
+    "emailPlaceholder": "admin@institution.edu",
+    "creating": "Registering Institution...",
+    "create": "Register Institution"
+  },
+  "recruiterForm": {
+    "success": "Company registered successfully!",
+    "registerAnother": "Register Another Company",
+    "nameLabel": "Company Name",
+    "namePlaceholder": "Enter company name",
+    "industryLabel": "Industry",
+    "industryPlaceholder": "e.g. Technology, Finance, Healthcare",
+    "emailLabel": "Work Email",
+    "emailPlaceholder": "name@company.com",
+    "creating": "Registering Company...",
+    "create": "Register Company"
+  }
+}

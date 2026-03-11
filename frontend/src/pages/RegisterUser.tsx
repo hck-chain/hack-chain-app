@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, User } from "lucide-react";
 import { UserRegistrationForm } from "@/components/auth/userRegistrationForm";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import FloatingElements from "@/components/FloatingElements";
 import hackChainLogo from "/images/logoHackchain.png";
 
 export function RegisterUser() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
       {/* Background Animation */}
@@ -39,7 +41,7 @@ export function RegisterUser() {
             {/* Back to RegisterLanding */}
             <Link to="/register" className="flex items-center gap-2 group">
               <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors">
-                Back to Register
+                {t('registerUser.back')}
               </span>
               <ArrowLeft className="h-4 w-4 text-slate-300 group-hover:text-purple-400 transition-colors" />
             </Link>
@@ -57,13 +59,12 @@ export function RegisterUser() {
               {/* Welcome Text */}
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
-                  Join the Future of
-                  <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Professional Certification</span>
+                  {t('registerUser.title1')}
+                  <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t('registerUser.title2')}</span>
                 </h1>
 
                 <p className="text-lg md:text-lg text-slate-300 font-lato leading-relaxed">
-                  Create your student account and start earning blockchain-verified
-                  certificates that prove your expertise in any professional field.
+                  {t('registerUser.desc')}
                 </p>
               </div>
 
@@ -75,27 +76,27 @@ export function RegisterUser() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-exo font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                      Student Experience
+                      {t('registerUser.expTitle')}
                     </h3>
                     <p className="text-slate-300 font-lato mb-4">
-                      Join thousands of students earning blockchain-verified certificates across all professional fields and skills.
+                      {t('registerUser.expDesc')}
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Complete professional courses in any field</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerUser.p1')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Earn NFT certificates that prove your skills</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerUser.p2')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Build a verifiable professional portfolio</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerUser.p3')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Connect directly with top recruiters</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerUser.p4')}</span>
                       </div>
                     </div>
                   </div>
@@ -105,11 +106,11 @@ export function RegisterUser() {
               {/* Call to action for existing users */}
               <div className="bg-slate-900/70 backdrop-blur-sm rounded-lg p-6 border border-purple-500/30 hover:border-purple-500/50 hover:bg-slate-900/85 transition-all duration-200">
                 <p className="text-sm text-slate-300 font-lato mb-3">
-                  Already have an account?
+                  {t('registerUser.already')}
                 </p>
                 <Link to="/login">
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform duration-200 border-purple-500 text-slate-300 hover:text-white hover:bg-purple-700 font-lato">
-                    Sign In Instead
+                    {t('registerUser.signIn')}
                   </Button>
                 </Link>
               </div>
@@ -126,10 +127,10 @@ export function RegisterUser() {
                     </div>
                   </div>
                   <CardTitle className="text-2xl font-exo font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    Create Student Account
+                    {t('registerUser.formTitle')}
                   </CardTitle>
                   <CardDescription className="text-slate-300 font-lato">
-                    Enter your information to get started with Hack Chain
+                    {t('registerUser.formDesc')}
                   </CardDescription>
                 </CardHeader>
 
@@ -147,7 +148,7 @@ export function RegisterUser() {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <p className="text-sm text-slate-300 font-lato">
-                © 2025 HackChain. Non-Fungible Talent.
+                {t('footer.copyright')}
               </p>
             </div>
           </div>

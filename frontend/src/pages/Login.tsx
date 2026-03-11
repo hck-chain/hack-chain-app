@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, LogIn, Shield, Lock } from "lucide-react";
 import { LoginForm } from "@/components/auth/loginForm";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import FloatingElements from "@/components/FloatingElements";
 import hackChainLogo from "/images/logoHackchain.png";
 
 export default function Login() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
       {/* Background Animation */}
@@ -40,7 +42,7 @@ export default function Login() {
             <Link to="/" className="flex items-center gap-2 group">
               <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
               <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
-                Back to Home
+                {t('login.backHome')}
               </span>
             </Link>
 
@@ -57,15 +59,14 @@ export default function Login() {
               {/* Welcome Text */}
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
-                  Welcome Back to
+                  {t('login.welcome')}
                   <span className="bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent">
-                    {" "}Hack Chain
+                    Hack Chain
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-lg text-slate-300 font-lato leading-relaxed">
-                  Access your dashboard and manage your blockchain-verified certificates,
-                  track your achievements, and connect with the community.
+                  {t('login.description')}
                 </p>
               </div>
 
@@ -77,9 +78,9 @@ export default function Login() {
                     <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-exo font-bold text-purple-400 mb-1">Secure Access</h3>
+                    <h3 className="text-lg font-exo font-bold text-purple-400 mb-1">{t('login.secure.title')}</h3>
                     <p className="text-sm text-slate-300 font-lato">
-                      Your account is protected with industry-standard encryption
+                      {t('login.secure.desc')}
                     </p>
                   </div>
                 </div>
@@ -90,9 +91,9 @@ export default function Login() {
                     <Lock className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-exo font-bold text-violet-400 mb-1">Blockchain Verified</h3>
+                    <h3 className="text-lg font-exo font-bold text-violet-400 mb-1">{t('login.verified.title')}</h3>
                     <p className="text-sm text-slate-300 font-lato">
-                      All your certificates are immutably stored on the blockchain
+                      {t('login.verified.desc')}
                     </p>
                   </div>
                 </div>
@@ -102,11 +103,11 @@ export default function Login() {
               {/* New User CTA */}
               <div className="bg-slate-900/70 backdrop-blur-sm rounded-lg p-6 border border-purple-500/30 hover:border-purple-500/50 hover:bg-slate-900/85 transition-all duration-200">
                 <p className="text-sm text-slate-300 font-lato mb-3">
-                  New to Hack Chain?
+                  {t('login.newTo')}
                 </p>
                 <Link to="/register">
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform duration-200 border-purple-500 text-slate-300 hover:text-white hover:bg-purple-700 font-lato">
-                    Create an Account
+                    {t('login.createAccount')}
                   </Button>
                 </Link>
               </div>
@@ -120,14 +121,14 @@ export default function Login() {
                 <CardHeader className="flex flex-col items-center space-y-1 text-center font-lato">
                   <div className="flex items-center gap-3 mb-2">
                     <CardTitle className="text-2xl font-exo font-bold bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent">
-                      Sign In
+                      {t('login.signIn')}
                     </CardTitle>
                     <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center shadow-lg">
                       <LogIn className="h-6 w-6 text-white" />
                     </div>
                   </div>
                   <CardDescription className="text-slate-300 font-lato">
-                    Enter your credentials to access your account
+                    {t('login.enterCredentials')}
                   </CardDescription>
                 </CardHeader>
 
@@ -146,7 +147,7 @@ export default function Login() {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <p className="text-sm text-slate-300">
-                © 2025 HackChain. Non-Fungible Talent.
+                {t('footer.copyright')}
               </p>
 
             </div>

@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, CheckCircle, AlertCircle, Check } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -22,6 +23,7 @@ import type { EducatorRegistrationFormData } from "../../lib/validations/auth";
 import "./autofill-fix.css";
 
 export function EducatorRegistrationForm() {
+  const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   const mutation = useEducatorRegistration();
@@ -62,12 +64,12 @@ export function EducatorRegistrationForm() {
         <Alert className="border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
           <CheckCircle className="h-4 w-4 text-blue-400" />
           <AlertDescription className="text-blue-200">
-            Educator account created successfully!
+            {t('educatorForm.success')}
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
           <Button onClick={handleReset} variant="outline" className="w-full max-w-sm border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
-            Register Another Educator
+            {t('educatorForm.registerAnother')}
           </Button>
         </div>
       </div>
@@ -90,11 +92,11 @@ export function EducatorRegistrationForm() {
             name="organizationName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Organization Name</FormLabel>
+                <FormLabel className="text-slate-300">{t('educatorForm.nameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your organization name"
+                      placeholder={t('educatorForm.namePlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark educator-input ${isFieldValid('organizationName') ? 'input-valid educator-input' : ''}`}
                       onFocus={() => handleFieldTouch('organizationName')}
@@ -118,12 +120,12 @@ export function EducatorRegistrationForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Email</FormLabel>
+                <FormLabel className="text-slate-300">{t('educatorForm.emailLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type="email"
-                      placeholder="Enter your institutional email address"
+                      placeholder={t('educatorForm.emailPlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark educator-input ${isFieldValid('email') ? 'input-valid educator-input' : ''}`}
                       onFocus={() => handleFieldTouch('email')}
@@ -142,7 +144,7 @@ export function EducatorRegistrationForm() {
             className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
             disabled={isLoading}
           >
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating Account...</> : "Create Educator Account"}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('educatorForm.creating')}</> : t('educatorForm.create')}
           </Button>
         </form>
       </Form>

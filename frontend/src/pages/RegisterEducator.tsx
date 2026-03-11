@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Users, Award, GraduationCapIcon, ArrowDownNarrowWideIcon } from "lucide-react";
 import { EducatorRegistrationForm } from "@/components/auth/educatorRegistrationForm";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import FloatingElements from "@/components/FloatingElements";
 import hackChainLogo from "/images/logoHackchain.png";
 
 export default function RegisterEducator() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
       {/* Background Animation */}
@@ -39,7 +41,7 @@ export default function RegisterEducator() {
             {/* Back */}
             <Link to="/register" className="flex items-center gap-2 group">
               <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-blue-400 transition-colors">
-                Back to Register
+                {t('registerEducator.back')}
               </span>
               <ArrowLeft className="h-4 w-4 text-slate-300 group-hover:text-blue-400 transition-colors" />
             </Link>
@@ -56,16 +58,15 @@ export default function RegisterEducator() {
 
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
-                  Empower the Next
+                  {t('registerEducator.title1')}
                   <br />
                   <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                    Generation of Professionals
+                    {t('registerEducator.title2')}
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-lg text-slate-300 font-lato leading-relaxed">
-                  Join as an educator and issue blockchain-verified certificates that
-                  prove student achievements in any field - from technology and business to arts and sciences.
+                  {t('registerEducator.desc')}
                 </p>
               </div>
 
@@ -78,27 +79,27 @@ export default function RegisterEducator() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-exo font-bold mb-2 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                      Educator Experience
+                      {t('registerEducator.expTitle')}
                     </h3>
                     <p className="text-slate-300 font-lato mb-4">
-                      Issue tamper-proof blockchain certificates and build trust with industry partners through verifiable credentials.
+                      {t('registerEducator.expDesc')}
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Issue blockchain-secured certificates</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p1')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Track student progress and achievements</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p2')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">Build institutional trust with recruiters</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p3')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">White-label customization available</span>
+                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p4')}</span>
                       </div>
                     </div>
                   </div>
@@ -111,8 +112,8 @@ export default function RegisterEducator() {
                       <GraduationCapIcon className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-exo font-semibold text-cyan-400">Issue Certificates</h4>
-                      <p className="text-xs text-slate-400 font-lato">Blockchain-verified credentials</p>
+                      <h4 className="font-exo font-semibold text-cyan-400">{t('registerEducator.b1Title')}</h4>
+                      <p className="text-xs text-slate-400 font-lato">{t('registerEducator.b1Desc')}</p>
                     </div>
                   </div>
 
@@ -121,8 +122,8 @@ export default function RegisterEducator() {
                       <Users className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-exo font-semibold text-cyan-400">Manage Students</h4>
-                      <p className="text-xs text-slate-400 font-lato">Centralized dashboard</p>
+                      <h4 className="font-exo font-semibold text-cyan-400">{t('registerEducator.b2Title')}</h4>
+                      <p className="text-xs text-slate-400 font-lato">{t('registerEducator.b2Desc')}</p>
                     </div>
                   </div>
                 </div>
@@ -132,11 +133,11 @@ export default function RegisterEducator() {
               {/* Call to action for existing users */}
               <div className="bg-slate-900/70 backdrop-blur-sm rounded-lg p-6 border border-blue-500/30 hover:border-blue-500/50 hover:bg-slate-900/85 transition-all duration-200">
                 <p className="text-sm text-slate-300 font-lato mb-3">
-                  Already have an educator account?
+                  {t('registerEducator.already')}
                 </p>
                 <Link to="/login">
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform duration-200 border-blue-500 text-slate-300 hover:text-white hover:bg-blue-700 font-lato">
-                    Sign In Instead
+                    {t('registerEducator.signIn')}
                   </Button>
                 </Link>
               </div>
@@ -153,10 +154,10 @@ export default function RegisterEducator() {
                     </div>
                   </div>
                   <CardTitle className="text-2xl font-exo font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                    Create Educator Account
+                    {t('registerEducator.formTitle')}
                   </CardTitle>
                   <CardDescription className="text-slate-300 font-lato">
-                    Register your institution to start issuing verified certificates
+                    {t('registerEducator.formDesc')}
                   </CardDescription>
                 </CardHeader>
 
@@ -174,7 +175,7 @@ export default function RegisterEducator() {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <p className="text-sm text-slate-300 font-lato">
-                © 2025 HackChain. Non-Fungible Talent.
+                {t('footer.copyright')}
               </p>
             </div>
           </div>

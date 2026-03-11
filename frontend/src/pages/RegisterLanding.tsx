@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { User, Award, Building, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,8 @@ import hackChainLogo from "/images/logoHackchain.png";
 import Footer from "@/components/Footer";
 
 const RegisterLanding = () => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     setTimeout(() => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -36,7 +39,7 @@ const RegisterLanding = () => {
           </div>
           <Link to="/" className="flex items-center gap-2 group">
             <span className="text-sm md:text-base font-lato text-gray-400 group-hover:text-blue-500 transition-colors">
-              Back to Home
+              {t('login.backHome')}
             </span>
             <ArrowLeft className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
           </Link>
@@ -47,15 +50,15 @@ const RegisterLanding = () => {
       <div className="animate-in fade-in duration-700 slide-in-from-bottom">
         <div className="z-10 flex flex-col items-start max-w-4xl mx-auto px-4 mt-8 mb-8">
           <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-6">
-            Join the Future of
+            {t('registerLanding.title1')}
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Professional Certification
+              {t('registerLanding.title2')}
             </span>
           </h1>
 
           <p className="mt-3 text-base md:text-lg text-gray-300 max-w-2xl">
-            Choose your role and start your journey with blockchain-verified certificates in any professional field or skill area.
+            {t('registerLanding.description')}
           </p>
         </div>
 
@@ -70,9 +73,9 @@ const RegisterLanding = () => {
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo gradient-text">Student</CardTitle>
+                  <CardTitle className="text-xl font-exo gradient-text">{t('registerLanding.student.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    Learn any skill and earn blockchain-verified certificates
+                    {t('registerLanding.student.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -80,20 +83,20 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>Earn NFT certificates</span>
+                    <span>{t('registerLanding.student.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>Build verifiable skill portfolio</span>
+                    <span>{t('registerLanding.student.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>Connect with recruiters</span>
+                    <span>{t('registerLanding.student.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/user" className="block">
                   <Button className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-500/90 hover:to-pink-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato">
-                    Join as Student
+                    {t('registerLanding.student.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -107,9 +110,9 @@ const RegisterLanding = () => {
                   <Award className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Educator</CardTitle>
+                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t('registerLanding.educator.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    Issue verified certificates and build your teaching reputation
+                    {t('registerLanding.educator.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -117,22 +120,22 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                    <span>Issue NFT certificates</span>
+                    <span>{t('registerLanding.educator.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                    <span>Track student progress</span>
+                    <span>{t('registerLanding.educator.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                    <span>Verified educator status</span>
+                    <span>{t('registerLanding.educator.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/issuer" className="block">
                   <Button
                     className="w-full gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-500/90 hover:to-cyan-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato"
                   >
-                    Join as Educator
+                    {t('registerLanding.educator.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -147,9 +150,9 @@ const RegisterLanding = () => {
                   <Building className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Recruiter</CardTitle>
+                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{t('registerLanding.recruiter.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    Find and verify top talent across all industries with confidence
+                    {t('registerLanding.recruiter.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -157,22 +160,22 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                    <span>Search verified talent</span>
+                    <span>{t('registerLanding.recruiter.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                    <span>Verify skill certificates</span>
+                    <span>{t('registerLanding.recruiter.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                    <span>Advanced filtering tools</span>
+                    <span>{t('registerLanding.recruiter.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/recruiter" className="block">
                   <Button
                     className="w-full gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-500/90 hover:to-emerald-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato"
                   >
-                    Join as Recruiter
+                    {t('registerLanding.recruiter.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -185,11 +188,11 @@ const RegisterLanding = () => {
           <div className="flex flex-col gap-6">
             <div className="text-center glass rounded-xl p-6 border border-primary/20 mt-4 mb-6">
               <p className="text-gray-300 mb-4 font-lato">
-                Already have an account?
+                {t('registerLanding.alreadyHave')}
               </p>
               <Link to="/login">
                 <Button variant="outline" className="glass glass-hover font-lato">
-                  Sign In Instead
+                  {t('registerLanding.signInInstead')}
                 </Button>
               </Link>
             </div>
