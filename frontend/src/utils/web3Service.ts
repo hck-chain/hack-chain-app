@@ -771,10 +771,17 @@ export const web3Service = {
             const signer = provider.getSigner();
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
+<<<<<<< HEAD
             console.log(`Minting certificate for ${talentName} (${talentWallet})...`);
 
             // Minteo en blockchain
             const tx = await contract.issueCertificate(talentWallet, talentName, courseName, tokenUri);
+=======
+            console.log(`Minting certificate for ${studentName} (${studentWallet})...`);
+
+            // Minteo en blockchain
+            const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
+>>>>>>> upstream/develop
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
