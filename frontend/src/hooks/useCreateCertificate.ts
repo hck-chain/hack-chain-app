@@ -3,8 +3,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { web3Service } from '@/utils/web3Service';
 
 export interface CertificateData {
-  studentName: string;
-  studentWallet: string;
+  talentName: string;
+  talentWallet: string;
   courseName: string;
   imageUri: string;
 }
@@ -19,14 +19,14 @@ export const useCreateCertificate = () => {
       console.log("Starting certificate creation process...");
 
       // 0. Validate Inputs
-      if (!data.studentWallet || !ethers.utils.isAddress(data.studentWallet)) {
-        throw new Error("Invalid student wallet address");
+      if (!data.talentWallet || !ethers.utils.isAddress(data.talentWallet)) {
+        throw new Error("Invalid talent wallet address");
       }
 
-      // 1. Backend: Validate Student & Pin Metadata to IPFS
+      // 1. Backend: Validate Talent & Pin Metadata to IPFS
       const payload = {
-        walletStudent: data.studentWallet,
-        nameStudent: data.studentName,
+        walletTalent: data.talentWallet,
+        nameTalent: data.talentName,
         professor: professorWallet,
         courseName: data.courseName,
         imageUri: data.imageUri
@@ -51,8 +51,8 @@ export const useCreateCertificate = () => {
 
       // 2. Blockchain: Mint Certificate
       const mintSuccess = await web3Service.mintCertificateOnChain(
-        data.studentWallet,
-        data.studentName,
+        data.talentWallet,
+        data.talentName,
         data.courseName,
         tokenUri,
         professorWallet
@@ -64,7 +64,7 @@ export const useCreateCertificate = () => {
 
       toast({
         title: "Success!",
-        description: "Certificate minted and sent to student's wallet.",
+        description: "Certificate minted and sent to talent's wallet.",
       });
 
       return true;

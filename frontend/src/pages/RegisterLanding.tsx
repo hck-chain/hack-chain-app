@@ -66,16 +66,16 @@ const RegisterLanding = () => {
         <div className="z-10 w-full flex flex-col flex-1 max-w-6xl px-4 space-y-12 mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
 
-            {/* Student Card */}
+            {/* Talent Card */}
             <Card className="relative overflow-hidden glass glass-hover border-purple-500/30 hover:border-purple-500/50 transition-all duration-300 neon-glow-subtle">
               <CardHeader className="space-y-4 text-center">
                 <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo gradient-text">{t('registerLanding.student.title')}</CardTitle>
+                  <CardTitle className="text-xl font-exo gradient-text">{t('registerLanding.talent.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    {t('registerLanding.student.desc')}
+                    {t('registerLanding.talent.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -83,20 +83,20 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>{t('registerLanding.student.p1')}</span>
+                    <span>{t('registerLanding.talent.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>{t('registerLanding.student.p2')}</span>
+                    <span>{t('registerLanding.talent.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>{t('registerLanding.student.p3')}</span>
+                    <span>{t('registerLanding.talent.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/user" className="block">
                   <Button className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-500/90 hover:to-pink-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato">
-                    {t('registerLanding.student.btn')}
+                    {t('registerLanding.talent.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>

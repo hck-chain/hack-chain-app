@@ -7,7 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NFTCreator from "./pages/NFTCreator";
 import EducatorDashboard from "./pages/EducatorDashboard";
-import StudentDashboard from "./pages/StudentDashboard";
+import TalentDashboard from "./pages/TalentDashboard";
 import RegisterLanding from "./pages/RegisterLanding";
 import { RegisterUser } from "./pages/RegisterUser";
 import { RegisterRecruiter } from "./pages/RegisterRecruiter";
@@ -20,7 +20,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import React from "react";
 import MintCertificate from "./utils/mintCertificate.jsx";
 import RecruiterDashboard from "./pages/RecruiterDashboard.js";
-import StudentDetailDashboard from './pages/StudentDetailDashboard.tsx';
+import TalentDetailDashboard from './pages/TalentDetailDashboard.tsx';
 // PRUEBAS /////////////////////////
 
 
@@ -37,9 +37,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/nft-creator" element={<NFTCreator />} />
           <Route path="/educator/dashboard" element={<EducatorDashboard />} />
-          <Route path="/dashboard/student" element={<StudentDashboard />} />
+          <Route path="/dashboard/talent" element={<TalentDashboard />} />
           <Route path="/dashboard/recruiter" element={<RecruiterDashboard />} />
-          <Route path="/recruiter/student/:wallet_address" element={<StudentDetailDashboard />} />
+          <Route path="/recruiter/talent/:wallet_address" element={<TalentDetailDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterLanding />} />
           <Route path="/register/user" element={<RegisterUser />} />

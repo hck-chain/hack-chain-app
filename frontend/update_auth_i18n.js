@@ -28,19 +28,19 @@ const enNew = {
     "title1": "Join the Future of",
     "title2": "Professional Certification",
     "description": "Choose your role and start your journey with blockchain-verified certificates in any professional field or skill area.",
-    "student": {
-      "title": "Student",
+    "talent": {
+      "title": "Talent",
       "desc": "Learn any skill and earn blockchain-verified certificates",
       "p1": "Earn NFT certificates",
       "p2": "Build verifiable skill portfolio",
       "p3": "Connect with recruiters",
-      "btn": "Join as Student"
+      "btn": "Join as Talent"
     },
      "educator": {
       "title": "Educator",
       "desc": "Issue verified certificates and build your teaching reputation",
       "p1": "Issue NFT certificates",
-      "p2": "Track student progress",
+      "p2": "Track talent progress",
       "p3": "Verified educator status",
       "btn": "Join as Educator"
     },
@@ -79,7 +79,7 @@ const esNew = {
     "title1": "Únete al Futuro de la",
     "title2": "Certificación Profesional",
     "description": "Elige tu rol y comienza tu viaje con certificados verificados por blockchain en cualquier campo profesional o área de habilidades.",
-    "student": {
+    "talent": {
       "title": "Estudiante",
       "desc": "Aprende cualquier habilidad y obtén certificados verificados por blockchain",
       "p1": "Gana certificados NFT",
