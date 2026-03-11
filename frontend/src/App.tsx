@@ -13,9 +13,12 @@ import { RegisterUser } from "./pages/RegisterUser";
 import { RegisterRecruiter } from "./pages/RegisterRecruiter";
 import RegisterEducator from "./pages/RegisterEducator";
 import Login from "./pages/Login";
+import AboutUs from "./pages/AboutUs";
+import ScrollToTop from "./components/ScrollToTop";
 
 // PRUEBAS //////////////////////////
 import React from "react";
+import MintCertificate from "./utils/mintCertificate.jsx";
 import RecruiterDashboard from "./pages/RecruiterDashboard.js";
 import StudentDetailDashboard from './pages/StudentDetailDashboard.tsx';
 // PRUEBAS /////////////////////////
@@ -29,6 +32,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/nft-creator" element={<NFTCreator />} />
@@ -41,7 +45,9 @@ const App = () => (
           <Route path="/register/user" element={<RegisterUser />} />
           <Route path="/register/recruiter" element={<RegisterRecruiter />} />
           <Route path="/register/issuer" element={<RegisterEducator />} />
+          <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/about" element={<AboutUs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

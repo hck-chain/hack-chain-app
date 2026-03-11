@@ -4,10 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar, Mail } from 'lucide-react';
+import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface Certificate {
     identifier: string;
@@ -22,7 +21,6 @@ interface Certificate {
 interface Student {
     wallet_address: string;
     name?: string;
-    email?: string;
     field_of_study?: string;
     total_certificates?: number;
     created_at?: string;
@@ -45,7 +43,7 @@ const StudentDetailDashboard = () => {
                 if (!token) return;
 
                 // Student info
-                const res = await fetch(`${API_BASE_URL}/api/students/${wallet_address}`, {
+                const res = await fetch(`http://localhost:3001/api/students/${wallet_address}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -54,14 +52,13 @@ const StudentDetailDashboard = () => {
                 setStudent({
                     wallet_address: data.student.wallet_address,
                     name: data.student.user.name + ' ' + (data.student.user.lastname || ''),
-                    email: data.student.user.email,
                     field_of_study: data.student.field_of_study || 'N/A',
                     total_certificates: data.student.total_certificates || 0,
                     created_at: data.student.created_at,
                 });
 
                 // Certificates
-                const certRes = await fetch(`${API_BASE_URL}/api/opensea/certificates/`, {
+                const certRes = await fetch('http://localhost:3001/api/opensea/certificates/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -184,14 +181,12 @@ const StudentDetailDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* Email */}
+                                        {/* Field of Study */}
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Mail className="h-4 w-4 text-slate-400 mt-0.5" />
+                                            <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Email</p>
-                                                <p className="text-sm text-slate-200 font-body break-all">
-                                                    {student.email || 'No email provided'}
-                                                </p>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
+                                                <p className="text-sm text-slate-200 font-body">{student.field_of_study}</p>
                                             </div>
                                         </div>
 

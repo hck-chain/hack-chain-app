@@ -2,7 +2,7 @@ const opensea = require("@api/opensea");
 const express = require("express");
 const router = express.Router();
 opensea.auth(process.env.OPENSEA_API_KEY);
-const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS.toLowerCase();
+const CONTRACT_ADDRESS = "0x8D21aC87475eC2EE80fB149E376035F5E29DCa7C".toLowerCase();
 
 // Collection /api/opensea/collection/:slug
 router.get("/collection/:slug", async (req, res) => {
@@ -23,7 +23,7 @@ router.get("/collection/:slug", async (req, res) => {
 router.post("/certificates/", async (req, res) => {
   try {
     const { address } = req.body;
-    const slug = "hackchainfirstversion";
+    const slug = "firstversion";
 
     const { data } = await opensea.get_nfts_by_account({
       limit: 200,
@@ -109,7 +109,7 @@ router.get("/certificates/:educator", async (req, res) => {
 
         const contentType = metaRes.headers.get("content-type") || "";
 
-        // SI NO ES JSON, LO IGNORAMOS
+        // 🚨 SI NO ES JSON, LO IGNORAMOS
         if (!contentType.includes("application/json")) {
           continue;
         }
@@ -141,3 +141,7 @@ router.get("/certificates/:educator", async (req, res) => {
 
 
 module.exports = router;
+
+// Slug -> hack-certificate-196949664
+// Slug 2 -> First version
+

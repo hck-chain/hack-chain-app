@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, CheckCircle, AlertCircle, Check } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -21,6 +22,7 @@ import type { UserRegistrationFormData } from "../../lib/validations/auth";
 import "./autofill-fix.css";
 
 export function UserRegistrationForm() {
+  const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   const mutation = useUserRegistration();
@@ -64,12 +66,12 @@ export function UserRegistrationForm() {
         <Alert className="border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
           <CheckCircle className="h-4 w-4 text-purple-400" />
           <AlertDescription className="text-purple-200">
-            Account created successfully!
+            {t('registrationForm.success')}
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
           <Button onClick={handleReset} variant="outline" className="w-full max-w-sm border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
-            Register Another User
+            {t('registrationForm.registerAnother')}
           </Button>
         </div>
       </div>
@@ -92,11 +94,11 @@ export function UserRegistrationForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Name</FormLabel>
+                <FormLabel className="text-slate-300">{t('registrationForm.nameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your name"
+                      placeholder={t('registrationForm.namePlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark ${isFieldValid('name') ? 'input-valid' : ''}`}
                       onFocus={() => handleFieldTouch('name')}
@@ -115,11 +117,11 @@ export function UserRegistrationForm() {
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Last Name</FormLabel>
+                <FormLabel className="text-slate-300">{t('registrationForm.lastNameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your last name"
+                      placeholder={t('registrationForm.lastNamePlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark ${isFieldValid('lastName') ? 'input-valid' : ''}`}
                       onFocus={() => handleFieldTouch('lastName')}
@@ -138,12 +140,12 @@ export function UserRegistrationForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Email</FormLabel>
+                <FormLabel className="text-slate-300">{t('registrationForm.emailLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type="email"
-                      placeholder="Enter your email address"
+                      placeholder={t('registrationForm.emailPlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark ${isFieldValid('email') ? 'input-valid' : ''}`}
                       onFocus={() => handleFieldTouch('email')}
@@ -162,7 +164,7 @@ export function UserRegistrationForm() {
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
             disabled={isLoading}
           >
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating Account...</> : "Create Account"}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('registrationForm.creating')}</> : t('registrationForm.create')}
           </Button>
         </form>
       </Form>

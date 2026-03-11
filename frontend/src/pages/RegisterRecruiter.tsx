@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Building, Users, Shield, Search } from "lucide-react";
 import { RecruiterRegistrationForm } from "@/components/auth/recruiterRegistrationForm";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import FloatingElements from "@/components/FloatingElements";
 import hackChainLogo from "/images/logoHackchain.png";
 
 export function RegisterRecruiter() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
       {/* Background */}
@@ -39,7 +41,7 @@ export function RegisterRecruiter() {
             {/* Back */}
             <Link to="/register" className="flex items-center gap-2 group">
               <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-green-400 transition-colors">
-                Back to Register
+                {t('registerRecruiter.back')}
               </span>
               <ArrowLeft className="h-4 w-4 text-slate-300 group-hover:text-green-400 transition-colors" />
             </Link>
@@ -57,15 +59,14 @@ export function RegisterRecruiter() {
               {/* Header Text */}
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
-                  Find and Verify
+                  {t('registerRecruiter.title1')}
                   <br />
                   <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-                    Top Professional Talent
+                    {t('registerRecruiter.title2')}
                   </span>
                 </h1>
                 <p className="text-lg text-slate-300 font-lato leading-relaxed">
-                  Join as a recruiter and access the world's largest platform for verified
-                  professionals across all industries with blockchain-authenticated skills.
+                  {t('registerRecruiter.desc')}
                 </p>
               </div>
 
@@ -77,13 +78,18 @@ export function RegisterRecruiter() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-exo font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-                      Recruiter Experience
+                      {t('registerRecruiter.expTitle')}
                     </h3>
                     <p className="text-slate-300 font-lato mb-4">
-                      Connect with certified professionals across all industries and verify their skills with confidence.
+                      {t('registerRecruiter.expDesc')}
                     </p>
                     <div className="space-y-2">
-                      {["Access verified talent pool", "Verify blockchain certificates instantly", "Advanced search and filtering tools", "Direct contact with top candidates"].map((text, i) => (
+                      {[
+                        t('registerRecruiter.p1'),
+                        t('registerRecruiter.p2'),
+                        t('registerRecruiter.p3'),
+                        t('registerRecruiter.p4')
+                      ].map((text, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
                           <span className="text-sm text-slate-400 font-lato">{text}</span>
@@ -96,8 +102,8 @@ export function RegisterRecruiter() {
                 {/* Additional Benefits */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { icon: Search, title: "Smart Search", desc: "Find ideal candidates in seconds", color: "emerald" },
-                    { icon: Shield, title: "Verified Skills", desc: "Blockchain-authenticated", color: "emerald" }
+                    { icon: Search, title: t('registerRecruiter.b1Title'), desc: t('registerRecruiter.b1Desc'), color: "emerald" },
+                    { icon: Shield, title: t('registerRecruiter.b2Title'), desc: t('registerRecruiter.b2Desc'), color: "emerald" }
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3 p-4 glass rounded-lg border border-emerald-500/20 hover:border-emerald-500/30 transition-all duration-200">
                       <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
@@ -115,11 +121,11 @@ export function RegisterRecruiter() {
               {/* CTA */}
               <div className="bg-slate-900/70 backdrop-blur-sm rounded-lg p-6 border border-green-500/30 hover:border-green-500/50 hover:bg-slate-900/85 transition-all duration-200">
                 <p className="text-sm text-slate-300 font-lato mb-3">
-                  Already have a recruiter account?
+                  {t('registerRecruiter.already')}
                 </p>
                 <Link to="/login">
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform duration-200 border-green-500 text-slate-300 hover:text-white hover:bg-green-700 font-lato">
-                    Sign In Instead
+                    {t('registerRecruiter.signIn')}
                   </Button>
                 </Link>
               </div>
@@ -136,10 +142,10 @@ export function RegisterRecruiter() {
                     </div>
                   </div>
                   <CardTitle className="text-2xl font-exo font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-                    Create Recruiter Account
+                    {t('registerRecruiter.formTitle')}
                   </CardTitle>
                   <CardDescription className="text-slate-300 font-lato">
-                    Enter your information to start finding top cybersecurity talent
+                    {t('registerRecruiter.formDesc')}
                   </CardDescription>
                 </CardHeader>
 
@@ -157,7 +163,7 @@ export function RegisterRecruiter() {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <p className="text-sm text-slate-300 font-lato">
-                © 2025 HackChain. Non-Fungible Talent.
+                {t('footer.copyright')}
               </p>
             </div>
           </div>

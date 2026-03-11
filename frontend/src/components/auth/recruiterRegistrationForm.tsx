@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, CheckCircle, AlertCircle, Check } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -21,6 +22,7 @@ import type { RecruiterRegistrationFormData } from "../../lib/validations/auth";
 import "./autofill-fix.css";
 
 export function RecruiterRegistrationForm() {
+  const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   const mutation = useRecruiterRegistration();
@@ -63,12 +65,12 @@ export function RecruiterRegistrationForm() {
         <Alert className="border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
           <CheckCircle className="h-4 w-4 text-green-400" />
           <AlertDescription className="text-green-200">
-            Recruiter account created successfully!
+            {t('recruiterForm.success')}
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
           <Button onClick={handleReset} variant="outline" className="w-full max-w-sm border-green-500/30 text-green-400 hover:bg-green-500/10">
-            Register Another Recruiter
+            {t('recruiterForm.registerAnother')}
           </Button>
         </div>
       </div>
@@ -91,11 +93,11 @@ export function RecruiterRegistrationForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Name</FormLabel>
+                <FormLabel className="text-slate-300">{t('registrationForm.nameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your name"
+                      placeholder={t('registrationForm.namePlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark recruiter-input ${isFieldValid('name') ? 'input-valid recruiter-input' : ''}`}
                       onFocus={() => handleFieldTouch('name')}
@@ -114,11 +116,11 @@ export function RecruiterRegistrationForm() {
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Last Name</FormLabel>
+                <FormLabel className="text-slate-300">{t('registrationForm.lastNameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your last name"
+                      placeholder={t('registrationForm.lastNamePlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark recruiter-input ${isFieldValid('lastName') ? 'input-valid recruiter-input' : ''}`}
                       onFocus={() => handleFieldTouch('lastName')}
@@ -137,11 +139,11 @@ export function RecruiterRegistrationForm() {
             name="companyName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Company Name</FormLabel>
+                <FormLabel className="text-slate-300">{t('recruiterForm.nameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your company name"
+                      placeholder={t('recruiterForm.namePlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark recruiter-input ${isFieldValid('companyName') ? 'input-valid recruiter-input' : ''}`}
                       onFocus={() => handleFieldTouch('companyName')}
@@ -160,12 +162,12 @@ export function RecruiterRegistrationForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">Email</FormLabel>
+                <FormLabel className="text-slate-300">{t('recruiterForm.emailLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type="email"
-                      placeholder="Enter your business email address"
+                      placeholder={t('recruiterForm.emailPlaceholder')}
                       disabled={isLoading}
                       className={`input-autofill-dark recruiter-input ${isFieldValid('email') ? 'input-valid recruiter-input' : ''}`}
                       onFocus={() => handleFieldTouch('email')}
@@ -184,7 +186,7 @@ export function RecruiterRegistrationForm() {
             className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
             disabled={isLoading}
           >
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating Account...</> : "Create Recruiter Account"}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('recruiterForm.creating')}</> : t('recruiterForm.create')}
           </Button>
         </form>
       </Form>
