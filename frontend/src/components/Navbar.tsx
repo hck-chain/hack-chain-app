@@ -15,6 +15,7 @@ const Navbar = () => {
     { name: t('nav.features'), href: '/#certificates' },
     { name: t('nav.process'), href: '/#community' },
     { name: t('nav.build'), href: '/#dao' },
+    { name: t('nav.contact'), href: '/contact' },
     { name: t('nav.about'), href: '/about' },
   ];
 
@@ -25,8 +26,10 @@ const Navbar = () => {
       const targetElement = document.getElementById(targetId);
 
       if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+          const navbarHeight = 96; // h-24 = 96px
+          const elementTop = targetElement.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: elementTop - navbarHeight, behavior: 'smooth' });
+        }
     }
 
     setIsMenuOpen(false);

@@ -6,7 +6,8 @@
     "build": "Construir",
     "signIn": "Iniciar Sesión",
     "getStarted": "Empezar",
-    "about": "Sobre Nosotros"
+    "about": "Sobre Nosotros",
+    "contact": "Contacto"
   },
   "hero": {
     "title1": "Habilidades verificadas para la ",
@@ -269,5 +270,52 @@
     "emailPlaceholder": "nombre@empresa.com",
     "creating": "Registrando Empresa...",
     "create": "Registrar Empresa"
+  },
+  "faq": {
+    "title": "Preguntas",
+    "titleHighlight": "Frecuentes",
+    "items": [
+      {
+        "question": "¿Qué es HackChain?",
+        "answer": "HackChain es un ecosistema educativo-laboral que vincula Talento, Educadores y Reclutadores con el fin de promover el aprendizaje constante y la transparencia en los procesos de reclutamiento."
+      },
+      {
+        "question": "¿Qué es un certificado tokenizado?",
+        "answer": "Un certificado tokenizado es un NFT el cual posee toda la información de un certificado tradicional. Este NFT es inmutable, intransferible, infalsificable y solamente lo puede poseer una sola persona, un solo Talento."
+      },
+      {
+        "question": "¿Qué beneficios obtengo si me registro como Talento?",
+        "answer": "Serás poseedor de un portafolio de certificados para compartirlos en cualquier momento y tendrás acceso a una gran cantidad de cursos, conferencias, etc, por parte de Educadores de diferentes áreas del conocimiento."
+      },
+      {
+        "question": "¿Qué beneficios obtengo si me registro como Educador?",
+        "answer": "Los Educadores pueden emitir certificados a cualquier Talento dentro del ecosistema de manera rápida y dar a conocer su material educativo a cada uno de ellos."
+      },
+      {
+        "question": "¿Qué beneficios obtengo si me registro como Reclutador?",
+        "answer": "Como Reclutador puedes visualizar todos los Talentos dentro de HackChain y los certificados que ellos poseen para ofrecer de manera estratégica una vacante de empleo al mejor candidato."
+      }
+    ]
+  },
+  "contact": {
+    "title": "¿Tienes",
+    "titleHighlight": "Preguntas?",
+    "subtitle": "Encuentra respuestas por rol o escríbenos directamente.",
+    "generalLabel": "General",
+    "rolesLabel": "Por rol",
+    "roleTalent": "Talento",
+    "roleEducator": "Educador",
+    "roleRecruiter": "Reclutador",
+    "stillQuestions": "¿Aún tienes dudas?",
+    "directTitle": "Escríbenos directamente",
+    "directSubtitle": "Leemos cada mensaje. Normalmente respondemos en menos de 24 horas.",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "tu@correo.com",
+    "messageLabel": "Mensaje",
+    "messagePlaceholder": "Cuéntanos cómo podemos ayudarte...",
+    "sendBtn": "Enviar Mensaje",
+    "emailSubject": "Contacto vía HackChain",
+    "emailFrom": "De",
+    "emailReply": "Responder a"
   }
 }

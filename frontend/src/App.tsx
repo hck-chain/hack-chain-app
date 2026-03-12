@@ -14,6 +14,7 @@ import { RegisterRecruiter } from "./pages/RegisterRecruiter";
 import RegisterEducator from "./pages/RegisterEducator";
 import Login from "./pages/Login";
 import AboutUs from "./pages/AboutUs";
+import Contact from "./pages/Contact";
 import ScrollToTop from "./components/ScrollToTop";
 
 // PRUEBAS //////////////////////////
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
