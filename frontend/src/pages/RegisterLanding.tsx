@@ -49,7 +49,7 @@ const RegisterLanding = () => {
       {/* Hero Section */}
       <div className="animate-in fade-in duration-700 slide-in-from-bottom">
         <div className="z-10 flex flex-col items-start max-w-4xl mx-auto px-4 mt-8 mb-8">
-          <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6 text-center md:text-left">
             {t('registerLanding.title1')}
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
@@ -63,7 +63,7 @@ const RegisterLanding = () => {
         </div>
 
         {/* Role Cards */}
-        <div className="z-10 w-full flex flex-col flex-1 max-w-6xl px-4 space-y-12 mx-auto">
+        <div className="z-10 w-full flex flex-col flex-1 max-w-6xl px-4 space-y-6 sm:space-y-12 mx-auto pb-10">
           <div className="grid md:grid-cols-3 gap-8">
 
             {/* Talent Card */}

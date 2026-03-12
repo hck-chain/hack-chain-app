@@ -53,8 +53,8 @@ export function RegisterRecruiter() {
         <div className="relative z-10 container mx-auto px-4 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
           <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
 
-            {/* Left - Info */}
-            <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-300">
+            {/* Left - Info — only visible on lg+ */}
+            <div className="hidden lg:block space-y-8 animate-in slide-in-from-left duration-700 delay-300">
 
               {/* Header Text */}
               <div className="space-y-4">

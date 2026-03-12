@@ -73,7 +73,7 @@ const Contact = () => {
       <BackgroundAnimation />
       <Navbar />
 
-      <main className="flex-1 z-10 w-full max-w-4xl mx-auto px-4 pt-36 pb-24">
+      <main className="flex-1 z-10 w-full max-w-4xl mx-auto px-4 pt-28 sm:pt-36 pb-24">
 
         {/* Page header */}
         <section
@@ -121,12 +121,12 @@ const Contact = () => {
             {t('contact.rolesLabel')}
           </p>
 
-          <div className="flex gap-3 mb-8 flex-wrap">
+          <div className="flex gap-2 mb-8 flex-wrap">
             {roles.map(role => (
               <button
                 key={role.key}
                 onClick={() => setActiveRole(role.key)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full border font-exo text-sm font-semibold transition-all duration-200
+                className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full border font-exo text-xs sm:text-sm font-semibold transition-all duration-200
                   ${activeRole === role.key
                     ? `${role.activeBg} ${role.border} ${role.color}`
                     : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white bg-transparent'

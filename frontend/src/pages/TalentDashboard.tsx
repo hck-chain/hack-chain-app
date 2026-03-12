@@ -125,8 +125,8 @@ const TalentDashboard = () => {
                                 View your tokenized certificates.
                             </p>
                         </div>
-                        {/* Logo centrado */}
-                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                        {/* Logo — hidden on mobile to avoid overlap */}
+                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
                             <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
                         </div>
 

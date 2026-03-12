@@ -53,8 +53,8 @@ export default function Login() {
         <div className="relative z-10 container mx-auto px-4 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
           <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto w-full">
 
-            {/* Left Side - Information */}
-            <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-300">
+            {/* Left Side — only visible on lg+ */}
+            <div className="hidden lg:block space-y-8 animate-in slide-in-from-left duration-700 delay-300">
 
               {/* Welcome Text */}
               <div className="space-y-4">
@@ -114,8 +114,8 @@ export default function Login() {
 
             </div>
 
-            {/* Right Side - Login Form */}
-            <div className="flex justify-center animate-in slide-in-from-right duration-700 delay-500">
+            {/* Right Side — Login Form, centered on mobile */}
+            <div className="flex justify-center lg:col-auto col-span-1 animate-in slide-in-from-right duration-700 delay-500">
               <Card className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-500/30 hover:border-purple-500/50 bg-gradient-to-br from-slate-900/95 via-purple-900/20 to-slate-900/95 backdrop-blur-xl rounded-2xl">
 
                 <CardHeader className="flex flex-col items-center space-y-1 text-center font-lato">
