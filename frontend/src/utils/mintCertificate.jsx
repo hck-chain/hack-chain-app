@@ -93,7 +93,7 @@ const CONTRACT_ABI = [
         ],
         "outputs": [
             {
-                "name": "studentName",
+                "name": "talentName",
                 "type": "string",
                 "internalType": "string"
             },
@@ -181,7 +181,7 @@ const CONTRACT_ABI = [
                 "internalType": "address"
             },
             {
-                "name": "studentName",
+                "name": "talentName",
                 "type": "string",
                 "internalType": "string"
             },
@@ -456,7 +456,7 @@ const CONTRACT_ABI = [
                 "internalType": "struct HackCertificate.Certificate",
                 "components": [
                     {
-                        "name": "studentName",
+                        "name": "talentName",
                         "type": "string",
                         "internalType": "string"
                     },
@@ -547,7 +547,7 @@ const CONTRACT_ABI = [
                 "internalType": "address"
             },
             {
-                "name": "student",
+                "name": "talent",
                 "type": "address",
                 "indexed": true,
                 "internalType": "address"
@@ -733,8 +733,8 @@ function App() {
     const [account, setAccount] = useState('');
     const [isConnected, setIsConnected] = useState(false);
     const [isMinting, setIsMinting] = useState(false);
-    const [walletStudent, setWalletStudent] = useState("");
-    const [nameStudent, setNameStudent] = useState("");
+    const [walletTalent, setWalletTalent] = useState("");
+    const [nameTalent, setNameTalent] = useState("");
     const [courseName, setCourseName] = useState("");
     const [imageUri, setImageUri] = useState("");
     const certificate_hash = imageUri;
@@ -789,11 +789,11 @@ function App() {
         const professor = account;
         console.log("Buscando wallet de issuer:", professor);
 
-        if (!walletStudent) {
+        if (!walletTalent) {
             alert("Please enter the wallet address");
         }
-        if (!nameStudent) {
-            alert("Please enter the student's name");
+        if (!nameTalent) {
+            alert("Please enter the talent's name");
         }
         if (!courseName) {
             alert("Please enter the course name");
@@ -810,15 +810,15 @@ function App() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    walletStudent,
-                    nameStudent,
+                    walletTalent,
+                    nameTalent,
                     professor,
                     courseName,
                     imageUri
                 })
             });
             const data = await response.json();
-            if (walletStudent != "" && response.status == 404) { alert("Wallet not registered") };
+            if (walletTalent != "" && response.status == 404) { alert("Wallet not registered") };
             return data;
         } catch (err) {
             console.error('Data error: ', err);
@@ -832,7 +832,7 @@ function App() {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-            const tx = await contract.issueCertificate(data.walletStudent, data.nameStudent, data.courseName, data.tokenUri);
+            const tx = await contract.issueCertificate(data.walletTalent, data.nameTalent, data.courseName, data.tokenUri);
             const receipt = await tx.wait();
             const transferEvent = receipt.logs.map(log => {
                 try {
@@ -896,15 +896,15 @@ function App() {
             <input
                 type="text"
                 placeholder="Wallet del estudiante"
-                value={walletStudent}
-                onChange={(e) => setWalletStudent(e.target.value)}
+                value={walletTalent}
+                onChange={(e) => setWalletTalent(e.target.value)}
             />
 
             <input
                 type="text"
                 placeholder="Nombre del estudiante"
-                value={nameStudent}
-                onChange={(e) => setNameStudent(e.target.value)}
+                value={nameTalent}
+                onChange={(e) => setNameTalent(e.target.value)}
             />
 
             <input

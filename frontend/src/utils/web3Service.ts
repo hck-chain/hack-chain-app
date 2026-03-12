@@ -89,7 +89,7 @@ const CONTRACT_ABI = [
         ],
         "outputs": [
             {
-                "name": "studentName",
+                "name": "talentName",
                 "type": "string",
                 "internalType": "string"
             },
@@ -177,7 +177,7 @@ const CONTRACT_ABI = [
                 "internalType": "address"
             },
             {
-                "name": "studentName",
+                "name": "talentName",
                 "type": "string",
                 "internalType": "string"
             },
@@ -452,7 +452,7 @@ const CONTRACT_ABI = [
                 "internalType": "struct HackCertificate.Certificate",
                 "components": [
                     {
-                        "name": "studentName",
+                        "name": "talentName",
                         "type": "string",
                         "internalType": "string"
                     },
@@ -543,7 +543,7 @@ const CONTRACT_ABI = [
                 "internalType": "address"
             },
             {
-                "name": "student",
+                "name": "talent",
                 "type": "address",
                 "indexed": true,
                 "internalType": "address"
@@ -758,8 +758,8 @@ export const web3Service = {
     },
 
     mintCertificateOnChain: async (
-        studentWallet: string,
-        studentName: string,
+        talentWallet: string,
+        talentName: string,
         courseName: string,
         tokenUri: string,
         issuerWallet: string
@@ -771,10 +771,10 @@ export const web3Service = {
             const signer = provider.getSigner();
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-            console.log(`Minting certificate for ${studentName} (${studentWallet})...`);
+            console.log(`Minting certificate for ${talentName} (${talentWallet})...`);
 
             // Minteo en blockchain
-            const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
+            const tx = await contract.issueCertificate(talentWallet, talentName, courseName, tokenUri);
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 

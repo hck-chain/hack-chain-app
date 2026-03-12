@@ -9,7 +9,7 @@
   color: rgb(148 163 184);
 }
 
-/* Student focus (purple) */
+/* Talent focus (purple) */
 .input-autofill-dark:focus {
   border-color: rgb(168 85 247);
   --tw-ring-color: rgb(168 85 247 / 0.2);
@@ -46,7 +46,7 @@
   color: white !important;
 }
 
-/* Student valid (purple) */
+/* Talent valid (purple) */
 .input-valid {
   border-color: rgb(168 85 247) !important;
 }

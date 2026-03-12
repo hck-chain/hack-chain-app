@@ -6,7 +6,8 @@
     "build": "Build",
     "signIn": "Sign In",
     "getStarted": "Get Started",
-    "about": "About Us"
+    "about": "About Us",
+    "contact": "Contact"
   },
   "hero": {
     "title1": "Verified skills for the ",
@@ -143,19 +144,27 @@
     "title1": "Join the Web3",
     "title2": "Professional Network",
     "description": "Choose how you want to participate in the future of verified professional credentials.",
-    "student": {
-      "title": "I'm a Student",
+    "talent": {
+      "title": "I'm a Talent",
       "desc": "Build your verified professional portfolio",
       "p1": "Earn blockchain-verified certificates",
       "p2": "Showcase your skills as NFTs",
       "p3": "Connect with top global recruiters",
-      "btn": "Register as Student"
+      "btn": "Register as Talent"
+    },
+    "student": {
+      "title": "I'm a Talent",
+      "desc": "Build your verified professional portfolio",
+      "p1": "Earn blockchain-verified certificates",
+      "p2": "Showcase your skills as NFTs",
+      "p3": "Connect with top global recruiters",
+      "btn": "Register as Talent"
     },
     "educator": {
       "title": "I'm an Educator",
       "desc": "Issue tamper-proof certificates",
       "p1": "Create and issue NFT certificates",
-      "p2": "Validate student achievements",
+      "p2": "Validate talent achievements",
       "p3": "Build institutional trust on-chain",
       "btn": "Register as Educator"
     },
@@ -174,32 +183,32 @@
     "back": "Back to Register",
     "title1": "Join the Future of",
     "title2": " Professional Certification",
-    "desc": "Create your student account and start earning blockchain-verified certificates that prove your expertise in any professional field.",
-    "expTitle": "Student Experience",
-    "expDesc": "Join thousands of students earning blockchain-verified certificates across all professional fields and skills.",
+    "desc": "Create your talent account and start earning blockchain-verified certificates that prove your expertise in any professional field.",
+    "expTitle": "Talent Experience",
+    "expDesc": "Join thousands of talents earning blockchain-verified certificates across all professional fields and skills.",
     "p1": "Complete professional courses in any field",
     "p2": "Earn NFT certificates that prove your skills",
     "p3": "Build a verifiable professional portfolio",
     "p4": "Connect directly with top recruiters",
     "already": "Already have an account?",
     "signIn": "Sign In Instead",
-    "formTitle": "Create Student Account",
+    "formTitle": "Create Talent Account",
     "formDesc": "Enter your information to get started with Hack Chain"
   },
   "registerEducator": {
     "back": "Back to Register",
     "title1": "Empower the Next",
     "title2": "Generation of Professionals",
-    "desc": "Join as an educator and issue blockchain-verified certificates that prove student achievements in any field - from technology and business to arts and sciences.",
+    "desc": "Join as an educator and issue blockchain-verified certificates that prove talent achievements in any field - from technology and business to arts and sciences.",
     "expTitle": "Educator Experience",
     "expDesc": "Issue tamper-proof blockchain certificates and build trust with industry partners through verifiable credentials.",
     "p1": "Issue blockchain-secured certificates",
-    "p2": "Track student progress and achievements",
+    "p2": "Track talent progress and achievements",
     "p3": "Build institutional trust with recruiters",
     "p4": "White-label customization available",
     "b1Title": "Issue Certificates",
     "b1Desc": "Blockchain-verified credentials",
-    "b2Title": "Manage Students",
+    "b2Title": "Manage Talents",
     "b2Desc": "Centralized dashboard",
     "already": "Already have an educator account?",
     "signIn": "Sign In Instead",
@@ -261,5 +270,52 @@
     "emailPlaceholder": "name@company.com",
     "creating": "Registering Company...",
     "create": "Register Company"
+  },
+  "faq": {
+    "title": "Frequently Asked",
+    "titleHighlight": "Questions",
+    "items": [
+      {
+        "question": "What is HackChain?",
+        "answer": "HackChain is an educational-labor ecosystem that links Talent, Educators, and Recruiters in order to promote constant learning and transparency in recruitment processes."
+      },
+      {
+        "question": "What is a tokenized certificate?",
+        "answer": "A tokenized certificate is an NFT that contains all the information of a traditional certificate. This NFT is immutable, non-transferable, unforgeable and can only be owned by one person — one Talent."
+      },
+      {
+        "question": "What benefits do I get if I register as Talent?",
+        "answer": "You will own a portfolio of certificates to share at any time and will have access to a large number of courses, conferences, and more from Educators in different areas of knowledge."
+      },
+      {
+        "question": "What benefits do I get if I register as Educator?",
+        "answer": "Educators can issue certificates to any Talent within the ecosystem quickly and make their educational material known to each of them."
+      },
+      {
+        "question": "What benefits do I get if I register as Recruiter?",
+        "answer": "As a Recruiter you can view all Talents within HackChain and the certificates they hold, to strategically offer a job vacancy to the best candidate."
+      }
+    ]
+  },
+  "contact": {
+    "title": "Got",
+    "titleHighlight": "Questions?",
+    "subtitle": "Find answers by role or write to us directly.",
+    "generalLabel": "General",
+    "rolesLabel": "By role",
+    "roleTalent": "Talent",
+    "roleEducator": "Educator",
+    "roleRecruiter": "Recruiter",
+    "stillQuestions": "Still have questions?",
+    "directTitle": "Write to us directly",
+    "directSubtitle": "We read every message. Usually respond within 24 hours.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Tell us how we can help you...",
+    "sendBtn": "Send Message",
+    "emailSubject": "Contact via HackChain",
+    "emailFrom": "From",
+    "emailReply": "Reply to"
   }
 }

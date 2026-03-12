@@ -7,20 +7,21 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NFTCreator from "./pages/NFTCreator";
 import EducatorDashboard from "./pages/EducatorDashboard";
-import StudentDashboard from "./pages/StudentDashboard";
+import TalentDashboard from "./pages/TalentDashboard";
 import RegisterLanding from "./pages/RegisterLanding";
 import { RegisterUser } from "./pages/RegisterUser";
 import { RegisterRecruiter } from "./pages/RegisterRecruiter";
 import RegisterEducator from "./pages/RegisterEducator";
 import Login from "./pages/Login";
 import AboutUs from "./pages/AboutUs";
+import Contact from "./pages/Contact";
 import ScrollToTop from "./components/ScrollToTop";
 
 // PRUEBAS //////////////////////////
 import React from "react";
 import MintCertificate from "./utils/mintCertificate.jsx";
 import RecruiterDashboard from "./pages/RecruiterDashboard.js";
-import StudentDetailDashboard from './pages/StudentDetailDashboard.tsx';
+import TalentDetailDashboard from './pages/TalentDetailDashboard.tsx';
 // PRUEBAS /////////////////////////
 
 
@@ -37,9 +38,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/nft-creator" element={<NFTCreator />} />
           <Route path="/educator/dashboard" element={<EducatorDashboard />} />
-          <Route path="/dashboard/student" element={<StudentDashboard />} />
+          <Route path="/dashboard/talent" element={<TalentDashboard />} />
           <Route path="/dashboard/recruiter" element={<RecruiterDashboard />} />
-          <Route path="/recruiter/student/:wallet_address" element={<StudentDetailDashboard />} />
+          <Route path="/recruiter/talent/:wallet_address" element={<TalentDetailDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterLanding />} />
           <Route path="/register/user" element={<RegisterUser />} />
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
