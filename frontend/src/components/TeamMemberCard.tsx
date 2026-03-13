@@ -11,7 +11,7 @@ interface TeamMemberCardProps {
 export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ name, role, imageUrl, linkedinUrl }) => {
   return (
     <div className="flex flex-col items-center">
-      <div className="w-full aspect-[4/5] overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-50 to-slate-100 dark:from-blue-900/10 dark:to-slate-900/10 mb-4 shadow-lg transition-transform duration-300 hover:scale-[1.02] border border-white/10">
+      <div className="w-full aspect-[4/5] overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-900/20 to-slate-900/20 mb-4 shadow-lg transition-transform duration-300 hover:scale-[1.02] border border-white/10">
         <img
           src={imageUrl}
           alt={`Photo of ${name}`}

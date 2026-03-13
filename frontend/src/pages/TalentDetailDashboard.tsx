@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 interface Certificate {
     identifier: string;
@@ -133,7 +133,7 @@ const TalentDetailDashboard = () => {
                             </div>
                         </div>
                         {/* Logo centrado */}
-                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
                             <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
                         </div>
 

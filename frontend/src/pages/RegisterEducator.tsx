@@ -53,8 +53,8 @@ export default function RegisterEducator() {
         <div className="relative z-10 container mx-auto px-4 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
           <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
 
-            {/* Left Side - Information */}
-            <div className="space-y-8 animate-in slide-in-from-left duration-700 delay-300">
+            {/* Left Side — only visible on lg+ */}
+            <div className="hidden lg:block space-y-8 animate-in slide-in-from-left duration-700 delay-300">
 
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">

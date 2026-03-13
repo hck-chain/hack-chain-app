@@ -73,7 +73,7 @@ const FeatureBlocks = () => {
               whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="glass rounded-2xl p-8 glass-hover group"
+              className="glass rounded-2xl p-5 sm:p-8 glass-hover group"
             >
               <div
                 className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}

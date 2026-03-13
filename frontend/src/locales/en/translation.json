@@ -141,40 +141,32 @@
   },
   "registerLanding": {
     "backHome": "Back to Home",
-    "title1": "Join the Web3",
-    "title2": "Professional Network",
-    "description": "Choose how you want to participate in the future of verified professional credentials.",
+    "title1": "Join the Future of",
+    "title2": "Professional Certification",
+    "description": "Choose your role and start your journey with blockchain-verified certificates in any professional field or skill area.",
     "talent": {
-      "title": "I'm a Talent",
-      "desc": "Build your verified professional portfolio",
-      "p1": "Earn blockchain-verified certificates",
-      "p2": "Showcase your skills as NFTs",
-      "p3": "Connect with top global recruiters",
-      "btn": "Register as Talent"
-    },
-    "student": {
-      "title": "I'm a Talent",
-      "desc": "Build your verified professional portfolio",
-      "p1": "Earn blockchain-verified certificates",
-      "p2": "Showcase your skills as NFTs",
-      "p3": "Connect with top global recruiters",
-      "btn": "Register as Talent"
+      "title": "Talent",
+      "desc": "Learn any skill and earn blockchain-verified certificates",
+      "p1": "Earn NFT certificates",
+      "p2": "Build verifiable skill portfolio",
+      "p3": "Connect with recruiters",
+      "btn": "Join as Talent"
     },
     "educator": {
-      "title": "I'm an Educator",
-      "desc": "Issue tamper-proof certificates",
-      "p1": "Create and issue NFT certificates",
-      "p2": "Validate talent achievements",
-      "p3": "Build institutional trust on-chain",
-      "btn": "Register as Educator"
+      "title": "Educator",
+      "desc": "Issue verified certificates and build your teaching reputation",
+      "p1": "Issue NFT certificates",
+      "p2": "Track student progress",
+      "p3": "Verified educator status",
+      "btn": "Join as Educator"
     },
     "recruiter": {
-      "title": "I'm a Recruiter",
-      "desc": "Hire verified top talent",
-      "p1": "Access a pool of verified professionals",
-      "p2": "Instantly verify candidate credentials",
-      "p3": "Streamline your hiring process",
-      "btn": "Register as Recruiter"
+      "title": "Recruiter",
+      "desc": "Find and verify top talent across all industries with confidence",
+      "p1": "Search verified talent",
+      "p2": "Verify skill certificates",
+      "p3": "Advanced filtering tools",
+      "btn": "Join as Recruiter"
     },
     "alreadyHave": "Already have an account?",
     "signInInstead": "Sign In Instead"

@@ -32,14 +32,14 @@ const CallToAction = () => {
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
           variants={containerVariants}
-          className="glass rounded-3xl p-10 md:p-20 text-center"
+          className="glass rounded-3xl p-6 sm:p-10 md:p-20 text-center"
         >
           <div className="max-w-4xl mx-auto">
 
             {/* Headline */}
             <motion.h2 
               variants={itemVariants}
-              className="font-title text-4xl md:text-6xl font-bold mb-6 leading-tight"
+              className="font-title text-3xl sm:text-4xl md:text-6xl font-bold mb-6 leading-tight"
             >
               {t('cta.title1')}
               <span className="gradient-text">{t('cta.title2')}</span>
@@ -49,7 +49,7 @@ const CallToAction = () => {
             {/* Description */}
             <motion.p 
               variants={itemVariants}
-              className="font-body text-xl md:text-2xl text-muted-foreground mb-16 leading-relaxed"
+              className="font-body text-lg sm:text-xl md:text-2xl text-muted-foreground mb-12 sm:mb-16 leading-relaxed"
             >
               {t('cta.description')}
             </motion.p>

@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 
 interface Talent {
@@ -290,12 +290,12 @@ const EducatorDashboard = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="relative z-10 px-6 md:px-12 pt-12 pb-20 max-w-[1600px] mx-auto"
+          className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
         >
 
           {/* Header Section */}
           <header
-            className="mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+            className="mb-8 sm:mb-16 md:mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
           >
             <div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
@@ -309,7 +309,7 @@ const EducatorDashboard = () => {
               </p>
             </div>
             {/* Logo centrado */}
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
               <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
             </div>
             <Popover>
@@ -498,7 +498,7 @@ const EducatorDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="pt-6 flex gap-4">
+                  <div className="pt-6 flex flex-col sm:flex-row gap-4">
                     <Button
                       type="button"
                       onClick={handleCreateCertificate}
@@ -527,7 +527,7 @@ const EducatorDashboard = () => {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="lg:col-span-7 order-1 lg:order-2 sticky top-8"
+              className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
             >
               <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
                 {/* "Preview" Label */}
