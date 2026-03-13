@@ -36,7 +36,7 @@ const Navbar = () => {
       const targetId = href.replace('/#', '');
       const targetElement = document.getElementById(targetId);
       if (targetElement) {
-        const navbarHeight = 96;
+        const navbarHeight = 96; // h-24 = 96px
         const elementTop = targetElement.getBoundingClientRect().top + window.scrollY;
         window.scrollTo({ top: elementTop - navbarHeight, behavior: 'smooth' });
       }
