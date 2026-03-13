@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { User, Award, Building, ArrowRight, ArrowLeft } from "lucide-react";
+import { User, Award, Building, ArrowRight, ArrowLeft, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BackgroundAnimation from "@/components/BackgroundAnimation";
@@ -11,6 +11,19 @@ import Footer from "@/components/Footer";
 
 const RegisterLanding = () => {
   const { t } = useTranslation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Prevent scrolling when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -26,30 +39,67 @@ const RegisterLanding = () => {
 
       {/* Header */}
       <div className="z-30 w-full border-b border-white/10 sticky top-0 bg-[#0B0B0F]/80 backdrop-blur" style={{ minHeight: '56px' }}>
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 pt-6 pb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 py-3 sm:py-4">
+          <Link to="/" className="flex items-center gap-2">
             <img
               src={hackChainLogo}
               alt="HackChain Logo"
-              className="h-12 w-12 md:h-14 md:w-14 drop-shadow-lg"
+              className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 drop-shadow-lg"
             />
-            <span className="text-2xl md:text-3xl font-exo font-bold gradient-text drop-shadow-lg tracking-tight">
+            <span className="text-xl sm:text-2xl md:text-3xl font-exo font-bold gradient-text drop-shadow-lg tracking-tight">
               HackChain
             </span>
-          </div>
-          <Link to="/" className="flex items-center gap-2 group">
-            <span className="text-sm md:text-base font-lato text-gray-400 group-hover:text-blue-500 transition-colors">
-              {t('login.backHome')}
-            </span>
-            <ArrowLeft className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
           </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/login" className="text-sm md:text-base font-lato text-gray-300 hover:text-white transition-colors">
+              {t('nav.signIn')}
+            </Link>
+            <Link to="/" className="flex items-center gap-2 group text-sm md:text-base font-lato text-gray-400 hover:text-blue-500 transition-colors">
+              <span>{t('login.backHome')}</span>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-300 p-1">
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Dropdown */}
+        <div
+          className={`md:hidden overflow-y-auto w-full bg-[#0B0B0F] border-b border-white/10 transition-all duration-300 ease-in-out ${
+            isMenuOpen ? 'max-h-[calc(100vh-5rem)] opacity-100 py-4' : 'max-h-0 opacity-0 pointer-events-none py-0'
+          }`}
+        >
+          <div className="flex flex-col px-6 space-y-4">
+            <Link 
+              to="/login" 
+              onClick={() => setIsMenuOpen(false)}
+              className="text-lg font-lato text-gray-300 hover:text-white py-2 border-b border-white/5"
+            >
+              {t('nav.signIn')}
+            </Link>
+            <Link 
+              to="/" 
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-2 text-lg font-lato text-blue-400 hover:text-blue-300 py-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>{t('login.backHome')}</span>
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Hero Section */}
       <div className="animate-in fade-in duration-700 slide-in-from-bottom">
-        <div className="z-10 flex flex-col items-start max-w-4xl mx-auto px-4 mt-8 mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6 text-center md:text-left">
+        <div className="z-10 flex flex-col items-center max-w-4xl mx-auto px-4 mt-8 mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6">
             {t('registerLanding.title1')}
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">

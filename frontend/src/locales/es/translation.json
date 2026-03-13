@@ -141,40 +141,32 @@
   },
   "registerLanding": {
     "backHome": "Volver al Inicio",
-    "title1": "Únete a la Red",
-    "title2": "Profesional Web3",
-    "description": "Elige cómo quieres participar en el futuro de las credenciales profesionales verificadas.",
+    "title1": "Únete al Futuro de la",
+    "title2": "Certificación Profesional",
+    "description": "Elige tu rol y comienza tu viaje con certificados verificados por blockchain en cualquier campo profesional o área de habilidades.",
     "talent": {
       "title": "Soy Talento",
-      "desc": "Construye tu portafolio profesional verificado",
-      "p1": "Obtén certificados por blockchain",
-      "p2": "Muestra tus habilidades como NFTs",
-      "p3": "Conecta con los mejores reclutadores",
-      "btn": "Registrarse como Talento"
-    },
-    "student": {
-      "title": "Soy Talento",
-      "desc": "Construye tu portafolio profesional verificado",
-      "p1": "Obtén certificados por blockchain",
-      "p2": "Muestra tus habilidades como NFTs",
-      "p3": "Conecta con los mejores reclutadores",
+      "desc": "Aprende cualquier habilidad y obtén certificados verificables en blockchain",
+      "p1": "Obtén certificados NFT",
+      "p2": "Construye un portafolio verificable",
+      "p3": "Conecta con reclutadores",
       "btn": "Registrarse como Talento"
     },
     "educator": {
-      "title": "Soy Educador(a)",
-      "desc": "Emite certificados inmutables",
-      "p1": "Crea y emite certificados NFT",
-      "p2": "Valida los logros de los talentos",
-      "p3": "Construye confianza institucional",
-      "btn": "Registrarse como Educador"
+      "title": "Educador",
+      "desc": "Emite certificados verificados y construye tu reputación educativa",
+      "p1": "Emite certificados NFT",
+      "p2": "Sigue el progreso del estudiante",
+      "p3": "Estatus de educador verificado",
+      "btn": "Unirse como Educador"
     },
     "recruiter": {
-      "title": "Soy Reclutador(a)",
-      "desc": "Contrata el mejor talento verificado",
-      "p1": "Accede a profesionales verificados",
-      "p2": "Verifica credenciales al instante",
-      "p3": "Optimiza tu proceso de contratación",
-      "btn": "Registrarse como Reclutador"
+      "title": "Reclutador",
+      "desc": "Encuentra y verifica al mejor talento en todas las industrias con confianza",
+      "p1": "Busca talento verificado",
+      "p2": "Verifica certificados de habilidades",
+      "p3": "Herramientas de filtrado avanzado",
+      "btn": "Unirse como Reclutador"
     },
     "alreadyHave": "¿Ya tienes una cuenta?",
     "signInInstead": "Iniciar Sesión"

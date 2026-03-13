@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,17 @@ import { LanguageToggle } from './LanguageToggle';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
 
   const navItems = [
     { name: t('nav.home'), href: '/#home' },
@@ -90,8 +101,8 @@ const Navbar = () => {
 
         {/* Mobile Navigation — animated slide-down */}
         <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-            isMenuOpen ? 'max-h-[520px] opacity-100 pb-4' : 'max-h-0 opacity-0 pointer-events-none'
+          className={`md:hidden overflow-y-auto max-h-[calc(100vh-5rem)] transition-all duration-300 ease-in-out ${
+            isMenuOpen ? 'opacity-100 pb-4 origin-top scale-y-100' : 'opacity-0 pointer-events-none origin-top scale-y-0 h-0'
           }`}
         >
           <div className="glass rounded-xl p-3 mt-1 space-y-1">
@@ -110,18 +121,20 @@ const Navbar = () => {
               <LanguageToggle />
             </div>
 
-            <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-              <Button variant="outline" className="w-full font-body mt-1">
-                {t('nav.signIn')}
-              </Button>
-            </Link>
+            <div className="flex flex-col gap-3 pb-2 pt-2">
+              <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                <Button variant="outline" className="w-full font-body">
+                  {t('nav.signIn')}
+                </Button>
+              </Link>
 
-            <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-              <Button className="w-full font-title bg-gradient-to-r from-blue-600 to-cyan-600 text-white mt-1">
-                <UserPlus className="w-4 h-4 mr-2" />
-                {t('nav.getStarted')}
-              </Button>
-            </Link>
+              <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                <Button className="w-full font-title bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {t('nav.getStarted')}
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

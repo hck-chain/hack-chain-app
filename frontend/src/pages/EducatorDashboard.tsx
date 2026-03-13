@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 
 interface Talent {
