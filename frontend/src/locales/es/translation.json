@@ -309,5 +309,8 @@
     "emailSubject": "Contacto vía HackChain",
     "emailFrom": "De",
     "emailReply": "Responder a"
+  },
+  "partner": {
+    "text": "HackChain es asesorado por Token Consulting Group. Consultoría integral especializada en proyectos de tokenización."
   }
 }

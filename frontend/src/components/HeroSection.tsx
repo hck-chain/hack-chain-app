@@ -6,14 +6,14 @@ const HeroSection = () => {
   return (
     <section
       id="home"
-      className="min-h-[90vh] flex items-center justify-center relative overflow-hidden pt-24 sm:pt-32 mt-8 sm:mt-16"
+      className="min-h-[90vh] flex items-center justify-center relative overflow-hidden pt-12 sm:pt-16 mt-4 sm:mt-8"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="glass rounded-3xl p-6 sm:p-10 md:p-17"
+          className="glass rounded-3xl p-6 sm:p-10 md:p-14"
         >
 
           {/* Main Headline */}
