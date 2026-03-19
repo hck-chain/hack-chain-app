@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BackgroundAnimation from "@/components/BackgroundAnimation";
 import FloatingElements from "@/components/FloatingElements";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import hackChainLogo from "/images/logoHackchain.png";
 
 export default function Login() {
@@ -38,13 +39,16 @@ export default function Login() {
               </span>
             </Link>
 
-            {/* Back Button */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
-              <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
-                {t('login.backHome')}
-              </span>
-            </Link>
+            {/* Controls */}
+            <div className="flex items-center gap-3 sm:gap-6">
+              <LanguageToggle />
+              <Link to="/" className="flex items-center gap-2 group">
+                <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
+                <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
+                  {t('login.backHome')}
+                </span>
+              </Link>
+            </div>
 
           </div>
         </div>
