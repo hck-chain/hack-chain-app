@@ -16,7 +16,7 @@ const HeroSection = () => {
           className="glass rounded-3xl p-6 sm:p-10 md:p-14"
         >
 
-          {/* Main Headline */}
+          {/* Main Headline , hola mundo*/}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
