@@ -2,7 +2,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, CheckCircle, AlertCircle, Check } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Loader2, CheckCircle, AlertCircle, Check, Wallet } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "../ui/dialog";
 
 import { Button } from "../ui/button";
 import {
@@ -25,6 +34,7 @@ import "./autofill-fix.css";
 export function EducatorRegistrationForm() {
   const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const [showMetamaskModal, setShowMetamaskModal] = useState(false);
 
   const mutation = useEducatorRegistration();
   const { mutate: register, isPending: isLoading, isSuccess, isError, error } = mutation;
@@ -49,6 +59,10 @@ export function EducatorRegistrationForm() {
   };
 
   const onSubmit = (data: EducatorRegistrationFormData) => {
+    if (!window.ethereum) {
+      setShowMetamaskModal(true);
+      return;
+    }
     register(data);
   };
 
@@ -92,7 +106,7 @@ export function EducatorRegistrationForm() {
             name="organizationName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">{t('educatorForm.nameLabel')}</FormLabel>
+                <FormLabel className="text-gray-300 font-lato">{t('educatorForm.nameLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
@@ -106,7 +120,7 @@ export function EducatorRegistrationForm() {
                   </div>
                 </FormControl>
                 {touchedFields.organizationName && (
-                  <FormDescription className="text-xs text-slate-400">
+                  <FormDescription className="text-xs text-gray-400 font-lato">
                     Enter the official name of your educational institution
                   </FormDescription>
                 )}
@@ -120,7 +134,7 @@ export function EducatorRegistrationForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-300">{t('educatorForm.emailLabel')}</FormLabel>
+                <FormLabel className="text-gray-300 font-lato">{t('educatorForm.emailLabel')}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
@@ -141,13 +155,58 @@ export function EducatorRegistrationForm() {
 
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
+            className="w-full font-lato text-base bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
             disabled={isLoading}
           >
             {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('educatorForm.creating')}</> : t('educatorForm.create')}
           </Button>
+
+          {/* Already have account */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-400 font-lato text-sm">
+              {t('registerEducator.already')}{' '}
+              <Link to="/login" className="text-blue-400 hover:text-blue-300 font-bold underline-offset-4 hover:underline transition-all">
+                {t('registerEducator.signIn')}
+              </Link>
+            </p>
+          </div>
         </form>
       </Form>
+
+      <Dialog open={showMetamaskModal} onOpenChange={setShowMetamaskModal}>
+        <DialogContent className="sm:max-w-md bg-slate-900 border-blue-500/30 text-slate-300 font-lato">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                <Wallet className="h-5 w-5 text-white" />
+              </div>
+              <DialogTitle className="text-xl font-exo text-white">
+                {t('metamask.modalTitle')}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-400">
+              {t('metamask.modalDesc')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-3 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowMetamaskModal(false)}
+              className="w-full sm:w-auto border-blue-500/30 text-gray-300 hover:text-white hover:bg-blue-500/10"
+            >
+              {t('metamask.cancel')}
+            </Button>
+            <Button
+              type="button"
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+              onClick={() => window.open('https://metamask.io/download/', '_blank')}
+            >
+              {t('metamask.downloadBtn')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

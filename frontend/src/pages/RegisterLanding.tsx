@@ -8,10 +8,30 @@ import BackgroundAnimation from "@/components/BackgroundAnimation";
 import FloatingElements from "@/components/FloatingElements";
 import hackChainLogo from "/images/logoHackchain.png";
 import Footer from "@/components/Footer";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 const RegisterLanding = () => {
   const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Auto-hide navbar logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+        if (isMenuOpen) setIsMenuOpen(false);
+      } else {
+        setIsVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY, isMenuOpen]);
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
@@ -38,7 +58,7 @@ const RegisterLanding = () => {
       <FloatingElements />
 
       {/* Header */}
-      <div className="z-30 w-full border-b border-white/10 sticky top-0 bg-[#0B0B0F]/80 backdrop-blur" style={{ minHeight: '56px' }}>
+      <div className={`z-40 w-full border-b border-white/10 fixed top-0 left-0 right-0 bg-[#0B0B0F]/80 backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`} style={{ minHeight: '56px' }}>
         <div className="flex items-center justify-between max-w-6xl mx-auto px-4 py-3 sm:py-4">
           <Link to="/" className="flex items-center gap-2">
             <img
@@ -46,24 +66,25 @@ const RegisterLanding = () => {
               alt="HackChain Logo"
               className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 drop-shadow-lg"
             />
-            <span className="text-xl sm:text-2xl md:text-3xl font-exo font-bold gradient-text drop-shadow-lg tracking-tight">
+            <span className="font-title text-xl sm:text-2xl font-bold gradient-text">
               HackChain
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/login" className="text-sm md:text-base font-lato text-gray-300 hover:text-white transition-colors">
-              {t('nav.signIn')}
-            </Link>
-            <Link to="/" className="flex items-center gap-2 group text-sm md:text-base font-lato text-gray-400 hover:text-blue-500 transition-colors">
-              <span>{t('login.backHome')}</span>
-              <ArrowLeft className="h-4 w-4" />
+          <div className="hidden md:flex items-center gap-4">
+            <LanguageToggle />
+            <Link to="/">
+              <Button variant="ghost" className="font-lato text-gray-300 hover:text-white">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                {t('login.backHome')}
+              </Button>
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          {/* Mobile Controls */}
+          <div className="md:hidden flex items-center gap-2">
+            <LanguageToggle />
             <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-300 p-1">
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
@@ -78,13 +99,6 @@ const RegisterLanding = () => {
         >
           <div className="flex flex-col px-6 space-y-4">
             <Link 
-              to="/login" 
-              onClick={() => setIsMenuOpen(false)}
-              className="text-lg font-lato text-gray-300 hover:text-white py-2 border-b border-white/5"
-            >
-              {t('nav.signIn')}
-            </Link>
-            <Link 
               to="/" 
               onClick={() => setIsMenuOpen(false)}
               className="flex items-center gap-2 text-lg font-lato text-blue-400 hover:text-blue-300 py-2"
@@ -97,7 +111,7 @@ const RegisterLanding = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="animate-in fade-in duration-700 slide-in-from-bottom">
+      <div className="animate-in fade-in duration-700 slide-in-from-bottom pt-24">
         <div className="z-10 flex flex-col items-center max-w-4xl mx-auto px-4 mt-8 mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6">
             {t('registerLanding.title1')}
@@ -235,17 +249,13 @@ const RegisterLanding = () => {
           </div>
 
           {/* Already have account */}
-          <div className="flex flex-col gap-6">
-            <div className="text-center glass rounded-xl p-6 border border-primary/20 mt-4 mb-6">
-              <p className="text-gray-300 mb-4 font-lato">
-                {t('registerLanding.alreadyHave')}
-              </p>
-              <Link to="/login">
-                <Button variant="outline" className="glass glass-hover font-lato">
-                  {t('registerLanding.signInInstead')}
-                </Button>
+          <div className="mt-8 text-center pb-8 border-t border-white/10 pt-8 max-w-2xl mx-auto w-full">
+            <p className="text-gray-400 font-lato text-base sm:text-lg">
+              {t('registerLanding.alreadyHave')}{' '}
+              <Link to="/login" className="text-blue-400 hover:text-blue-300 font-bold underline-offset-4 hover:underline transition-all">
+                {t('registerLanding.signInInstead')}
               </Link>
-            </div>
+            </p>
           </div>
 
         </div>

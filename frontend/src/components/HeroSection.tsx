@@ -6,7 +6,7 @@ const HeroSection = () => {
   return (
     <section
       id="home"
-      className="min-h-[90vh] flex items-center justify-center relative overflow-hidden pt-12 sm:pt-16 mt-4 sm:mt-8"
+      className="min-h-[90vh] flex items-center justify-center relative overflow-hidden pt-16 sm:pt-20 mt-6 sm:mt-10"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div

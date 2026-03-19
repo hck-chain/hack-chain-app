@@ -312,5 +312,11 @@
   },
   "partner": {
     "text": "HackChain es asesorado por Token Consulting Group. Consultoría integral especializada en proyectos de tokenización."
+  },
+  "metamask": {
+    "modalTitle": "Se requiere MetaMask",
+    "modalDesc": "HackChain necesita una Web3 wallet para operar de manera segura. Por favor instala MetaMask para registrarte y continuar.",
+    "cancel": "Cancelar",
+    "downloadBtn": "Descargar MetaMask"
   }
 }

@@ -312,5 +312,11 @@
   },
   "partner": {
     "text": "HackChain is advised by Token Consulting Group. Comprehensive consulting specialized in tokenization projects."
+  },
+  "metamask": {
+    "modalTitle": "MetaMask Required",
+    "modalDesc": "HackChain requires a Web3 wallet to operate safely. Please install MetaMask to register and continue.",
+    "cancel": "Cancel",
+    "downloadBtn": "Download MetaMask"
   }
 }
