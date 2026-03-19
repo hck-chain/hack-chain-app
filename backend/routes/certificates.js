@@ -7,10 +7,9 @@ const pinata = new PinataSDK({
   pinataGateway: process.env.GATEWAY_URL,
 });
 
-const { Certificate, Student, Issuer } = require("../models");
+// Importamos los modelos Y también 'sequelize' (la instancia conectada)
+const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { GEOGRAPHY } = require("sequelize");
-
-const defaultCertificateCID = "bafybeibmeqeia5ta52vxbapor5mkens2uwau2xsy6oetrf6prlcfssm5le";
 
 // POST /api/certificates: Upload certificate metadata to Pinata
 router.post("/", async (req, res) => {
@@ -117,13 +116,9 @@ router.get("/:cid", async (req, res) => {
 router.post("/database", async (req, res) => {
   try {
     const {
-      issuer_wallet_address,
-      title,
-      description,
-      certificate_hash,
-      blockchain_tx_hash,
-      token_id,
-      issue_date
+      student_wallet_address, issuer_wallet_address, title,
+      description, certificate_hash, blockchain_tx_hash,
+      token_id, issue_date
     } = req.body;
 
 
@@ -135,8 +130,19 @@ router.post("/database", async (req, res) => {
       });
     }
 
-    // Check if issuer exists
-    const issuer = await Issuer.findOne({ where: { wallet_address: issuer_wallet_address } });
+    // 1. Validaciones básicas
+    if (!student_wallet_address || !issuer_wallet_address || !title) {
+      return res.status(400).json({ error: "Faltan campos obligatorios" });
+    }
+
+    // 2. Normalización inmediata
+    const cleanIssuerWallet = issuer_wallet_address.toLowerCase().trim();
+    const cleanStudentWallet = student_wallet_address.toLowerCase().trim();
+
+    // 3. Búsqueda optimizada (asumiendo que los datos en DB ya están en minúsculas)
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: cleanIssuerWallet }
+    });
 
     if (!issuer) {
       return res.status(404).json({
@@ -145,33 +151,22 @@ router.post("/database", async (req, res) => {
       });
     }
 
-    // Create certificate
+    // 4. Creación del certificado
     const certificate = await Certificate.create({
-      issuer_wallet_address,
+      student_wallet_address: cleanStudentWallet,
+      issuer_wallet_address: cleanIssuerWallet,
       title,
-      description,
+      description: description || "Certificado Tokenizado HackChain",
       certificate_hash,
       blockchain_tx_hash,
       issue_date,
       token_id,
       is_revoked: false
-
     });
 
     res.status(201).json({
-      message: "Certificate created successfully",
-      certificate: {
-        id: certificate.token_id,
-        issuer_wallet_address: certificate.issuer_wallet_address,
-        title: certificate.title,
-        description: certificate.description,
-        certificate_hash: certificate.certificate_hash,
-        blockchain_tx_hash: certificate.blockchain_tx_hash,
-        issue_date: certificate.issue_date,
-        is_revoked: certificate.is_revoked,
-        created_at: certificate.created_at
-      }
-
+      message: "Certificado sincronizado con éxito",
+      id: certificate.id
     });
 
   } catch (error) {
