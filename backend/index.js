@@ -10,7 +10,6 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3001;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:8080";
 
 // ---------- Trust proxy (Render, Vercel, etc.) ----------
 app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
