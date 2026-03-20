@@ -806,7 +806,7 @@ function App() {
         }
 
         try {
-            const response = await fetch("http://localhost:3001/api/issuers/mint", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/issuers/mint`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -849,7 +849,7 @@ function App() {
             const blockchain_tx_hash = tx.hash;
             const issue_date = new Date().toISOString().split('T')[0];
             try {
-                await fetch("http://localhost:3001/api/certificates/database", {
+                await fetch(`${import.meta.env.VITE_API_URL}/certificates/database`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

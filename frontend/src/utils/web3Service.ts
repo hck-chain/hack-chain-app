@@ -778,7 +778,7 @@ export const web3Service = {
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
-            await fetch("http://localhost:3001/api/issuers/increment-certificates", {
+            await fetch(`${import.meta.env.VITE_API_URL}/issuers/increment-certificates`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -801,7 +801,7 @@ export const web3Service = {
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
-            const response = await fetch("http://localhost:3001/api/certificates/database", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/certificates/database`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -832,7 +832,7 @@ export const web3Service = {
 export async function getCertificatesByEducator(wallet: string) {
     console.log("getCertificatesByEducator called with wallet:", wallet); // 🔹 log frontend
 
-    const res = await fetch(`http://localhost:3001/api/issuers/${wallet}/certificates-count`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/issuers/${wallet}/certificates-count`);
     const data = await res.json();
 
     console.log("getCertificatesByEducator response:", data); // 🔹 log frontend

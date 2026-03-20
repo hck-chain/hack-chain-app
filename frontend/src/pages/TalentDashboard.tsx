@@ -41,7 +41,7 @@ const TalentDashboard = () => {
                 if (!token) return;
 
                 // Talent info
-                const res = await fetch('http://localhost:3001/api/auth/me', {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -53,7 +53,7 @@ const TalentDashboard = () => {
                 });
 
                 // Certificates
-                const certRes = await fetch('http://localhost:3001/api/opensea/certificates/', {
+                const certRes = await fetch(`${import.meta.env.VITE_API_URL}/opensea/certificates/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

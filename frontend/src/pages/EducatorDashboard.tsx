@@ -73,7 +73,7 @@ const EducatorDashboard = () => {
           return;
         }
 
-        const res = await fetch("http://localhost:3001/api/auth/me", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -113,7 +113,7 @@ const EducatorDashboard = () => {
     // Fetch Talents
     const fetchTalents = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/talents');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/talents`);
         if (response.ok) {
           const data = await response.json();
           // The API returns { talents: [...] } or just [...]? 

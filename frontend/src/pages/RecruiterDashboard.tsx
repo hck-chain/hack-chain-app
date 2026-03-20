@@ -40,7 +40,7 @@ const RecruiterDashboard = () => {
                 if (!token) return;
 
                 // Fetch recruiter info
-                const res = await fetch('http://localhost:3001/api/auth/me', {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -51,7 +51,7 @@ const RecruiterDashboard = () => {
                 });
 
                 // Fetch talents
-                const resTalents = await fetch('http://localhost:3001/api/talents', {
+                const resTalents = await fetch(`${import.meta.env.VITE_API_URL}/talents`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const dataTalents = await resTalents.json();
