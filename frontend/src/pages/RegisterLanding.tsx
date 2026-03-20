@@ -1,14 +1,50 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { User, Award, Building, ArrowRight, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { User, Award, Building, ArrowRight, ArrowLeft, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BackgroundAnimation from "@/components/BackgroundAnimation";
 import FloatingElements from "@/components/FloatingElements";
 import hackChainLogo from "/images/logoHackchain.png";
 import Footer from "@/components/Footer";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 const RegisterLanding = () => {
+  const { t } = useTranslation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Auto-hide navbar logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+        if (isMenuOpen) setIsMenuOpen(false);
+      } else {
+        setIsVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY, isMenuOpen]);
+
+  // Prevent scrolling when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
+
   useEffect(() => {
     setTimeout(() => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -22,57 +58,88 @@ const RegisterLanding = () => {
       <FloatingElements />
 
       {/* Header */}
-      <div className="z-30 w-full border-b border-white/10 sticky top-0 bg-[#0B0B0F]/80 backdrop-blur" style={{ minHeight: '56px' }}>
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 pt-6 pb-3">
-          <div className="flex items-center gap-2">
+      <div className={`z-40 w-full border-b border-white/10 fixed top-0 left-0 right-0 bg-[#0B0B0F]/80 backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`} style={{ minHeight: '56px' }}>
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 py-3 sm:py-4">
+          <Link to="/" className="flex items-center gap-2">
             <img
               src={hackChainLogo}
               alt="HackChain Logo"
-              className="h-12 w-12 md:h-14 md:w-14 drop-shadow-lg"
+              className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 drop-shadow-lg"
             />
-            <span className="text-2xl md:text-3xl font-exo font-bold gradient-text drop-shadow-lg tracking-tight">
+            <span className="font-title text-xl sm:text-2xl font-bold gradient-text">
               HackChain
             </span>
-          </div>
-          <Link to="/" className="flex items-center gap-2 group">
-            <span className="text-sm md:text-base font-lato text-gray-400 group-hover:text-blue-500 transition-colors">
-              Back to Home
-            </span>
-            <ArrowLeft className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
           </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
+            <LanguageToggle />
+            <Link to="/">
+              <Button variant="ghost" className="font-lato text-gray-300 hover:text-white">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                {t('login.backHome')}
+              </Button>
+            </Link>
+          </div>
+
+          {/* Mobile Controls */}
+          <div className="md:hidden flex items-center gap-2">
+            <LanguageToggle />
+            <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-300 p-1">
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Dropdown */}
+        <div
+          className={`md:hidden overflow-y-auto w-full bg-[#0B0B0F] border-b border-white/10 transition-all duration-300 ease-in-out ${
+            isMenuOpen ? 'max-h-[calc(100vh-5rem)] opacity-100 py-4' : 'max-h-0 opacity-0 pointer-events-none py-0'
+          }`}
+        >
+          <div className="flex flex-col px-6 space-y-4">
+            <Link 
+              to="/" 
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center gap-2 text-lg font-lato text-blue-400 hover:text-blue-300 py-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>{t('login.backHome')}</span>
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Hero Section */}
-      <div className="animate-in fade-in duration-700 slide-in-from-bottom">
-        <div className="z-10 flex flex-col items-start max-w-4xl mx-auto px-4 mt-8 mb-8">
-          <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-6">
-            Join the Future of
+      <div className="animate-in fade-in duration-700 slide-in-from-bottom pt-24">
+        <div className="z-10 flex flex-col items-center max-w-4xl mx-auto px-4 mt-8 mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6">
+            {t('registerLanding.title1')}
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Professional Certification
+              {t('registerLanding.title2')}
             </span>
           </h1>
 
           <p className="mt-3 text-base md:text-lg text-gray-300 max-w-2xl">
-            Choose your role and start your journey with blockchain-verified certificates in any professional field or skill area.
+            {t('registerLanding.description')}
           </p>
         </div>
 
         {/* Role Cards */}
-        <div className="z-10 w-full flex flex-col flex-1 max-w-6xl px-4 space-y-12 mx-auto">
+        <div className="z-10 w-full flex flex-col flex-1 max-w-6xl px-4 space-y-6 sm:space-y-12 mx-auto pb-10">
           <div className="grid md:grid-cols-3 gap-8">
 
-            {/* Student Card */}
+            {/* Talent Card */}
             <Card className="relative overflow-hidden glass glass-hover border-purple-500/30 hover:border-purple-500/50 transition-all duration-300 neon-glow-subtle">
               <CardHeader className="space-y-4 text-center">
                 <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo gradient-text">Student</CardTitle>
+                  <CardTitle className="text-xl font-exo gradient-text">{t('registerLanding.talent.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    Learn any skill and earn blockchain-verified certificates
+                    {t('registerLanding.talent.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -80,20 +147,20 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>Earn NFT certificates</span>
+                    <span>{t('registerLanding.talent.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>Build verifiable skill portfolio</span>
+                    <span>{t('registerLanding.talent.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                    <span>Connect with recruiters</span>
+                    <span>{t('registerLanding.talent.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/user" className="block">
                   <Button className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-500/90 hover:to-pink-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato">
-                    Join as Student
+                    {t('registerLanding.talent.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -107,9 +174,9 @@ const RegisterLanding = () => {
                   <Award className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Educator</CardTitle>
+                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t('registerLanding.educator.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    Issue verified certificates and build your teaching reputation
+                    {t('registerLanding.educator.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -117,22 +184,22 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                    <span>Issue NFT certificates</span>
+                    <span>{t('registerLanding.educator.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                    <span>Track student progress</span>
+                    <span>{t('registerLanding.educator.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                    <span>Verified educator status</span>
+                    <span>{t('registerLanding.educator.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/issuer" className="block">
                   <Button
                     className="w-full gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-500/90 hover:to-cyan-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato"
                   >
-                    Join as Educator
+                    {t('registerLanding.educator.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -147,9 +214,9 @@ const RegisterLanding = () => {
                   <Building className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Recruiter</CardTitle>
+                  <CardTitle className="text-xl font-exo bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{t('registerLanding.recruiter.title')}</CardTitle>
                   <CardDescription className="text-gray-300 font-lato">
-                    Find and verify top talent across all industries with confidence
+                    {t('registerLanding.recruiter.desc')}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -157,22 +224,22 @@ const RegisterLanding = () => {
                 <div className="space-y-3 text-gray-300 font-lato text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                    <span>Search verified talent</span>
+                    <span>{t('registerLanding.recruiter.p1')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                    <span>Verify skill certificates</span>
+                    <span>{t('registerLanding.recruiter.p2')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                    <span>Advanced filtering tools</span>
+                    <span>{t('registerLanding.recruiter.p3')}</span>
                   </div>
                 </div>
                 <Link to="/register/recruiter" className="block">
                   <Button
                     className="w-full gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-500/90 hover:to-emerald-500/90 neon-glow transition-all duration-300 hover:scale-105 font-lato"
                   >
-                    Join as Recruiter
+                    {t('registerLanding.recruiter.btn')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -182,17 +249,13 @@ const RegisterLanding = () => {
           </div>
 
           {/* Already have account */}
-          <div className="flex flex-col gap-6">
-            <div className="text-center glass rounded-xl p-6 border border-primary/20 mt-4 mb-6">
-              <p className="text-gray-300 mb-4 font-lato">
-                Already have an account?
-              </p>
-              <Link to="/login">
-                <Button variant="outline" className="glass glass-hover font-lato">
-                  Sign In Instead
-                </Button>
+          <div className="mt-8 text-center pb-8 border-t border-white/10 pt-8 max-w-2xl mx-auto w-full">
+            <p className="text-gray-400 font-lato text-base sm:text-lg">
+              {t('registerLanding.alreadyHave')}{' '}
+              <Link to="/login" className="text-blue-400 hover:text-blue-300 font-bold underline-offset-4 hover:underline transition-all">
+                {t('registerLanding.signInInstead')}
               </Link>
-            </div>
+            </p>
           </div>
 
         </div>

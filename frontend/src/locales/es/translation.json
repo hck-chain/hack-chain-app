@@ -1,0 +1,322 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "features": "Características",
+    "process": "Proceso",
+    "build": "Construir",
+    "signIn": "Iniciar Sesión",
+    "getStarted": "Empezar",
+    "about": "Sobre Nosotros",
+    "contact": "Contacto"
+  },
+  "hero": {
+    "title1": "Habilidades verificadas para la ",
+    "title2": "Era digital",
+    "subTitle1": "HackChain es el estándar confiable para la certificación basada en blockchain.",
+    "subTitle2": "Verifica habilidades, emite certificados NFT y conecta el talento con oportunidades reales.",
+    "infrastructure": "Construido sobre infraestructura Web3 confiable"
+  },
+  "valueProp": {
+    "title1": "Cómo ",
+    "title2": "Funciona",
+    "subTitle": "Desde el aprendizaje hasta el empleo — tu viaje en el ecosistema de certificación profesional Web3",
+    "step1Title": "Talento",
+    "step1Desc": "Completa cursos profesionales y aprueba evaluaciones rigurosas en tu campo de especialización",
+    "step2Title": "Certificado NFT",
+    "step2Desc": "Recibe un certificado NFT verificado por blockchain que demuestra tu experiencia",
+    "step3Title": "Reclutador",
+    "step3Desc": "Los empleadores verifican credenciales al instante y contratan a los mejores talentos certificados",
+    "trust1": "A prueba de manipulaciones",
+    "trust2": "Verificación instantánea",
+    "trust3": "Reconocimiento global"
+  },
+  "features": {
+    "title1": "¿Por qué elegir ",
+    "title2": "HackChain?",
+    "subTitle": "El futuro de la certificación ya está aquí. Construido en blockchain, verificado por expertos y reconocido a nivel mundial.",
+    "items": {
+      "nft": {
+        "title": "Certificados NFT",
+        "description": "Credenciales verificadas por blockchain que no pueden ser falsificadas ni manipuladas. Sé dueño de tus logros para siempre."
+      },
+      "recruiter": {
+        "title": "Verificación de Reclutadores",
+        "description": "Verificación instantánea de credenciales para empleadores. No más certificados falsos ni largas verificaciones de antecedentes."
+      },
+      "dao": {
+        "title": "Gobernanza DAO",
+        "description": "Decisiones de la plataforma impulsadas por la comunidad. Vota sobre nuevas certificaciones, estándares y mejoras de la plataforma."
+      },
+      "security": {
+        "title": "Seguridad Primero",
+        "description": "Construido con la seguridad de blockchain para todos los profesionales. Máxima protección para tus credenciales."
+      },
+      "instant": {
+        "title": "Verificación Instantánea",
+        "description": "Verificación de credenciales en tiempo real impulsada por contratos inteligentes. Sin esperas, sin papeleo."
+      },
+      "global": {
+        "title": "Reconocimiento Global",
+        "description": "Certificados reconocidos a nivel mundial por todas las empresas."
+      }
+    }
+  },
+  "cta": {
+    "title1": "Comienza a construir tu ",
+    "title2": "identidad",
+    "title3": " hoy",
+    "description": "Únete a miles de profesionales que adoptan credenciales verificadas por blockchain para construir identidades digitales globales, confiables y verificables.",
+    "stats": {
+      "247": {
+        "title": "24/7",
+        "subtitle": "Verificación"
+      },
+      "free": {
+        "title": "Gratis",
+        "subtitle": "Registro"
+      },
+      "instant": {
+        "title": "Instantáneo",
+        "subtitle": "Emisión de NFT"
+      },
+      "global": {
+        "title": "Global",
+        "subtitle": "Reconocimiento"
+      }
+    }
+  },
+  "footer": {
+    "copyright": "© 2025 HackChain. Talento No Fungible."
+  },
+  "team": {
+    "title": "Conoce al equipo",
+    "subtitle": "que hace realidad HackChain",
+    "roles": {
+      "ceo": "Fundador y CEO",
+      "cybersecurityAnalyst": "Analista de Ciberseguridad",
+      "frontendDeveloper": "Desarrollador Frontend",
+      "brandManager": "Gerente de Marca",
+      "backendDeveloper": "Desarrollador Backend",
+      "businessDevelopment": "Responsable de Desarrollo de Negocios",
+      "marketing": "Marketing",
+      "devOpsEngineer": "Ingeniero DevOps"
+    },
+    "aboutBlock": {
+      "title": "¿Sobre nosotros?",
+      "p1": "HackChain es un ecosistema educativo-laboral que vincula Talento, Educadores y Reclutadores con el fin de promover el aprendizaje constante y la transparencia en los procesos de reclutamiento.",
+      "p2": "Creemos que la tecnología Web3 debe ser accesible, descentralizada y diseñada para empoderar a los usuarios reales. Nuestro objetivo es acompañar a los profesionales en su crecimiento con herramientas y credenciales inmutables que realmente hagan la diferencia.",
+      "p3": "Nuestra visión es convertirnos en el estándar global para la verificación de talento, creando un mundo donde cada habilidad adquirida sea reconocida mundialmente sin barreras ni intermediarios, cerrando efectivamente la brecha entre la educación y el empleo."
+    }
+  },
+  "login": {
+    "backHome": "Volver al Inicio",
+    "welcome": "Bienvenido de nuevo a ",
+    "description": "Inicia sesión para acceder a tu identidad profesional verificada por blockchain.",
+    "secure": {
+      "title": "Acceso Seguro",
+      "desc": "Autenticación Web3"
+    },
+    "verified": {
+      "title": "Credenciales Verificadas",
+      "desc": "Registros inmutables"
+    },
+    "signIn": "Inicia sesión en tu cuenta",
+    "enterCredentials": "Usa tu correo o billetera Web3 para acceder a tu perfil profesional y certificados verificados.",
+    "newTo": "¿Nuevo en HackChain?",
+    "createAccount": "Crear una cuenta"
+  },
+  "loginForm": {
+    "emailLabel": "Correo",
+    "emailPlaceholder": "nombre@ejemplo.com",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Ingresa tu contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "signInBtn": "Iniciar Sesión",
+    "signingInBtn": "Iniciando...",
+    "continueWith": "O continuar con",
+    "connectMetaMask": "Conectar MetaMask",
+    "noAccount": "¿No tienes cuenta?",
+    "createOne": "Crear una",
+    "success": "¡Inicio de sesión exitoso!"
+  },
+  "registerLanding": {
+    "backHome": "Volver al Inicio",
+    "title1": "Únete al Futuro de la",
+    "title2": "Certificación Profesional",
+    "description": "Elige tu rol y comienza tu viaje con certificados verificados por blockchain en cualquier campo profesional o área de habilidades.",
+    "talent": {
+      "title": "Soy Talento",
+      "desc": "Aprende cualquier habilidad y obtén certificados verificables en blockchain",
+      "p1": "Obtén certificados NFT",
+      "p2": "Construye un portafolio verificable",
+      "p3": "Conecta con reclutadores",
+      "btn": "Registrarse como Talento"
+    },
+    "educator": {
+      "title": "Educador",
+      "desc": "Emite certificados verificados y construye tu reputación educativa",
+      "p1": "Emite certificados NFT",
+      "p2": "Sigue el progreso del estudiante",
+      "p3": "Estatus de educador verificado",
+      "btn": "Unirse como Educador"
+    },
+    "recruiter": {
+      "title": "Reclutador",
+      "desc": "Encuentra y verifica al mejor talento en todas las industrias con confianza",
+      "p1": "Busca talento verificado",
+      "p2": "Verifica certificados de habilidades",
+      "p3": "Herramientas de filtrado avanzado",
+      "btn": "Unirse como Reclutador"
+    },
+    "alreadyHave": "¿Ya tienes una cuenta?",
+    "signInInstead": "Iniciar Sesión"
+  },
+  "registerUser": {
+    "back": "Volver a Registro",
+    "title1": "Únete al Futuro de la",
+    "title2": " Certificación Profesional",
+    "desc": "Crea tu cuenta de talento y comienza a ganar certificados verificados por blockchain que demuestran tu experiencia en cualquier campo.",
+    "expTitle": "Experiencia de Talento",
+    "expDesc": "Únete a miles de talentos que obtienen certificados en todos los campos profesionales.",
+    "p1": "Completa cursos en cualquier campo",
+    "p2": "Obtén certificados NFT de tus habilidades",
+    "p3": "Construye un portafolio profesional verificable",
+    "p4": "Conecta directamente con reclutadores top",
+    "already": "¿Ya tienes una cuenta?",
+    "signIn": "Iniciar Sesión",
+    "formTitle": "Crear Cuenta de Talento",
+    "formDesc": "Ingresa tu información para comenzar"
+  },
+  "registerEducator": {
+    "back": "Volver a Registro",
+    "title1": "Empodera a la Próxima",
+    "title2": "Generación de Profesionales",
+    "desc": "Únete como educador y emite certificados verificados para probar los logros de los talentos en cualquier campo.",
+    "expTitle": "Experiencia de Educador",
+    "expDesc": "Emite certificados inmutables y construye confianza a través de credenciales verificables.",
+    "p1": "Emite certificados asegurados por blockchain",
+    "p2": "Sigue el progreso de los talentos",
+    "p3": "Construye confianza institucional",
+    "p4": "Personalización white-label disponible",
+    "b1Title": "Emitir Certificados",
+    "b1Desc": "Credenciales por blockchain",
+    "b2Title": "Gestionar Talentos",
+    "b2Desc": "Panel centralizado",
+    "already": "¿Ya tienes una cuenta de educador?",
+    "signIn": "Iniciar Sesión",
+    "formTitle": "Crear Cuenta de Educador",
+    "formDesc": "Registra tu institución para emitir certificados"
+  },
+  "registerRecruiter": {
+    "back": "Volver a Registro",
+    "title1": "Encuentra y Verifica",
+    "title2": "Top Talento Profesional",
+    "desc": "Únete como reclutador y accede a la mayor plataforma de profesionales verificados.",
+    "expTitle": "Experiencia de Reclutador",
+    "expDesc": "Conecta con profesionales certificados y verifica sus habilidades con confianza.",
+    "p1": "Accede a talento verificado",
+    "p2": "Verifica certificados al instante",
+    "p3": "Búsqueda y filtros avanzados",
+    "p4": "Contacto directo con candidatos",
+    "b1Title": "Búsqueda Inteligente",
+    "b1Desc": "Candidatos en segundos",
+    "b2Title": "Habilidades Verificadas",
+    "b2Desc": "Autenticadas por blockchain",
+    "already": "¿Ya tienes una cuenta de reclutador?",
+    "signIn": "Iniciar Sesión",
+    "formTitle": "Crear Cuenta de Reclutador",
+    "formDesc": "Ingresa tu información para buscar talento"
+  },
+  "registrationForm": {
+    "success": "¡Cuenta creada exitosamente!",
+    "registerAnother": "Registrar Otro Usuario",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Ingresa tu nombre",
+    "lastNameLabel": "Apellido",
+    "lastNamePlaceholder": "Ingresa tu apellido",
+    "emailLabel": "Correo Electrónico",
+    "emailPlaceholder": "Ingresa tu correo electrónico",
+    "creating": "Creando Cuenta...",
+    "create": "Crear Cuenta"
+  },
+  "educatorForm": {
+    "success": "¡Institución registrada exitosamente!",
+    "registerAnother": "Registrar Otra Institución",
+    "nameLabel": "Nombre de la Institución",
+    "namePlaceholder": "Ingresa el nombre de la institución",
+    "websiteLabel": "Sitio Web",
+    "websitePlaceholder": "https://www.ejemplo.edu",
+    "emailLabel": "Correo Oficial",
+    "emailPlaceholder": "admin@institucion.edu",
+    "creating": "Registrando Institución...",
+    "create": "Registrar Institución"
+  },
+  "recruiterForm": {
+    "success": "¡Empresa registrada exitosamente!",
+    "registerAnother": "Registrar Otra Empresa",
+    "nameLabel": "Nombre de la Empresa",
+    "namePlaceholder": "Ingresa el nombre de la empresa",
+    "industryLabel": "Industria",
+    "industryPlaceholder": "ej. Tecnología, Finanzas, Salud",
+    "emailLabel": "Correo del Trabajo",
+    "emailPlaceholder": "nombre@empresa.com",
+    "creating": "Registrando Empresa...",
+    "create": "Registrar Empresa"
+  },
+  "faq": {
+    "title": "Preguntas",
+    "titleHighlight": "Frecuentes",
+    "items": [
+      {
+        "question": "¿Qué es HackChain?",
+        "answer": "HackChain es un ecosistema educativo-laboral que vincula Talento, Educadores y Reclutadores con el fin de promover el aprendizaje constante y la transparencia en los procesos de reclutamiento."
+      },
+      {
+        "question": "¿Qué es un certificado tokenizado?",
+        "answer": "Un certificado tokenizado es un NFT el cual posee toda la información de un certificado tradicional. Este NFT es inmutable, intransferible, infalsificable y solamente lo puede poseer una sola persona, un solo Talento."
+      },
+      {
+        "question": "¿Qué beneficios obtengo si me registro como Talento?",
+        "answer": "Serás poseedor de un portafolio de certificados para compartirlos en cualquier momento y tendrás acceso a una gran cantidad de cursos, conferencias, etc, por parte de Educadores de diferentes áreas del conocimiento."
+      },
+      {
+        "question": "¿Qué beneficios obtengo si me registro como Educador?",
+        "answer": "Los Educadores pueden emitir certificados a cualquier Talento dentro del ecosistema de manera rápida y dar a conocer su material educativo a cada uno de ellos."
+      },
+      {
+        "question": "¿Qué beneficios obtengo si me registro como Reclutador?",
+        "answer": "Como Reclutador puedes visualizar todos los Talentos dentro de HackChain y los certificados que ellos poseen para ofrecer de manera estratégica una vacante de empleo al mejor candidato."
+      }
+    ]
+  },
+  "contact": {
+    "title": "¿Tienes",
+    "titleHighlight": "Preguntas?",
+    "subtitle": "Encuentra respuestas por rol o escríbenos directamente.",
+    "generalLabel": "General",
+    "rolesLabel": "Por rol",
+    "roleTalent": "Talento",
+    "roleEducator": "Educador",
+    "roleRecruiter": "Reclutador",
+    "stillQuestions": "¿Aún tienes dudas?",
+    "directTitle": "Escríbenos directamente",
+    "directSubtitle": "Leemos cada mensaje. Normalmente respondemos en menos de 24 horas.",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "tu@correo.com",
+    "messageLabel": "Mensaje",
+    "messagePlaceholder": "Cuéntanos cómo podemos ayudarte...",
+    "sendBtn": "Enviar Mensaje",
+    "emailSubject": "Contacto vía HackChain",
+    "emailFrom": "De",
+    "emailReply": "Responder a"
+  },
+  "partner": {
+    "text": "HackChain es asesorado por Token Consulting Group. Consultoría integral especializada en proyectos de tokenización."
+  },
+  "metamask": {
+    "modalTitle": "Se requiere MetaMask",
+    "modalDesc": "HackChain necesita una Web3 wallet para operar de manera segura. Por favor instala MetaMask para registrarte y continuar.",
+    "cancel": "Cancelar",
+    "downloadBtn": "Descargar MetaMask"
+  }
+}

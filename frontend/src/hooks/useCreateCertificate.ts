@@ -1,112 +1,79 @@
-import { useState } from "react";
+import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
-import { web3Service } from "@/utils/web3Service";
+import { web3Service } from '@/utils/web3Service';
 
-const API = import.meta.env.VITE_API_URL;
+export interface CertificateData {
+  talentName: string;
+  talentWallet: string;
+  courseName: string;
+  imageUri: string;
+}
 
 export const useCreateCertificate = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const createCertificate = async (data: any, organizationName: string) => {
+  const createCertificate = async (data: CertificateData, professorWallet: string) => {
     setIsLoading(true);
-
     try {
-      // get the actual wallet address from the auth session
-      const token = localStorage.getItem("authToken");
-      const authRes = await fetch(`${API}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      console.log("Starting certificate creation process...");
 
-      if (!authRes.ok) throw new Error("Failed to verify issuer identity.");
-      const authData = await authRes.json();
-      const realIssuerWallet = authData.user.wallet_address;
-
-      // check if student and issuer exist in db before wasting gas
-      const validationRes = await fetch(`${API}/api/issuers/mint`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentWalletAddress: data.studentWallet,
-          professor: realIssuerWallet,
-          tokenUri: "pending_validation"
-        }),
-      });
-
-      const valData = await validationRes.json();
-      if (!validationRes.ok || !valData.ok) {
-        throw new Error(valData.error || "Validation failed: Student or Issuer not found.");
+      // 0. Validate Inputs
+      if (!data.talentWallet || !ethers.utils.isAddress(data.talentWallet)) {
+        throw new Error("Invalid talent wallet address");
       }
 
-      // push metadata to ipfs via pinata
-      const metaRes = await fetch(`${API}/api/certificates`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.studentName,
-          course: data.courseName,
-          professor: organizationName,
-          date: new Date().toISOString().split("T")[0],
-          imageCID: data.imageCID,
-        }),
-      });
-
-      if (!metaRes.ok) throw new Error("IPFS metadata upload failed.");
-      const metaData = await metaRes.json();
-      const tokenUri = `ipfs://${metaData.cid}`;
-
-      // trigger the smart contract minting
-      const { success, txHash, tokenId } = await web3Service.mintCertificateOnChain(
-        data.studentWallet,
-        data.studentName,
-        data.courseName,
-        tokenUri
-      );
-
-      if (!success) throw new Error("Blockchain transaction failed.");
-
-      // save the certificate record to the database
-      const payloadDB = {
-        student_wallet_address: data.studentWallet.toLowerCase().trim(),
-        issuer_wallet_address: realIssuerWallet.toLowerCase().trim(),
-        title: data.courseName,
-        description: "HackChain Tokenized Certificate",
-        certificate_hash: data.imageCID,
-        blockchain_tx_hash: txHash,
-        token_id: tokenId,
-        issue_date: new Date().toISOString().split("T")[0],
+      // 1. Backend: Validate Talent & Pin Metadata to IPFS
+      const payload = {
+        walletTalent: data.talentWallet,
+        nameTalent: data.talentName,
+        professor: professorWallet,
+        courseName: data.courseName,
+        imageUri: data.imageUri
       };
 
-      const dbRes = await fetch(`${API}/api/certificates/database`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadDB),
+      const response = await fetch('http://localhost:3001/api/issuers/mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (!dbRes.ok) {
-        const errorDetail = await dbRes.json();
-        throw new Error(errorDetail.details || "Failed to sync with database.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload metadata to IPFS');
       }
 
-      // update the certificate count for the educator dashboard
-      const incrementRes = await fetch(`${API}/api/issuers/increment-certificates`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issuerWallet: realIssuerWallet }),
+      const result = await response.json();
+      const tokenUri = result.tokenUri;
+      console.log("Metadata pinned to IPFS:", tokenUri);
+
+      // 2. Blockchain: Mint Certificate
+      const mintSuccess = await web3Service.mintCertificateOnChain(
+        data.talentWallet,
+        data.talentName,
+        data.courseName,
+        tokenUri,
+        professorWallet
+      );
+
+      if (!mintSuccess) {
+        throw new Error("User rejected transaction or blockchain error occurred.");
+      }
+
+      toast({
+        title: "Success!",
+        description: "Certificate minted and sent to talent's wallet.",
       });
 
-      if (!incrementRes.ok) {
-        console.warn("Certificate issued but failed to update counter in DB.");
-      }
-
-      toast({ title: "Success", description: "Certificate issued and dashboard updated." });
       return true;
 
-    } catch (err: any) {
-      console.error("Certificate creation flow error:", err);
+    } catch (error: any) {
+      console.error('Certificate creation error:', error);
       toast({
         title: "Error",
-        description: err.message,
+        description: error.message || "Failed to create certificate",
         variant: "destructive",
       });
       return false;
@@ -115,5 +82,13 @@ export const useCreateCertificate = () => {
     }
   };
 
-  return { createCertificate, isLoading };
+  return {
+    createCertificate,
+    isLoading
+  };
 };
+
+// Helper for address validation if ethers is not globally available in scope, 
+// though we use simple check or assume implicit via web3Service. 
+// Adding minimal polyfill for validation if needed, or import from ethers.
+import { ethers } from 'ethers';

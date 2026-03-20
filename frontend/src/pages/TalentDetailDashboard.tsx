@@ -4,10 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar, Mail } from 'lucide-react';
+import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 interface Certificate {
     identifier: string;
@@ -19,19 +18,18 @@ interface Certificate {
     original_image_url?: string;
 }
 
-interface Student {
+interface Talent {
     wallet_address: string;
     name?: string;
-    email?: string;
     field_of_study?: string;
     total_certificates?: number;
     created_at?: string;
 }
 
-const StudentDetailDashboard = () => {
+const TalentDetailDashboard = () => {
     const navigate = useNavigate();
     const { wallet_address } = useParams<{ wallet_address: string }>();
-    const [student, setStudent] = useState<Student | null>(null);
+    const [talent, setTalent] = useState<Talent | null>(null);
     const [certificates, setCertificates] = useState<Certificate[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
@@ -44,24 +42,23 @@ const StudentDetailDashboard = () => {
                 const token = localStorage.getItem('authToken');
                 if (!token) return;
 
-                // Student info
-                const res = await fetch(`${API_BASE_URL}/api/students/${wallet_address}`, {
+                // Talent info
+                const res = await fetch(`http://localhost:3001/api/talents/${wallet_address}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
-                if (!data.student) throw new Error("Student not found");
+                if (!data.talent) throw new Error("Talent not found");
 
-                setStudent({
-                    wallet_address: data.student.wallet_address,
-                    name: data.student.user.name + ' ' + (data.student.user.lastname || ''),
-                    email: data.student.user.email,
-                    field_of_study: data.student.field_of_study || 'N/A',
-                    total_certificates: data.student.total_certificates || 0,
-                    created_at: data.student.created_at,
+                setTalent({
+                    wallet_address: data.talent.wallet_address,
+                    name: data.talent.user.name + ' ' + (data.talent.user.lastname || ''),
+                    field_of_study: data.talent.field_of_study || 'N/A',
+                    total_certificates: data.talent.total_certificates || 0,
+                    created_at: data.talent.created_at,
                 });
 
                 // Certificates
-                const certRes = await fetch(`${API_BASE_URL}/api/opensea/certificates/`, {
+                const certRes = await fetch('http://localhost:3001/api/opensea/certificates/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -75,7 +72,7 @@ const StudentDetailDashboard = () => {
                 console.error(err);
                 toast({
                     title: "Error",
-                    description: "Failed to load student data or certificates.",
+                    description: "Failed to load talent data or certificates.",
                     variant: "destructive",
                 });
             } finally {
@@ -102,7 +99,7 @@ const StudentDetailDashboard = () => {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
-    if (!student) return 0;
+    if (!talent) return 0;
 
     return (
         <Layout>
@@ -127,16 +124,16 @@ const StudentDetailDashboard = () => {
                             <div>
                                 <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2 font-title">
                                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                                        {student.name}
+                                        {talent.name}
                                     </span>
                                 </h1>
                                 <p className="text-lg text-slate-400 font-light font-body">
-                                    Student details and certificates
+                                    Talent details and certificates
                                 </p>
                             </div>
                         </div>
                         {/* Logo centrado */}
-                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
                             <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
                         </div>
 
@@ -147,9 +144,9 @@ const StudentDetailDashboard = () => {
                                     className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
                                 >
                                     <div className="flex flex-row items-baseline gap-1">
-                                        <span className="text-xs text-slate-400 font-body font-medium">Student:</span>
+                                        <span className="text-xs text-slate-400 font-body font-medium">Talent:</span>
                                         <span className="text-sm font-title font-bold text-white">
-                                            {student.name}
+                                            {talent.name}
                                         </span>
                                     </div>
                                     <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
@@ -169,7 +166,7 @@ const StudentDetailDashboard = () => {
                                             <Award className="h-6 w-6 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-base font-title font-bold text-white">{student.name}</h3>
+                                            <h3 className="text-base font-title font-bold text-white">{talent.name}</h3>
                                         </div>
                                     </div>
 
@@ -180,18 +177,16 @@ const StudentDetailDashboard = () => {
                                             <Award className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
                                                 <p className="text-xs uppercase text-slate-500 font-body font-semibold">Certificates</p>
-                                                <p className="text-sm text-slate-200 font-body">{student.total_certificates}</p>
+                                                <p className="text-sm text-slate-200 font-body">{talent.total_certificates}</p>
                                             </div>
                                         </div>
 
-                                        {/* Email */}
+                                        {/* Field of Study */}
                                         <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Mail className="h-4 w-4 text-slate-400 mt-0.5" />
+                                            <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                             <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Email</p>
-                                                <p className="text-sm text-slate-200 font-body break-all">
-                                                    {student.email || 'No email provided'}
-                                                </p>
+                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
+                                                <p className="text-sm text-slate-200 font-body">{talent.field_of_study}</p>
                                             </div>
                                         </div>
 
@@ -201,7 +196,7 @@ const StudentDetailDashboard = () => {
                                             <div>
                                                 <p className="text-xs uppercase text-slate-500 font-body font-semibold">Wallet</p>
                                                 <p className="text-sm text-slate-200 font-body">
-                                                    ••••{student.wallet_address.slice(-4)}
+                                                    ••••{talent.wallet_address.slice(-4)}
                                                 </p>
                                             </div>
                                         </div>
@@ -212,7 +207,7 @@ const StudentDetailDashboard = () => {
                                             <div>
                                                 <p className="text-xs uppercase text-slate-500 font-body font-semibold">Registered</p>
                                                 <p className="text-sm text-slate-200 font-body">
-                                                    {new Date(student.created_at || '').toLocaleDateString()}
+                                                    {new Date(talent.created_at || '').toLocaleDateString()}
                                                 </p>
                                             </div>
                                         </div>
@@ -272,4 +267,4 @@ const StudentDetailDashboard = () => {
     );
 };
 
-export default StudentDetailDashboard;
+export default TalentDetailDashboard;

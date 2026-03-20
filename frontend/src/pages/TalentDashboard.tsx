@@ -1,4 +1,4 @@
-// src/pages/StudentDashboard.tsx
+// src/pages/TalentDashboard.tsx
 import Layout from '@/components/Layout';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -7,10 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-const IPFS_PUBLIC_GATEWAY = 'https://ipfs.io/ipfs/';
 
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 interface Certificate {
     identifier: string;
@@ -22,16 +20,16 @@ interface Certificate {
     original_image_url?: string;
 }
 
-interface Student {
+interface Talent {
     wallet_address: string;
     name?: string;
     email?: string;
     role?: string;
 }
 
-const StudentDashboard = () => {
+const TalentDashboard = () => {
     const navigate = useNavigate();
-    const [student, setStudent] = useState<Student | null>(null);
+    const [talent, setTalent] = useState<Talent | null>(null);
     const [certificates, setCertificates] = useState<Certificate[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
@@ -42,20 +40,20 @@ const StudentDashboard = () => {
                 const token = localStorage.getItem('authToken');
                 if (!token) return;
 
-                // Student info
-                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                // Talent info
+                const res = await fetch('http://localhost:3001/api/auth/me', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
-                setStudent({
+                setTalent({
                     wallet_address: data.user.wallet_address,
                     name: data.user.name,
                     email: data.user.email,
-                    role:'Student',
+                    role: data.modelName || 'Talent',
                 });
 
                 // Certificates
-                const certRes = await fetch(`${API_BASE_URL}/api/opensea/certificates/`, {
+                const certRes = await fetch('http://localhost:3001/api/opensea/certificates/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -69,7 +67,7 @@ const StudentDashboard = () => {
                 console.error(err);
                 toast({
                     title: "Error",
-                    description: "Failed to load student data or certificates.",
+                    description: "Failed to load talent data or certificates.",
                     variant: "destructive",
                 });
             } finally {
@@ -91,31 +89,12 @@ const StudentDashboard = () => {
 
     const resolveImage = (url?: string) => {
         if (!url) return '';
-
-        // ipfs://CID
-        if (url.startsWith('ipfs://')) {
-            return IPFS_PUBLIC_GATEWAY + url.replace('ipfs://', '');
-        }
-
-        // https://bafy...
-        if (/^https?:\/\/bafy/i.test(url)) {
-            const cid = url.replace(/^https?:\/\//, '');
-            return IPFS_PUBLIC_GATEWAY + cid;
-        }
-
-        // any gateway /ipfs/CID
-        const ipfsIndex = url.indexOf('/ipfs/');
-        if (ipfsIndex !== -1) {
-            const cid = url.substring(ipfsIndex + 6);
-            return IPFS_PUBLIC_GATEWAY + cid;
-        }
-
-        // fallback (normal https image)
-        return url;
+        return url.startsWith('ipfs://')
+            ? url.replace('ipfs://', 'https://ipfs.io/ipfs/')
+            : url;
     };
 
-
-    if (!student) return null;
+    if (!talent) return null;
 
     const viewOnOpenSea = (cert: Certificate) => {
         const url = `https://opensea.io/assets/polygon/${cert.contract}/${cert.identifier}`;
@@ -140,15 +119,15 @@ const StudentDashboard = () => {
                         <div>
                             <h1 className="text-4xl md:text-5xl font-title font-bold tracking-tight mb-2">
                                 <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                                    Student Dashboard
+                                    Talent Dashboard
                                 </span>
                             </h1>
                             <p className="text-lg text-slate-400 font-body leading-relaxed">
                                 View your tokenized certificates.
                             </p>
                         </div>
-                        {/* Logo centrado */}
-                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                        {/* Logo — hidden on mobile to avoid overlap */}
+                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
                             <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
                         </div>
 
@@ -164,7 +143,7 @@ const StudentDashboard = () => {
                                             Welcome back,
                                         </span>
                                         <span className="text-sm font-body font-bold text-white">
-                                            {student.name || "Student"}
+                                            {talent.name || "Talent"}
                                         </span>
                                     </div>
 
@@ -189,10 +168,10 @@ const StudentDashboard = () => {
                                         </div>
                                         <div className="flex-1">
                                             <h3 className="text-base font-title font-bold text-white">
-                                                {student.name || "Student"}
+                                                {talent.name || "Talent"}
                                             </h3>
                                             <p className="text-xs text-blue-400 font-body font-medium">
-                                                Student
+                                                Talent
                                             </p>
                                         </div>
                                     </div>
@@ -218,7 +197,7 @@ const StudentDashboard = () => {
                                                     Role
                                                 </p>
                                                 <p className="text-sm text-slate-200 font-body">
-                                                    {student.role}
+                                                    {talent.role}
                                                 </p>
                                             </div>
                                         </div>
@@ -230,7 +209,7 @@ const StudentDashboard = () => {
                                                     Wallet
                                                 </p>
                                                 <p className="text-sm text-slate-200 font-mono font-body">
-                                                    ••••{student.wallet_address.slice(-4)}
+                                                    ••••{talent.wallet_address.slice(-4)}
                                                 </p>
                                             </div>
                                         </div>
@@ -271,12 +250,7 @@ const StudentDashboard = () => {
                                         )}
                                         alt={`Certificate ${cert.identifier}`}
                                         className="w-full h-auto object-contain"
-                                        onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).src =
-                                                '/images/certificate-placeholder.png';
-                                        }}
                                     />
-
                                 </div>
 
                                 <div className="p-0 flex flex-col items-center gap-3">
@@ -301,4 +275,4 @@ const StudentDashboard = () => {
     );
 };
 
-export default StudentDashboard;
+export default TalentDashboard;

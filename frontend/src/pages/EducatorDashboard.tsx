@@ -19,17 +19,16 @@ import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
-interface Student {
+
+interface Talent {
   id: number;
   wallet_address: string;
   field_of_study: string;
   user: {
     id: number;
     name: string;
-    lastname: string;
     wallet_address: string;
     email: string;
   };
@@ -40,12 +39,12 @@ const EducatorDashboard = () => {
   const [form, setForm] = useState({
     certificateType: '',
     certificateTitle: '',
-    studentName: '',
-    studentWallet: '',
+    talentName: '',
+    talentWallet: '',
     issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     logo: '',
-    imageUri: '',
+    imageUri: '', // To store the image URI if we uploaded one, though currently we handle local preview mostly
   });
 
   const [wallet, setWallet] = useState<string>("");
@@ -53,7 +52,7 @@ const EducatorDashboard = () => {
   const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [talents, setTalents] = useState<Talent[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
 
@@ -74,7 +73,7 @@ const EducatorDashboard = () => {
           return;
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const res = await fetch("http://localhost:3001/api/auth/me", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -111,29 +110,29 @@ const EducatorDashboard = () => {
     };
 
     loadProfile();
-    // Fetch Students
-    const fetchStudents = async () => {
+    // Fetch Talents
+    const fetchTalents = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/students`);
+        const response = await fetch('http://localhost:3001/api/talents');
         if (response.ok) {
           const data = await response.json();
-          // The API returns { students: [...] } or just [...]? 
-          // Based on file read: res.json({ students: ... })
-          if (data.students) {
-            setStudents(data.students);
+          // The API returns { talents: [...] } or just [...]? 
+          // Based on file read: res.json({ talents: ... })
+          if (data.talents) {
+            setTalents(data.talents);
           }
         }
       } catch (error) {
-        console.error("Failed to fetch students", error);
+        console.error("Failed to fetch talents", error);
         toast({
           title: "Error",
-          description: "Failed to load student list.",
+          description: "Failed to load talent list.",
           variant: "destructive",
         });
       }
     };
 
-    fetchStudents();
+    fetchTalents();
 
   }, [navigate, toast]);
 
@@ -163,60 +162,14 @@ const EducatorDashboard = () => {
     }
   };
 
-  const handleStudentChange = (walletAddress: string) => {
-    const selectedStudent = students.find(s => s.user.wallet_address === walletAddress);
-    if (selectedStudent) {
+  const handleTalentChange = (walletAddress: string) => {
+    const selectedTalent = talents.find(s => s.user.wallet_address === walletAddress);
+    if (selectedTalent) {
       setForm({
         ...form,
-        studentWallet: selectedStudent.user.wallet_address,
-        studentName: `${selectedStudent.user.name} ${selectedStudent.user.lastname}`
+        talentWallet: selectedTalent.user.wallet_address,
+        talentName: selectedTalent.user.name
       });
-    }
-  };
-
-  const uploadCertificateImage = async (): Promise<string | null> => {
-    const card = cardRef.current?.querySelector('.pc-card') as HTMLElement;
-    if (!card) return null;
-
-    // Desactivar efectos antes de capturar
-    const shine = card.querySelector('.pc-shine') as HTMLElement | null;
-    const glare = card.querySelector('.pc-glare') as HTMLElement | null;
-
-    const prevShineDisplay = shine?.style.display;
-    const prevGlareDisplay = glare?.style.display;
-
-    if (shine) shine.style.display = 'none';
-    if (glare) glare.style.display = 'none';
-    card.classList.remove('active');
-
-    try {
-      const canvas = await html2canvas(card, {
-        backgroundColor: "#0b0b0b",
-        scale: 2,
-        useCORS: true,
-      });
-
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png")
-      );
-
-      if (!blob) return null;
-
-      const formData = new FormData();
-      formData.append("file", blob, "certificate.png");
-
-      const res = await fetch(`${API_BASE_URL}/api/upload/image`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      return data.cid;
-
-    } finally {
-      // Restaurar efectos después de capturar
-      if (shine) shine.style.display = prevShineDisplay ?? '';
-      if (glare) glare.style.display = prevGlareDisplay ?? '';
     }
   };
 
@@ -235,63 +188,44 @@ const EducatorDashboard = () => {
     }
 
     // Validar campos requeridos
-    if (!form.certificateTitle || !form.studentName || !form.issuer || !form.studentWallet) {
+    if (!form.certificateTitle || !form.talentName || !form.issuer || !form.talentWallet) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields, including selecting a student.",
+        description: "Please fill in all required fields, including selecting a talent.",
         variant: "destructive",
       });
       return;
     }
 
     // Preparar datos para enviar al hook
+    // Note: imageUri is mocked here as we don't have a real file upload to IPFS in this step yet,
+    // but the backend might expect it. We'll pass the logo blob URL or a placeholder.
+    // In a real app, we'd upload the image first.
+    // For this implementation, we focus on the logic flow.
 
-    try {
-      toast({
-        title: "Uploading image",
-        description: "Generating certificate image...",
+    const certificateData = {
+      talentName: form.talentName,
+      talentWallet: form.talentWallet,
+      courseName: form.certificateTitle, // Using title as course name
+      imageUri: "bafybeia4ndso2yw4fkfhpfbkyzhgldbs4qkqocpaqk34jbgw7azpsuxjom", // Placeholder as we aren't uploading the image file yet
+    };
+
+    // Enviar al hook logic
+    const success = await createCertificate(certificateData, userData.walletAddress);
+
+    if (success) {
+      // Limpiar formulario después de crear
+      setForm({
+        certificateType: '',
+        certificateTitle: '',
+        talentName: '',
+        talentWallet: '',
+        issuer: '',
+        issueDate: new Date().toISOString().split('T')[0],
+        logo: '',
+        imageUri: '',
       });
-
-      const imageCID = await uploadCertificateImage();
-
-      if (!imageCID) {
-        throw new Error("Image upload failed");
-      }
-
-
-      const certificateData = {
-        studentName: form.studentName,
-        studentWallet: form.studentWallet,
-        courseName: form.certificateTitle, // Using title as course name
-        imageCID: imageCID,
-      };
-
-      // Enviar al hook logic
-      const success = await createCertificate(certificateData, form.issuer);
-
-      if (success) {
-        setCertificatesIssued((prev) => prev + 1);
-        setForm({
-          certificateType: '',
-          certificateTitle: '',
-          studentName: '',
-          studentWallet: '',
-          issuer: '',
-          issueDate: new Date().toISOString().split('T')[0],
-          logo: '',
-          imageUri: '',
-        });
-        setLogoPreview('');
-      }
-
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "Failed to create certificate",
-        variant: "destructive",
-      });
-
+      setLogoPreview('');
     }
   }
 
@@ -356,12 +290,12 @@ const EducatorDashboard = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="relative z-10 px-6 md:px-12 pt-12 pb-20 max-w-[1600px] mx-auto"
+          className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
         >
 
           {/* Header Section */}
           <header
-            className="mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+            className="mb-8 sm:mb-16 md:mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
           >
             <div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
@@ -375,7 +309,7 @@ const EducatorDashboard = () => {
               </p>
             </div>
             {/* Logo centrado */}
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
               <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
             </div>
             <Popover>
@@ -494,21 +428,21 @@ const EducatorDashboard = () => {
                     </div>
 
                     <div className="group/input">
-                      <Label htmlFor="studentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Student Name</Label>
-                      <Select onValueChange={handleStudentChange} value={form.studentWallet}>
+                      <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Talent Name</Label>
+                      <Select onValueChange={handleTalentChange} value={form.talentWallet}>
                         <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-12">
-                          <SelectValue placeholder="Select a student" />
+                          <SelectValue placeholder="Select a talent" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900 border-white/10 text-white">
-                          {students.map((student) => (
-                            <SelectItem key={student.id} value={student.user.wallet_address}>
-                              {student.user.name} {student.user.lastname} ({student.user.wallet_address.slice(0, 6)}...{student.user.wallet_address.slice(-4)})
+                          {talents.map((talent) => (
+                            <SelectItem key={talent.id} value={talent.user.wallet_address}>
+                              {talent.user.name} ({talent.user.wallet_address.slice(0, 6)}...{talent.user.wallet_address.slice(-4)})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] text-slate-500 mt-1 pl-1">
-                        Selected Wallet: {form.studentWallet || "None"}
+                        Selected Wallet: {form.talentWallet || "None"}
                       </p>
                     </div>
 
@@ -564,7 +498,7 @@ const EducatorDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="pt-6 flex gap-4">
+                  <div className="pt-6 flex flex-col sm:flex-row gap-4">
                     <Button
                       type="button"
                       onClick={handleCreateCertificate}
@@ -593,7 +527,7 @@ const EducatorDashboard = () => {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="lg:col-span-7 order-1 lg:order-2 sticky top-8"
+              className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
             >
               <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
                 {/* "Preview" Label */}
@@ -604,7 +538,7 @@ const EducatorDashboard = () => {
                 <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
                   <CertificateCard
                     certificateType={form.certificateType || "Certificate of Completion"}
-                    name={form.studentName || 'Student Name'}
+                    name={form.talentName || 'Talent Name'}
                     title={form.certificateTitle || 'Certificate Title'}
                     issuer={form.issuer || 'Issuer Name'}
                     issueDate={form.issueDate || 'Issue Date'}

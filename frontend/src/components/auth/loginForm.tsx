@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useWalletLogin } from "@/hooks/useWalletLogin";
 
 export const LoginForm = () => {
+  const { t } = useTranslation();
   const [errorMessage, setErrorMessage] = useState<string>("");
   const { connectAndLogin, isLoading: isWalletLoading, error: walletError } = useWalletLogin();
 
@@ -38,17 +40,17 @@ export const LoginForm = () => {
         ) : (
           <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="mr-2 h-5 w-5" />
         )}
-        Connect with MetaMask
+        {t('loginForm.connectMetaMask')}
       </Button>
 
       {/* Register Link */}
       <div className="text-center text-sm text-slate-400 mt-4">
-        Don't have an account?{" "}
+        {t('loginForm.noAccount')}{" "}
         <Link
           to="/register"
           className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
         >
-          Create one now
+          {t('loginForm.createOne')}
         </Link>
       </div>
     </div>

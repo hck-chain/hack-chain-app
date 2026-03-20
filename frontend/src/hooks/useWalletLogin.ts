@@ -48,7 +48,7 @@ export const useWalletLogin = () => {
 
             // Redirect based on role
             if (data.user.role === 'student') {
-                navigate('/dashboard/student');
+                navigate('/dashboard/talent');
             } else if (data.user.role === 'issuer') {
                 navigate('/educator/dashboard');
             } else if (data.user.role === 'recruiter') {

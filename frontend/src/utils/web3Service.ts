@@ -1,8 +1,7 @@
 import { ethers } from 'ethers';
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+const CONTRACT_ADDRESS = '0x8D21aC87475eC2EE80fB149E376035F5E29DCa7C';
 const CONTRACT_ABI = [
     {
         "type": "constructor",
@@ -90,7 +89,7 @@ const CONTRACT_ABI = [
         ],
         "outputs": [
             {
-                "name": "studentName",
+                "name": "talentName",
                 "type": "string",
                 "internalType": "string"
             },
@@ -178,7 +177,7 @@ const CONTRACT_ABI = [
                 "internalType": "address"
             },
             {
-                "name": "studentName",
+                "name": "talentName",
                 "type": "string",
                 "internalType": "string"
             },
@@ -453,7 +452,7 @@ const CONTRACT_ABI = [
                 "internalType": "struct HackCertificate.Certificate",
                 "components": [
                     {
-                        "name": "studentName",
+                        "name": "talentName",
                         "type": "string",
                         "internalType": "string"
                     },
@@ -544,7 +543,7 @@ const CONTRACT_ABI = [
                 "internalType": "address"
             },
             {
-                "name": "student",
+                "name": "talent",
                 "type": "address",
                 "indexed": true,
                 "internalType": "address"
@@ -758,52 +757,82 @@ export const web3Service = {
         }
     },
 
-    // web3Service.ts (Versión limpia)
     mintCertificateOnChain: async (
-        studentWallet: string,
-        studentName: string,
+        talentWallet: string,
+        talentName: string,
         courseName: string,
-        tokenUri: string
-    ): Promise<{ success: boolean; txHash?: string; tokenId?: string }> => {
-        if (!window.ethereum) return { success: false };
+        tokenUri: string,
+        issuerWallet: string
+    ): Promise<boolean> => {
+        if (!window.ethereum) return false;
 
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
-
-
-            // AGREGA ESTO:
-            console.log("🔥 LLEGÓ EL MOMENTO DE LA VERDAD 🔥");
-            console.log("Valor exacto de CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-            console.log("Tipo de dato:", typeof CONTRACT_ADDRESS);
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-            const tx = await contract.issueCertificate(studentWallet, studentName, courseName, tokenUri);
+            console.log(`Minting certificate for ${talentName} (${talentWallet})...`);
+
+            // Minteo en blockchain
+            const tx = await contract.issueCertificate(talentWallet, talentName, courseName, tokenUri);
             const receipt = await tx.wait();
+            console.log("Transaction confirmed:", tx.hash);
 
-            const transferEvent = receipt.logs
-                .map(log => {
-                    try { return contract.interface.parseLog(log); }
-                    catch (e) { return null; }
+            await fetch("http://localhost:3001/api/issuers/increment-certificates", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    issuerWallet
                 })
+            });
+
+            const transferEvent = receipt.logs.map(log => {
+                try {
+                    return contract.interface.parseLog(log);
+                } catch (error) {
+                    return null;
+                }
+            })
                 .find(event => event?.name === "Transfer");
+            const tokenId = transferEvent.args.tokenId.toString();
 
-            const tokenId = transferEvent?.args?.tokenId.toString();
 
-            return { success: true, txHash: tx.hash, tokenId }; // Solo devolvemos datos de blockchain
+            // Guardar en la base de datos
+            const issue_date = new Date().toISOString().split('T')[0];
+            const response = await fetch("http://localhost:3001/api/certificates/database", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    issuer_wallet_address: issuerWallet,
+                    title: courseName,
+                    description: "Tokenized HackChain Certificate",
+                    certificate_hash: tokenUri,
+                    blockchain_tx_hash: tx.hash,
+                    token_id: tokenId,
+                    issue_date
+                })
+            });
 
+            if (!response.ok) {
+                console.error("Failed to save certificate in DB");
+                return false;
+            }
+
+            alert("Certificate minted and saved successfully!");
+            return true;
         } catch (err) {
-            console.error("Blockchain minting failed:", err);
-            return { success: false };
+            console.error("Minting or DB saving failed:", err);
+            return false;
         }
     }
-
 };
 
 export async function getCertificatesByEducator(wallet: string) {
     console.log("getCertificatesByEducator called with wallet:", wallet); // 🔹 log frontend
 
-    const res = await fetch(`${API_BASE_URL}/api/issuers/${wallet}/certificates-count`);
+    const res = await fetch(`http://localhost:3001/api/issuers/${wallet}/certificates-count`);
     const data = await res.json();
 
     console.log("getCertificatesByEducator response:", data); // 🔹 log frontend

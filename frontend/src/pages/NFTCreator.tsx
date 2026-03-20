@@ -12,7 +12,7 @@ const NFTCreator = () => {
   const [form, setForm] = useState({
     certificateType: '',
     certificateTitle: '',
-    studentName: '',
+    talentName: '',
     issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     logo: '',
@@ -89,13 +89,13 @@ const NFTCreator = () => {
   return (
     <Layout>
       <Navbar />
-      <main className="min-h-screen flex flex-col md:flex-row items-center justify-center px-12 pt-8">
+      <main className="min-h-screen flex flex-col md:flex-row items-start md:items-center justify-center gap-8 px-4 sm:px-8 md:px-12 pt-24 sm:pt-8 pb-12">
         {/* NFT Preview */}
-        <section className="w-full md:w-1/2 flex justify-center mb-8 md:mb-0">
+        <section className="w-full md:w-1/2 flex justify-center mb-6 md:mb-0 overflow-x-auto">
              <div ref={cardRef}>
              <CertificateCard
                 certificateType={form.certificateType || "Certificate of Completion"}
-                name={form.studentName || 'Student Name'}
+                name={form.talentName || 'Talent Name'}
                 title={form.certificateTitle || 'Certificate Title'}
                 issuer={form.issuer || 'Issuer Name'}
                 issueDate={form.issueDate || 'Issue Date'}
@@ -121,13 +121,13 @@ const NFTCreator = () => {
               />
             </div>
             <div>
-              <Label htmlFor="studentName">Student Name</Label>
+              <Label htmlFor="talentName">Talent Name</Label>
               <Input
-                id="studentName"
-                name="studentName"
-                value={form.studentName}
+                id="talentName"
+                name="talentName"
+                value={form.talentName}
                 onChange={handleChange}
-                placeholder="Enter student name"
+                placeholder="Enter talent name"
                 autoComplete="off"
                 className="mt-1"
               />

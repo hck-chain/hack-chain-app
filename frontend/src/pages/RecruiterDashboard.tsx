@@ -7,17 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import HackChainLogo from '@/../public/images/logoHackchain2.png'; // 🔹 Logo de HackChain
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 interface Recruiter {
     wallet_address: string;
     name: string;
     role: string;
-    total_students?: number;
+    total_talents?: number;
 }
 
-interface StudentSummary {
+interface TalentSummary {
     id: number;
     wallet_address: string;
     field_of_study: string;
@@ -31,7 +30,7 @@ const RecruiterDashboard = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [recruiter, setRecruiter] = useState<Recruiter | null>(null);
-    const [students, setStudents] = useState<StudentSummary[]>([]);
+    const [talents, setTalents] = useState<TalentSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -41,7 +40,7 @@ const RecruiterDashboard = () => {
                 if (!token) return;
 
                 // Fetch recruiter info
-                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                const res = await fetch('http://localhost:3001/api/auth/me', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -51,13 +50,13 @@ const RecruiterDashboard = () => {
                     role: data.user.role,
                 });
 
-                // Fetch students
-                const resStudents = await fetch(`${API_BASE_URL}/api/students`, {
+                // Fetch talents
+                const resTalents = await fetch('http://localhost:3001/api/talents', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const dataStudents = await resStudents.json();
+                const dataTalents = await resTalents.json();
 
-                const studentsMapped: StudentSummary[] = dataStudents.students.map((s: any) => ({
+                const talentsMapped: TalentSummary[] = dataTalents.talents.map((s: any) => ({
                     id: s.id,
                     wallet_address: s.wallet_address,
                     field_of_study: s.field_of_study || 'N/A',
@@ -66,15 +65,15 @@ const RecruiterDashboard = () => {
                     name: `${s.user.name} ${s.user.lastname || ''}`,
                     total_certificates: s.total_certificates || 0,
                 }));
-                studentsMapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                talentsMapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-                setStudents(studentsMapped);
-                setRecruiter(prev => prev ? { ...prev, total_students: studentsMapped.length } : null);
+                setTalents(talentsMapped);
+                setRecruiter(prev => prev ? { ...prev, total_talents: talentsMapped.length } : null);
             } catch (err) {
                 console.error(err);
                 toast({
                     title: 'Error',
-                    description: 'Failed to load recruiter or students.',
+                    description: 'Failed to load recruiter or talents.',
                     variant: 'destructive',
                 });
             } finally {
@@ -115,12 +114,12 @@ const RecruiterDashboard = () => {
                                 </span>
                             </h1>
                             <p className="text-lg text-slate-400 font-light font-body">
-                                Manage your students efficiently and track their progress easily.
+                                Manage your talents efficiently and track their progress easily.
                             </p>
                         </div>
 
                         {/* Logo centrado */}
-                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
                             <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
                         </div>
 
@@ -168,7 +167,7 @@ const RecruiterDashboard = () => {
                                                 <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                                 <div>
                                                     <p className="text-xs uppercase text-slate-500 font-semibold font-body">Total Candidates</p>
-                                                    <p className="text-sm text-slate-200 font-title">{recruiter.total_students || 0}</p>
+                                                    <p className="text-sm text-slate-200 font-title">{recruiter.total_talents || 0}</p>
                                                 </div>
                                             </div>
 
@@ -215,47 +214,43 @@ const RecruiterDashboard = () => {
                         )}
                     </header>
 
-                    {/* Student Grid */}
+                    {/* Grid de estudiantes */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {students.map((student) => (
+                        {talents.map((talent) => (
                             <motion.div
-                                key={student.wallet_address}
+                                key={talent.wallet_address}
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.35 }}
                                 className="bg-slate-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.5)] 
-                hover:scale-[1.03] hover:shadow-[0_15px_40px_rgba(0,0,0,0.6)] transition-all cursor-pointer flex flex-col justify-between"
-                                onClick={() => navigate(`/recruiter/student/${student.wallet_address}`)}
+                                    hover:scale-[1.03] hover:shadow-[0_15px_40px_rgba(0,0,0,0.6)] transition-all cursor-pointer"
+                                onClick={() => navigate(`/recruiter/talent/${talent.wallet_address}`)}
                             >
-                                {/* Header: Name and Status Icon */}
-                                <div className="flex items-center justify-between mb-6">
-                                    <p className="text-white font-extrabold text-lg md:text-xl font-title leading-tight">
-                                        {student.name}
-                                    </p>
-                                    {student.is_active ? (
-                                        <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <p className="text-white font-extrabold text-lg md:text-xl font-title">{talent.name}</p>
+                                        <p className="text-slate-400 text-sm font-body">••••{talent.wallet_address.slice(-4)}</p>
+                                    </div>
+                                    {talent.is_active ? (
+                                        <CheckCircle className="h-5 w-5 text-green-400" />
                                     ) : (
-                                        <XCircle className="h-5 w-5 text-red-400 shrink-0" />
+                                        <XCircle className="h-5 w-5 text-red-400" />
                                     )}
                                 </div>
 
-                                {/* Information Pills Container */}
-                                <div className="flex flex-wrap gap-2">
-                                    {/* Wallet Pill */}
-                                    <div className="bg-slate-500/10 text-slate-400 text-[10px] px-3 py-1 rounded-full font-medium font-body border border-white/5 uppercase tracking-wider">
-                                        {student.wallet_address.slice(0, 6)}...{student.wallet_address.slice(-4)}
-                                    </div>
-
-                                    {/* Certificates Pill */}
-                                    <div className="bg-indigo-500/20 text-indigo-200 text-xs px-3 py-1 rounded-full font-medium font-body border border-indigo-500/10">
-                                        {student.total_certificates} {student.total_certificates === 1 ? 'Certificate' : 'Certificates'}
-                                    </div>
-
-                                    {/* Registration Date Pill */}
-                                    <div className="bg-blue-500/20 text-blue-200 text-xs px-3 py-1 rounded-full font-medium font-body border border-blue-500/10">
-                                        {new Date(student.created_at).toLocaleDateString()}
-                                    </div>
+                                {/* Info pills adaptados */}
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="bg-blue-500/20 text-blue-200 text-xs px-3 py-1 rounded-full font-medium font-body">
+                                        {talent.field_of_study}
+                                    </span>
+                                    <span className="bg-indigo-500/20 text-indigo-200 text-xs px-3 py-1 rounded-full font-medium font-body">
+                                        {talent.total_certificates} {talent.total_certificates === 1 ? 'Certificate' : 'Certificates'}
+                                    </span>
                                 </div>
+
+                                {/* Footer */}
+                                <p className="text-slate-400 text-xs mt-1 font-body">Registered: {new Date(talent.created_at).toLocaleDateString()}</p>
                             </motion.div>
                         ))}
                     </div>

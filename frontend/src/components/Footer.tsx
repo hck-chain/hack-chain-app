@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FaLinkedin,
   FaInstagram,
@@ -36,7 +37,9 @@ const socials = [
 ];
 
 
-const Footer: React.FC = () => (
+const Footer: React.FC = () => {
+  const { t } = useTranslation();
+  return (
   <footer className="py-14 glass border-t border-white/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
@@ -74,11 +77,12 @@ const Footer: React.FC = () => (
 
       {/* Legal */}
       <div className="mt-8 font-body text-sm text-muted-foreground">
-        © 2025 HackChain. Non-Fungible Talent.
+        {t('footer.copyright')}
       </div>
 
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;
