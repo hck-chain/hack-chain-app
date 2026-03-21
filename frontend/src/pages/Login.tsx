@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, LogIn, Shield, Lock } from "lucide-react";
@@ -8,9 +9,29 @@ import BackgroundAnimation from "@/components/BackgroundAnimation";
 import FloatingElements from "@/components/FloatingElements";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import hackChainLogo from "/images/logoHackchain.png";
+import Footer from "@/components/Footer";
 
 export default function Login() {
   const { t } = useTranslation();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Auto-hide navbar logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
       {/* Background Animation */}
@@ -24,8 +45,8 @@ export default function Login() {
       <div className="relative z-20 animate-in fade-in duration-700 flex flex-col flex-1">
 
         {/* Header */}
-        <div className="z-30 w-full border-b border-white/10 bg-background/80 backdrop-blur mb-6 min-h-[56px]">
-          <div className="flex items-center justify-between max-w-6xl mx-auto px-4 pt-6 pb-3">
+        <div className={`z-40 w-full border-b border-white/10 fixed top-0 left-0 right-0 bg-[#0B0B0F]/80 backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`} style={{ minHeight: '56px' }}>
+          <div className="flex items-center justify-between max-w-6xl mx-auto px-4 py-3 sm:py-4">
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group transition-all duration-300 hover:scale-105">
@@ -54,8 +75,8 @@ export default function Login() {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 container mx-auto px-4 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
-          <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto w-full">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-28 pb-12 flex-1 flex items-center animate-in slide-in-from-bottom duration-700 delay-150">
+          <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
 
             {/* Left Side — only visible on lg+ */}
             <div className="hidden lg:block space-y-8 animate-in slide-in-from-left duration-700 delay-300">
@@ -147,16 +168,9 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <footer className="relative z-10 border-t border-purple-500/20 bg-slate-900/50 backdrop-blur animate-in slide-in-from-bottom duration-700 delay-700 mt-auto font-lato">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-300">
-                {t('footer.copyright')}
-              </p>
-
-            </div>
-          </div>
-        </footer>
+        <div className="w-full border-t border-white/10 bg-[#0B0B0F] mt-auto">
+          <Footer />
+        </div>
 
       </div>
     </div>
