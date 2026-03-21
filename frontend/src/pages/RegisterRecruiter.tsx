@@ -35,8 +35,8 @@ export function RegisterRecruiter() {
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
       {/* Background */}
-      <div className="absolute inset-0 z-0 bg-background" />
-      <div className="absolute inset-0 z-10">
+      <div className="fixed inset-0 z-0 bg-background" />
+      <div className="fixed inset-0 z-10 pointer-events-none">
         <BackgroundAnimation />
         <FloatingElements />
       </div>

@@ -1,4 +1,15 @@
+import { useMemo } from 'react';
+
 const BackgroundAnimation = () => {
+  const particles = useMemo(() => {
+    return Array.from({ length: 12 }).map(() => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${Math.random() * 4}s`,
+      animationDuration: `${2 + Math.random() * 3}s`,
+    }));
+  }, []);
+
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
       {/* Cyber Grid */}
@@ -21,16 +32,11 @@ const BackgroundAnimation = () => {
       
       {/* Floating Particles - Uncommented but subtle */}
       <div className="absolute inset-0">
-        {Array.from({ length: 12 }).map((_, i) => (
+        {particles.map((style, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-purple-400 rounded-full animate-pulse-neon opacity-20"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 4}s`,
-              animationDuration: `${2 + Math.random() * 3}s`,
-            }}
+            style={style}
           />
         ))}
       </div>

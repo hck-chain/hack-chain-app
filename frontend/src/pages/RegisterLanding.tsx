@@ -54,8 +54,11 @@ const RegisterLanding = () => {
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#0B0B0F] font-lato">
       {/* Background animations */}
-      <BackgroundAnimation />
-      <FloatingElements />
+      <div className="fixed inset-0 z-0 bg-[#0B0B0F]" />
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <BackgroundAnimation />
+        <FloatingElements />
+      </div>
 
       {/* Header */}
       <div className={`z-40 w-full border-b border-white/10 fixed top-0 left-0 right-0 bg-[#0B0B0F]/80 backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`} style={{ minHeight: '56px' }}>
@@ -111,7 +114,7 @@ const RegisterLanding = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="animate-in fade-in duration-700 slide-in-from-bottom pt-24">
+      <div className="relative z-20 animate-in fade-in duration-700 slide-in-from-bottom pt-24">
         <div className="z-10 flex flex-col items-center max-w-4xl mx-auto px-4 mt-8 mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6">
             {t('registerLanding.title1')}
