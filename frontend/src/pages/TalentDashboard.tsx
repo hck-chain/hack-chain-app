@@ -41,7 +41,7 @@ const TalentDashboard = () => {
                 if (!token) return;
 
                 // Talent info
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
