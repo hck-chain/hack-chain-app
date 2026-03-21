@@ -63,11 +63,11 @@ export function RegisterUser() {
             {/* Controls */}
             <div className="flex items-center gap-2 sm:gap-4">
               <LanguageToggle />
-              <Link to="/register">
-                <Button variant="ghost" className="font-lato text-gray-300 hover:text-white">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+              <Link to="/register" className="flex items-center gap-2 group">
+                <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
+                <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
                   {t('registerUser.back')}
-                </Button>
+                </span>
               </Link>
             </div>
 
