@@ -58,7 +58,7 @@ const TalentDetailDashboard = () => {
                 });
 
                 // Certificates
-                const certRes = await fetch(`${import.meta.env.VITE_API_URL}/opensea/certificates/`, {
+                const certRes = await fetch(`${import.meta.env.VITE_API_URL}/api/opensea/certificates/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -40,7 +40,7 @@ const RecruiterDashboard = () => {
                 if (!token) return;
 
                 // Fetch recruiter info
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
