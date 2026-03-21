@@ -10,7 +10,6 @@ const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3001;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:8080";
 
 // ---------- Trust proxy (Render, Vercel, etc.) ----------
 app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
@@ -18,8 +17,8 @@ app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
 // ---------- CORS ----------
 const allowedOrigins = [
   "https://hackchain.app",
-  "https://www.hackchain.app"
-
+  "https://www.hackchain.app",
+  "https://hack-chain-app-frontend-9oz24fv52.vercel.app"
 ];
 
 app.use(cors({

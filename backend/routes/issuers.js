@@ -69,24 +69,10 @@ router.post("/mint", async (req, res) => {
     if (!student) return res.status(404).json({ error: "Student not found" });
     if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
-      let data;
-      try {
-        data = await pinata.json();
-      } catch (e) {
-        console.error("Failed to parse Pinata response:", e);
-        return res.status(500).json({ error: "Invalid response from Pinata" });
-      }
-      const tokenUri = data.cid;
-
-      return res.json({
-        walletStudent,
-        nameStudent,
-        courseName,
-        tokenUri
-      });
-    } else {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    return res.json({
+      ok: true,
+      tokenUri
+    });
 
   } catch (err) {
     console.error(err);
@@ -151,21 +137,19 @@ router.put("/:wallet_address", async (req, res) => {
   }
 });
 
-
+// POST /api/issuers/increment-certificates
 router.post("/increment-certificates", async (req, res) => {
   try {
     const { issuerWallet } = req.body;
-
-    if (!issuerWallet) {
-      return res.status(400).json({ error: "issuerWallet required" });
-    }
+    if (!issuerWallet) return res.status(400).json({ error: "issuerWallet required" });
 
     await Issuer.increment(
       { certificates_issued: 1 },
-      { where: { wallet_address: issuerWallet } }
+      { where: { wallet_address: issuerWallet.toLowerCase() } }
     );
 
-    return res.json({ success: true });
+    res.json({ success: true });
+
   } catch (error) {
     console.error("Increment error:", error);
     res.status(500).json({ error: "Server error" });
@@ -176,26 +160,20 @@ router.post("/increment-certificates", async (req, res) => {
 router.get("/:wallet/certificates-count", async (req, res) => {
   try {
     const { wallet } = req.params;
-    console.log("Endpoint called for wallet:", wallet); // 🔹 log backend
 
     const issuer = await Issuer.findOne({
       where: { wallet_address: wallet.toLowerCase() },
       attributes: ["certificates_issued"],
     });
 
-    console.log("Issuer found:", issuer); // 🔹 log backend
-
     res.json({
       total: issuer?.certificates_issued || 0,
     });
+
   } catch (e) {
-    console.error("Error fetching certificates:", e); // 🔹 log backend
+    console.error("Error fetching certificates:", e);
     res.status(500).json({ total: 0 });
   }
 });
-
-
-
-
 
 module.exports = router;
