@@ -51,12 +51,12 @@ const RecruiterDashboard = () => {
                 });
 
                 // Fetch talents
-                const resTalents = await fetch(`${import.meta.env.VITE_API_URL}/talents`, {
+                const resTalents = await fetch(`${import.meta.env.VITE_API_URL}/api/students`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const dataTalents = await resTalents.json();
 
-                const talentsMapped: TalentSummary[] = dataTalents.talents.map((s: any) => ({
+                const talentsMapped: TalentSummary[] = dataTalents.students.map((s: any) => ({
                     id: s.id,
                     wallet_address: s.wallet_address,
                     field_of_study: s.field_of_study || 'N/A',

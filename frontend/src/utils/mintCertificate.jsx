@@ -849,7 +849,7 @@ function App() {
             const blockchain_tx_hash = tx.hash;
             const issue_date = new Date().toISOString().split('T')[0];
             try {
-                await fetch(`${import.meta.env.VITE_API_URL}/certificates/database`, {
+                await fetch(`${import.meta.env.VITE_API_URL}/api/certificates/database`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

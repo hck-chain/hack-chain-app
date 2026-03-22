@@ -32,7 +32,7 @@ export const useCreateCertificate = () => {
         imageUri: data.imageUri
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/issuers/mint`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/mint`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
