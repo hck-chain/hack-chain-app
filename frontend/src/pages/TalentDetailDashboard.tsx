@@ -47,14 +47,14 @@ const TalentDetailDashboard = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
-                if (!data.talent) throw new Error("Talent not found");
+                if (!data.student) throw new Error("Talent not found");
 
                 setTalent({
-                    wallet_address: data.talent.wallet_address,
-                    name: data.talent.user.name + ' ' + (data.talent.user.lastname || ''),
-                    field_of_study: data.talent.field_of_study || 'N/A',
-                    total_certificates: data.talent.total_certificates || 0,
-                    created_at: data.talent.created_at,
+                    wallet_address: data.student.wallet_address,
+                    name: data.student.user.name + ' ' + (data.student.user.lastname || ''),
+                    field_of_study: data.student.field_of_study || 'N/A',
+                    total_certificates: data.student.total_certificates || 0,
+                    created_at: data.student.created_at,
                 });
 
                 // Certificates
