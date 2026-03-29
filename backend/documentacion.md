@@ -1025,3 +1025,177 @@ Alias de `PUT /api/profile/me`. Actualiza los datos del perfil del usuario auten
 - Los endpoints `/me` y `/settings` son funcionalmente equivalentes; `/settings` existe como alias para mayor claridad semántica en el contexto de configuración de cuenta.
 - La lógica de lectura y actualización está delegada al controlador `profileController` (`getMe` y `updateMe`).
 - `PUT /settings` acepta un subconjunto de los campos de `PUT /me` (no incluye `age` ni `email`).
+
+
+## Recruiters Endpoints (recruiters.js)
+
+Base path: `/api/recruiters`
+
+---
+
+### GET `/api/recruiters`
+
+Retorna la lista de todos los reclutadores registrados, incluyendo los datos del usuario asociado.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de reclutadores |
+| `500` | Error al obtener los reclutadores |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "recruiters": [
+    {
+      "id": 1,
+      "wallet_address": "0x...",
+      "company_name": "TechCorp S.A.",
+      "user": {
+        "id": 5,
+        "wallet_address": "0x...",
+        "name": "Carlos",
+        "lastname": "Méndez",
+        "email": "carlos@techcorp.com",
+        "is_active": true,
+        "created_at": "2025-01-10T08:00:00.000Z"
+      },
+      "created_at": "2025-01-10T08:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### POST `/api/recruiters/dashboard`
+
+Verifica que la wallet pertenece a un reclutador registrado y retorna la lista completa de estudiantes con su campo de estudio y nombre.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `wallet_address` | `string` | ✅ | Wallet address del reclutador |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de estudiantes |
+| `404` | Reclutador no encontrado |
+| `500` | Error al obtener la lista |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+[
+  {
+    "field_of_study": "Ingeniería en Software",
+    "wallet_address": "0x...",
+    "created_at": "2025-02-01T09:00:00.000Z",
+    "User": {
+      "name": "Laura",
+      "lastname": "Gómez"
+    }
+  }
+]
+```
+
+---
+
+### GET `/api/recruiters/:wallet_address`
+
+Obtiene el detalle de un reclutador específico por su wallet address.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del reclutador |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Detalle del reclutador con su usuario asociado |
+| `404` | Reclutador no encontrado |
+| `500` | Error al obtener el reclutador |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "recruiter": {
+    "id": 1,
+    "wallet_address": "0x...",
+    "company_name": "TechCorp S.A.",
+    "user": {
+      "id": 5,
+      "wallet_address": "0x...",
+      "name": "Carlos",
+      "lastname": "Méndez",
+      "email": "carlos@techcorp.com",
+      "is_active": true,
+      "created_at": "2025-01-10T08:00:00.000Z"
+    },
+    "created_at": "2025-01-10T08:00:00.000Z"
+  }
+}
+```
+
+---
+
+### PUT `/api/recruiters/:wallet_address`
+
+Actualiza el nombre de empresa de un reclutador.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del reclutador a actualizar |
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `company_name` | `string` | ✅ | Nuevo nombre de la empresa |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Reclutador actualizado correctamente |
+| `404` | Reclutador no encontrado |
+| `500` | Error al actualizar |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Recruiter updated successfully"
+}
+```
+
+---
+
+### Notas generales
+
+- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en todos los endpoints antes de realizar consultas a la base de datos.
+- `POST /dashboard` actúa como un endpoint protegido por validación de wallet: solo retorna datos si la wallet pertenece a un reclutador registrado, pero no requiere JWT.
+- La lista de estudiantes retornada por `/dashboard` incluye todos los estudiantes del sistema, sin filtros adicionales.
