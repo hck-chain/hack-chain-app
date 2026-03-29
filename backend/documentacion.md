@@ -1199,3 +1199,178 @@ Actualiza el nombre de empresa de un reclutador.
 - Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en todos los endpoints antes de realizar consultas a la base de datos.
 - `POST /dashboard` actúa como un endpoint protegido por validación de wallet: solo retorna datos si la wallet pertenece a un reclutador registrado, pero no requiere JWT.
 - La lista de estudiantes retornada por `/dashboard` incluye todos los estudiantes del sistema, sin filtros adicionales.
+
+## Sessions Endpoints (sessions.js)
+
+Base path: `/api/sessions`
+
+---
+
+### POST `/api/sessions`
+
+Crea una nueva sesión para un usuario a partir de su wallet address. Verifica que el usuario exista y esté activo antes de generar la sesión.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `wallet_address` | `string` | ✅ | Wallet address del usuario |
+| `expires_in_hours` | `number` | ❌ | Duración de la sesión en horas (por defecto: `24`) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Sesión creada correctamente |
+| `400` | Wallet address no proporcionada |
+| `403` | Cuenta de usuario inactiva |
+| `404` | Usuario no encontrado |
+| `500` | Error al crear la sesión |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Session created successfully",
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "wallet_address": "0x...",
+    "expires_at": "2025-01-16T10:00:00.000Z",
+    "created_at": "2025-01-15T10:00:00.000Z"
+  }
+}
+```
+
+---
+
+### GET `/api/sessions/:session_id`
+
+Obtiene la información de una sesión activa. Si la sesión está expirada, la elimina automáticamente y retorna error.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `session_id` | `string` (UUID) | ID único de la sesión |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Sesión válida. Retorna datos de sesión y usuario asociado |
+| `401` | Sesión expirada (es eliminada automáticamente) |
+| `404` | Sesión no encontrada |
+| `500` | Error al obtener la sesión |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "wallet_address": "0x...",
+    "expires_at": "2025-01-16T10:00:00.000Z",
+    "created_at": "2025-01-15T10:00:00.000Z",
+    "user": {
+      "wallet_address": "0x...",
+      "role": "Student",
+      "name": "Juan",
+      "lastname": "Pérez",
+      "email": "juan@ejemplo.com",
+      "is_active": true
+    }
+  }
+}
+```
+
+---
+
+### DELETE `/api/sessions/:session_id`
+
+Elimina una sesión específica (logout). 
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `session_id` | `string` (UUID) | ID único de la sesión a eliminar |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Sesión eliminada correctamente |
+| `404` | Sesión no encontrada |
+| `500` | Error al eliminar la sesión |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Session deleted successfully"
+}
+```
+
+---
+
+### DELETE `/api/sessions/user/:wallet_address`
+
+Elimina todas las sesiones activas de un usuario. Útil para forzar cierre de sesión en todos los dispositivos.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del usuario |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Sesiones eliminadas. Incluye el conteo de sesiones borradas |
+| `500` | Error al eliminar las sesiones |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "3 sessions deleted successfully"
+}
+```
+
+---
+
+### DELETE `/api/sessions/cleanup/expired`
+
+Elimina todas las sesiones expiradas de la base de datos. Endpoint de mantenimiento.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Sesiones expiradas eliminadas. Incluye el conteo de registros borrados |
+| `500` | Error al realizar la limpieza |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "12 expired sessions cleaned up"
+}
+```
+
+---
+
+### Notas generales
+
+- Los IDs de sesión son UUIDs generados con `crypto.randomUUID()`.
+- `GET /:session_id` verifica la expiración en cada consulta y destruye la sesión si ya venció, retornando `401`.
+- `DELETE /user/:wallet_address` retorna `200` incluso si el usuario no tenía sesiones activas (el conteo será `0`).
+- `DELETE /cleanup/expired` está pensado para ejecutarse periódicamente (cron job o tarea programada) y no requiere autenticación en su implementación actual.
+- Ninguno de estos endpoints valida JWT; la autenticación se basa en la existencia y vigencia del `session_id`.
