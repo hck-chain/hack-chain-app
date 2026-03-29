@@ -28,7 +28,8 @@ Para acceder a las rutas protegidas de la API, es obligatorio incluir un JSON We
 ### Manejo de errores.
 * 401 Unauthorized: * El header de Authorization no existe o no tiene el formato correcto. El token ha expirado o la firma de seguridad no coincide.
 * 500 Internal Server Error: * Ocurrió un fallo inesperado al verificar el token o al consultar la base de datos de usuarios.
-## Auth Endpoints
+
+## Auth Endpoints (auth.js)
 
 Base path: `/api/auth`
 
