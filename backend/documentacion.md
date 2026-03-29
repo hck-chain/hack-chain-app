@@ -2,7 +2,7 @@
 ## Resumen.
 HackChain es un ecosistema educativo-laboral que vincula Talento, Educadores y Reclutadores con el fin de promover el aprendizaje constante y la transparencia en los procesos de reclutamiento.
 ## URL base
-https://www.hackchain.app
+https://hack-chain-app.onrender.com
 ## Stack tecnologico.
 * Lenguaje de programación: Java Script
 * Entorno de ejecución: node.js
@@ -1556,3 +1556,196 @@ Sube una imagen a IPFS mediante Pinata y retorna el CID y la URI resultantes. El
 - El almacenamiento es en memoria (`multer.memoryStorage()`), por lo que el archivo nunca se escribe en disco.
 - El `cid` retornado puede usarse como `imageCID` en el endpoint `POST /api/certificates` para construir los metadatos del certificado.
 - El nombre original del archivo (`originalname`) se usa como metadato de Pinata para facilitar su identificación en el panel de administración.
+
+## Users Endpoints (users.js)
+
+Base path: `/api/users`
+
+---
+
+### POST `/api/users/register`
+
+Registra un nuevo usuario en el sistema junto con su entrada específica según el rol (`student`, `issuer` o `recruiter`). Verifica que la wallet no esté previamente registrada.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `wallet_address` | `string` | ✅ | Wallet address del usuario (`0x...`) |
+| `role` | `string` | ✅ | Rol del usuario: `student`, `issuer` o `recruiter` |
+| `name` | `string` | Según rol | Nombre del usuario (requerido para `student` y `recruiter`) |
+| `lastname` | `string` | Según rol | Apellido del usuario (requerido para `student` y `recruiter`) |
+| `email` | `string` | ✅ | Correo electrónico (requerido para todos los roles) |
+| `organization_name` | `string` | Según rol | Nombre de la organización (requerido para `issuer`) |
+| `field_of_study` | `string` | ❌ | Campo de estudio (opcional para `student`; se asigna `"Test participant"` por defecto) |
+| `company_name` | `string` | Según rol | Nombre de la empresa (requerido para `recruiter`) |
+
+**Campos requeridos por rol**
+
+| Rol | Campos obligatorios |
+|---|---|
+| `student` | `wallet_address`, `name`, `lastname`, `email` |
+| `issuer` | `wallet_address`, `organization_name`, `email` |
+| `recruiter` | `wallet_address`, `name`, `lastname`, `email`, `company_name` |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Usuario registrado correctamente |
+| `400` | Campos obligatorios faltantes o rol inválido |
+| `409` | La wallet ya está registrada |
+| `500` | Error al registrar el usuario |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "User registered successfully",
+  "user": {
+    "id": 1,
+    "wallet_address": "0x...",
+    "role": "student",
+    "name": "Laura",
+    "lastname": "Gómez",
+    "email": "laura@ejemplo.com",
+    "nonce": "a3f1c2...",
+    "is_active": true
+  },
+  "roleData": {
+    "wallet_address": "0x...",
+    "field_of_study": "Test participant"
+  }
+}
+```
+
+---
+
+### GET `/api/users/:wallet_address`
+
+Obtiene el perfil completo de un usuario por su wallet address, incluyendo los datos específicos de su rol.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del usuario |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Datos del usuario y su información de rol |
+| `404` | Usuario no encontrado |
+| `500` | Error al obtener el usuario |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "user": {
+    "id": 1,
+    "wallet_address": "0x...",
+    "role": "student",
+    "name": "Laura",
+    "lastname": "Gómez",
+    "email": "laura@ejemplo.com",
+    "is_active": true,
+    "created_at": "2025-01-10T08:00:00.000Z"
+  },
+  "roleData": {
+    "wallet_address": "0x...",
+    "field_of_study": "Ingeniería en Software"
+  }
+}
+```
+
+> `roleData` contiene el objeto correspondiente al modelo `Student`, `Issuer` o `Recruiter` según el rol del usuario. Retorna `null` si no existe entrada de rol asociada.
+
+---
+
+### PUT `/api/users/:wallet_address`
+
+Actualiza los datos generales del usuario y, si corresponde, los datos específicos de su rol.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del usuario a actualizar |
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `name` | `string` | ❌ | Nuevo nombre (conserva el actual si no se envía) |
+| `lastname` | `string` | ❌ | Nuevo apellido (conserva el actual si no se envía) |
+| `email` | `string` | ❌ | Nuevo correo electrónico (conserva el actual si no se envía) |
+| `field_of_study` | `string` | ❌ | Nuevo campo de estudio (solo aplica para `student`) |
+| `organization_name` | `string` | ❌ | Nuevo nombre de organización (solo aplica para `issuer`) |
+| `company_name` | `string` | ❌ | Nuevo nombre de empresa (solo aplica para `recruiter`) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Usuario actualizado correctamente |
+| `404` | Usuario no encontrado |
+| `500` | Error al actualizar el usuario |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "User updated successfully"
+}
+```
+
+---
+
+### POST `/api/users/:wallet_address/nonce`
+
+Genera y almacena un nuevo nonce criptográfico para la wallet del usuario. Utilizado en flujos de verificación de firma (autenticación Web3).
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del usuario |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Nuevo nonce generado |
+| `404` | Usuario no encontrado |
+| `500` | Error al generar el nonce |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "nonce": "a3f1c2d4e5b6..."
+}
+```
+
+---
+
+### Notas generales
+
+- La `wallet_address` es normalizada a minúsculas al momento del registro (`wallet_address.toLowerCase()`), pero las consultas posteriores (`GET`, `PUT`, `nonce`) no aplican esta normalización, por lo que se recomienda enviar siempre la wallet en minúsculas.
+- Al registrar un `student`, el campo `field_of_study` se inicializa con el valor `"Test participant"` si no se especifica otro.
+- El `nonce` generado en el registro y en `POST /nonce` usa `crypto.randomBytes(16)` en formato hexadecimal (32 caracteres). Es empleado típicamente para firmas de mensaje en autenticación Web3.
+- `PUT /:wallet_address` solo actualiza los datos de rol si el campo correspondiente está presente en el body (`!== undefined`); si se omite, el dato de rol permanece sin cambios.
