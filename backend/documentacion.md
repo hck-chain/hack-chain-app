@@ -162,7 +162,7 @@ Retorna la información del usuario autenticado, obtenida a partir del token JWT
 - El campo `cfToken` (Cloudflare Turnstile) en `/login` solo se valida si la variable de entorno `TURNSTILE_SECRET` está definida. Si no lo está, el captcha es ignorado.
 - Los tokens JWT tienen una expiración configurable mediante la variable de entorno `JWT_EXPIRES_IN` (por defecto `1h`).
 
-- ## Certificates Endpoints (certificates.js)
+## Certificates Endpoints (certificates.js)
 
 Base path: `/api/certificates`
 
@@ -477,3 +477,427 @@ Revoca un certificado existente marcándolo como `is_revoked: true`.
 - Las wallets (`student_wallet_address`, `issuer_wallet_address`) son normalizadas a minúsculas antes de cualquier operación en base de datos.
 - El endpoint `POST /database` valida que la `issuer_wallet_address` comience con `0x` y que exista en la tabla de emisores autorizados antes de registrar el certificado.
 - Los endpoints de base de datos incluyen la relación con el modelo `Issuer`, que a su vez incluye los campos `name`, `lastname` y `email` del `User` asociado.
+
+## Issuers Endpoints (issuers.js)
+
+Base path: `/api/issuers`
+
+---
+
+### GET `/api/issuers`
+
+Retorna la lista de todos los emisores registrados, incluyendo los datos del usuario asociado.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de emisores |
+| `500` | Error al obtener los emisores |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "issuers": [
+    {
+      "id": 1,
+      "wallet_address": "0x...",
+      "organization_name": "Universidad HackChain",
+      "user": {
+        "id": 3,
+        "wallet_address": "0x...",
+        "name": "Ana",
+        "lastname": "López",
+        "email": "ana@hackchain.io",
+        "is_active": true,
+        "created_at": "2025-01-10T08:00:00.000Z"
+      },
+      "created_at": "2025-01-10T08:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### POST `/api/issuers/authorize`
+
+Envía una transacción a la blockchain para autorizar a una wallet como emisor de certificados.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `issuer` | `string` | ✅ | Wallet address del emisor a autorizar (`0x...`) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Emisor autorizado. Retorna el hash de la transacción |
+| `400` | Wallet del emisor no proporcionada |
+| `500` | Error en la transacción o en el servicio |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "succes": true,
+  "txHash": "0xabc123..."
+}
+```
+
+---
+
+### POST `/api/issuers/mint`
+
+Valida que el estudiante y el emisor (profesor) existen en la base de datos antes de proceder con el minteo de un certificado NFT.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `studentWalletAddress` | `string` | ✅ | Wallet del estudiante |
+| `professor` | `string` | ✅ | Wallet del emisor (profesor) |
+| `tokenUri` | `string` | ✅ | URI del metadata del certificado en IPFS (`ipfs://...`) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Validación correcta. Retorna `ok: true` y el `tokenUri` |
+| `400` | Campos requeridos faltantes |
+| `404` | Estudiante o emisor no encontrado |
+| `500` | Error en la validación |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "ok": true,
+  "tokenUri": "ipfs://Qm..."
+}
+```
+
+---
+
+### GET `/api/issuers/:wallet_address`
+
+Obtiene el detalle completo de un emisor por su wallet address, incluyendo su usuario y los certificados emitidos.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del emisor |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Detalle del emisor con usuario y certificados |
+| `404` | Emisor no encontrado |
+| `500` | Error al obtener el emisor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "issuer": {
+    "id": 1,
+    "wallet_address": "0x...",
+    "organization_name": "Universidad HackChain",
+    "user": {
+      "id": 3,
+      "name": "Ana",
+      "lastname": "López",
+      "email": "ana@hackchain.io",
+      "is_active": true,
+      "created_at": "2025-01-10T08:00:00.000Z"
+    },
+    "certificates": [
+      {
+        "id": 7,
+        "title": "Blockchain Basics",
+        "description": "Certificado Tokenizado HackChain",
+        "issue_date": "2025-01-15",
+        "is_revoked": false,
+        "created_at": "2025-01-15T10:00:00.000Z"
+      }
+    ],
+    "created_at": "2025-01-10T08:00:00.000Z"
+  }
+}
+```
+
+---
+
+### PUT `/api/issuers/:wallet_address`
+
+Actualiza el nombre de organización de un emisor.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del emisor a actualizar |
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `organization_name` | `string` | ✅ | Nuevo nombre de la organización |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Emisor actualizado correctamente |
+| `404` | Emisor no encontrado |
+| `500` | Error al actualizar |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Issuer updated successfully"
+}
+```
+
+---
+
+### POST `/api/issuers/increment-certificates`
+
+Incrementa en 1 el contador de certificados emitidos por un emisor. Debe llamarse cada vez que se emite un certificado nuevo.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `issuerWallet` | `string` | ✅ | Wallet address del emisor |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Contador incrementado correctamente |
+| `400` | Wallet del emisor no proporcionada |
+| `500` | Error en el servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+### GET `/api/issuers/:wallet/certificates-count`
+
+Retorna el total de certificados emitidos por un emisor.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet` | `string` | Wallet address del emisor |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Total de certificados emitidos |
+| `500` | Error al obtener el conteo (retorna `total: 0`) |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "total": 12
+}
+```
+
+---
+
+### Notas generales
+
+- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /mint`, `POST /increment-certificates` y `GET /:wallet/certificates-count` antes de consultar la base de datos.
+- El endpoint `GET /:wallet_address` incluye tanto el `User` asociado al emisor como todos sus `Certificates`.
+- `POST /authorize` delega la lógica de blockchain al servicio `authorizeIssuer`.
+- `POST /mint` solo realiza validaciones previas al minteo; el minteo real ocurre en el frontend o en un servicio externo.
+- Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.
+
+## OpenSea Endpoints
+
+Base path: `/api/opensea`
+
+> Todos los endpoints consumen la API de OpenSea v2 autenticada mediante `OPENSEA_API_KEY`. El contrato NFT utilizado es el definido en la variable de entorno `VITE_CONTRACT_ADDRESS`.
+
+---
+
+### GET `/api/opensea/collection/:slug`
+
+Obtiene la información de una colección de OpenSea a partir de su slug.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `slug` | `string` | Identificador único de la colección en OpenSea |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Datos de la colección retornados por OpenSea |
+| `500` | Error al consultar la API de OpenSea |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "name": "HackChain First Version",
+  "slug": "hackchainfirstversion",
+  "description": "...",
+  "owner": "0x...",
+  ...
+}
+```
+
+---
+
+### POST `/api/opensea/certificates`
+
+Obtiene los certificados NFT asociados a una wallet, filtrando únicamente los pertenecientes a la colección `hackchainfirstversion` y ordenándolos del más reciente al más antiguo.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `address` | `string` | ✅ | Wallet address del titular de los NFTs |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de certificados NFT filtrados y ordenados |
+| `500` | Error al consultar la API de OpenSea |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+[
+  {
+    "identifier": "42",
+    "collection": "hackchainfirstversion",
+    "contract": "0x...",
+    "token_standard": "erc721",
+    "name": "Certificate for Juan Pérez",
+    "mint_date": "2025-01-15T10:00:00.000Z",
+    ...
+  }
+]
+```
+
+> Los NFTs se filtran por `nft.collection === "hackchainfirstversion"` y se ordenan por `created_at` o `mint_date` de forma descendente.
+
+---
+
+### GET `/api/opensea/certificate/:tokenId`
+
+Genera y retorna la URL de OpenSea para un certificado NFT dado su `tokenId`. No realiza llamadas externas.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `tokenId` | `string` \| `number` | ID del token NFT |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | URL de OpenSea generada junto con los datos del contrato |
+| `500` | Error al generar la URL |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "contract_address": "0x61d2e94543dd498b7fd86450f1fc8135cb60021c",
+  "token_id": "42",
+  "opensea_url": "https://opensea.io/assets/matic/0x61d2e94543dd498b7fd86450f1fc8135cb60021c/42"
+}
+```
+
+---
+
+### GET `/api/opensea/certificates/:educator`
+
+Cuenta el total de certificados NFT emitidos por un educador específico. Recorre todos los NFTs del contrato, descarga sus metadatos desde IPFS y filtra por el atributo `Professor`.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `educator` | `string` | Nombre del educador tal como aparece en el atributo `Professor` de los metadatos |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Total de certificados emitidos por el educador |
+| `500` | Error en la consulta (retorna `total: 0`) |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "total": 7
+}
+```
+
+> Este endpoint puede ser lento ya que descarga y parsea los metadatos IPFS de cada NFT del contrato. Los NFTs sin `metadata_url` o con respuestas no JSON son ignorados silenciosamente.
+
+---
+
+### Notas generales
+
+- La colección fija utilizada para filtrar certificados en `POST /certificates` es `hackchainfirstversion`.
+- El `CONTRACT_ADDRESS` se toma de `VITE_CONTRACT_ADDRESS` y se normaliza a minúsculas al iniciar el servidor.
+- Las URLs de OpenSea generadas apuntan a la red `matic` (Polygon).
+- `GET /certificates/:educator` realiza la comparación de nombres de forma insensible a mayúsculas y espacios (`trim().toLowerCase()`).
+- `GET /certificates/:educator` consulta hasta 200 NFTs del contrato en una sola llamada a la API de OpenSea.
