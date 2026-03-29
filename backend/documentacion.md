@@ -1374,3 +1374,138 @@ Elimina todas las sesiones expiradas de la base de datos. Endpoint de mantenimie
 - `DELETE /user/:wallet_address` retorna `200` incluso si el usuario no tenía sesiones activas (el conteo será `0`).
 - `DELETE /cleanup/expired` está pensado para ejecutarse periódicamente (cron job o tarea programada) y no requiere autenticación en su implementación actual.
 - Ninguno de estos endpoints valida JWT; la autenticación se basa en la existencia y vigencia del `session_id`.
+
+## Students Endpoints (students.js)
+
+Base path: `/api/students`
+
+---
+
+### GET `/api/students`
+
+Retorna la lista de todos los estudiantes registrados, incluyendo su usuario asociado y el total de certificados emitidos.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de estudiantes |
+| `500` | Error al obtener los estudiantes |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "students": [
+    {
+      "id": 1,
+      "wallet_address": "0x...",
+      "field_of_study": "Ingeniería en Software",
+      "user": {
+        "id": 4,
+        "wallet_address": "0x...",
+        "name": "Laura",
+        "lastname": "Gómez",
+        "email": "laura@ejemplo.com",
+        "is_active": true,
+        "created_at": "2025-01-10T08:00:00.000Z"
+      },
+      "total_certificates": 3,
+      "created_at": "2025-01-10T08:00:00.000Z"
+    }
+  ]
+}
+```
+
+> Si el estudiante no tiene campo de estudio registrado, `field_of_study` retorna `"N/A"`.
+
+---
+
+### GET `/api/students/:wallet_address`
+
+Obtiene el detalle de un estudiante específico por su wallet address, incluyendo su usuario y el conteo exacto de certificados.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del estudiante |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Detalle del estudiante |
+| `404` | Estudiante no encontrado |
+| `500` | Error al obtener el estudiante |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "student": {
+    "id": 1,
+    "wallet_address": "0x...",
+    "field_of_study": "Ingeniería en Software",
+    "user": {
+      "id": 4,
+      "wallet_address": "0x...",
+      "name": "Laura",
+      "lastname": "Gómez",
+      "email": "laura@ejemplo.com",
+      "is_active": true,
+      "created_at": "2025-01-10T08:00:00.000Z"
+    },
+    "total_certificates": 3,
+    "created_at": "2025-01-10T08:00:00.000Z"
+  }
+}
+```
+
+---
+
+### PUT `/api/students/:wallet_address`
+
+Actualiza el campo de estudio de un estudiante.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del estudiante a actualizar |
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `field_of_study` | `string` | ✅ | Nuevo campo de estudio del estudiante |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Estudiante actualizado correctamente |
+| `404` | Estudiante no encontrado |
+| `500` | Error al actualizar |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Student updated successfully"
+}
+```
+
+---
+
+### Notas generales
+
+- `GET /` calcula `total_certificates` a partir de la longitud del array de certificados cargados por la relación (alias `certificates`).
+- `GET /:wallet_address` calcula `total_certificates` con `Certificate.count()` directamente en base de datos, lo que garantiza un conteo preciso independiente del eager loading.
+- Ninguno de los endpoints normaliza la wallet a minúsculas en las consultas; se recomienda enviar la wallet en el mismo formato en que fue registrada.
