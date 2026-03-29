@@ -28,120 +28,135 @@ Para acceder a las rutas protegidas de la API, es obligatorio incluir un JSON We
 ### Manejo de errores.
 * 401 Unauthorized: * El header de Authorization no existe o no tiene el formato correcto. El token ha expirado o la firma de seguridad no coincide.
 * 500 Internal Server Error: * Ocurrió un fallo inesperado al verificar el token o al consultar la base de datos de usuarios.
+## Auth Endpoints
 
-
-# 🔐 Authentication Module (Auth.js)
-
-Este módulo gestiona el flujo de identidad del sistema, utilizando **JWT (JSON Web Tokens)** y autenticación basada en **Web3 (Wallets)**. Incluye protecciones contra ataques de fuerza bruta y validación estricta de datos.
+Base path: `/api/auth`
 
 ---
 
-## 🛠 Configuración Técnica
+### POST `/api/auth/login`
 
-* **Middleware de Seguridad:** `express-rate-limit` (8 peticiones por minuto para login).
-* **Hash de Contraseñas:** `bcrypt` (Salt rounds configurables).
-* **Validación:** `express-validator`.
-* **Identidad:** Basada en la dirección única de la Wallet del usuario.
+Autentica a un usuario mediante su dirección de wallet. Retorna un JWT y los datos básicos del usuario.
 
----
+**Rate limit:** 8 solicitudes por IP por minuto.
 
-## 📡 Referencia de Endpoints
+**Headers**
 
-### 1. Login con Wallet
-Autentica a un usuario registrado a través de su dirección pública.
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
 
-* **URL:** `/api/auth/login`
-* **Método:** `POST`
-* **Protección:** Rate Limiter activo.
-* **Cuerpo (JSON):**
-    | Campo | Tipo | Requerido | Descripción |
-    | :--- | :--- | :--- | :--- |
-    | `wallet_address` | String | Sí | Dirección exacta de 42 caracteres. |
-    | `cfToken` | String | Opcional | Token de verificación Cloudflare Turnstile (si está activo). |
+**Body**
 
-* **Respuesta Exitosa (200 OK):**
-    ```json
-    {
-      "message": "Authenticated",
-      "token": "eyJhbGciOiJIUzI1...",
-      "user": {
-        "id": 1,
-        "email": "ejemplo@correo.com",
-        "role": "issuer",
-        "wallet_address": "0x123..."
-      }
-    }
-    ```
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `wallet_address` | `string` | ✅ | Dirección de wallet (exactamente 42 caracteres) |
+| `cfToken` | `string` | ⚠️ Condicional | Token de Cloudflare Turnstile. Requerido si `TURNSTILE_SECRET` está configurado en el entorno |
 
----
+**Respuestas**
 
-### 2. Obtener Perfil Actual (Me)
-Recupera los datos del usuario logueado extrayendo la wallet desde el token JWT.
+| Código | Descripción |
+|---|---|
+| `200` | Autenticación exitosa. Retorna `token`, `user` |
+| `404` | No existe usuario asociado a la wallet |
+| `422` | Error de validación en los campos |
+| `403` | Captcha inválido o ausente (si Turnstile está habilitado) |
+| `429` | Demasiados intentos de login |
+| `500` | Error interno del servidor |
 
-* **URL:** `/api/auth/me`
-* **Método:** `GET`
-* **Autenticación:** Requerida (`Bearer Token`).
+**Ejemplo de respuesta exitosa**
 
-* **Respuesta Exitosa (200 OK):**
-    ```json
-    {
-      "modelName": "student",
-      "user": {
-        "wallet_address": "0xabc...",
-        "name": "Nombre Usuario",
-        "email": "usuario@mail.com"
-      }
-    }
-    ```
+```json
+{
+  "message": "Authenticated",
+  "token": "<jwt>",
+  "user": {
+    "id": 1,
+    "email": "usuario@ejemplo.com",
+    "role": "Admin",
+    "wallet_address": "0x..."
+  }
+}
+```
 
 ---
 
-### 3. Cambio de Contraseña
-Actualiza la contraseña interna asociada al perfil.
+### POST `/api/auth/change-password`
 
-* **URL:** `/api/auth/change-password`
-* **Método:** `POST`
-* **Autenticación:** Requerida (`Bearer Token`).
-* **Cuerpo (JSON):**
-    ```json
-    {
-      "currentPassword": "password_actual",
-      "newPassword": "nueva_password_min_8"
-    }
-    ```
+Permite a un usuario autenticado cambiar su contraseña. Requiere la contraseña actual para confirmar la identidad.
 
-* **Respuesta Exitosa (200 OK):**
-    ```json
-    { "message": "Password updated" }
-    ```
+**Autenticación:** Bearer token (JWT) requerido.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+| `Authorization` | `Bearer <token>` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `currentPassword` | `string` | ✅ | Contraseña actual (mínimo 6 caracteres) |
+| `newPassword` | `string` | ✅ | Nueva contraseña (mínimo 8 caracteres) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Contraseña actualizada correctamente |
+| `401` | No autenticado, o contraseña actual incorrecta |
+| `404` | Usuario no encontrado |
+| `422` | Error de validación en los campos |
+| `500` | Error interno del servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Password updated"
+}
+```
 
 ---
 
-## 🛡️ Lógica de Seguridad Interna
+### GET `/api/auth/me`
 
-### **Verificación de Captcha (Turnstile)**
-El sistema está preparado para integrar **Cloudflare Turnstile**. Si la variable de entorno `TURNSTILE_SECRET` está configurada, el backend validará el `cfToken` enviado desde el frontend antes de procesar el login.
+Retorna la información del usuario autenticado, obtenida a partir del token JWT.
 
-### **Sanitización de Datos**
-Por seguridad, el sistema elimina automáticamente los siguientes campos de cualquier respuesta JSON:
-* `passwordHash`
-* `privateKey`
+**Autenticación:** Bearer token (JWT) requerido.
 
-### **Gestión de Roles**
-El middleware resuelve la identidad buscando en las tablas en este orden:
-1.  **Issuers** (Emisores)
-2.  **Students** (Estudiantes)
-3.  **Recruiters** (Reclutadores)
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <token>` |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Datos del usuario autenticado (incluye `email`) |
+| `401` | Token ausente o inválido |
+| `404` | Usuario no encontrado |
+| `500` | Error interno del servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "id": 1,
+  "email": "usuario@ejemplo.com",
+  "role": "Admin",
+  "wallet_address": "0x..."
+}
+```
 
 ---
 
-## ⚠️ Códigos de Error
+### Notas generales
 
-| Código | Error | Causa |
-| :--- | :--- | :--- |
-| **401** | `Unauthorized` | Token expirado, inexistente o contraseña actual incorrecta. |
-| **403** | `Forbidden` | Fallo en la verificación del Captcha. |
-| **404** | `Not Found` | La wallet no está asociada a ningún usuario registrado. |
-| **422** | `Unprocessable Entity` | Error de validación (ej. wallet no tiene 42 caracteres). |
-| **429** | `Too Many Requests` | Superado el límite de 8 intentos de login por minuto. |
-| **500** | `Internal Error` | Error crítico en el servidor o base de datos. |
+- Los campos `passwordHash` y `privateKey` son eliminados de todas las respuestas antes de ser enviadas al cliente.
+- El campo `cfToken` (Cloudflare Turnstile) en `/login` solo se valida si la variable de entorno `TURNSTILE_SECRET` está definida. Si no lo está, el captcha es ignorado.
+- Los tokens JWT tienen una expiración configurable mediante la variable de entorno `JWT_EXPIRES_IN` (por defecto `1h`).
