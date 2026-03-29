@@ -31,17 +31,7 @@ La imagen del certificado se sube a Pinata y regresa un **CID** — la direcció
 Con ese CID, el backend construye un JSON con los datos del certificado (nombre del estudiante, curso, wallet del educador como profesor, fecha e imagen) y también lo sube a Pinata. Este JSON es lo que el NFT va a referenciar para siempre.
 
 ```json
-{
-  "name": "Certificate for Juan Pérez",
-  "description": "HackChain Tokenized Certificate",
-  "image": "ipfs://QmIMG...",
-  "attributes": [
-    { "trait_type": "Student",   "value": "Juan Pérez" },
-    { "trait_type": "Course",    "value": "Blockchain Basics" },
-    { "trait_type": "Professor", "value": "0xEDUCATOR..." },
-    { "trait_type": "Date",      "value": "2025-01-15" }
-  ]
-}
+{ "name": "Certificate for Emmanuel Pastor", "description": "HackChain Tokenized Certificate", "image": "ipfs://bafkreidqdnjdv2w2nsmhmzq43ezqaywuhtsvzj7ldwgrf3ly5khjhu5774", "attributes": [ { "trait_type": "Student", "value": "Emmanuel Pastor" }, { "trait_type": "Course", "value": "Introduction to Burpsuite" }, { "trait_type": "Professor", "value": "Red Linuxera" }, { "trait_type": "Date", "value": "2026-02-09" } ] }
 ```
 
 ### 4.3 Validación
