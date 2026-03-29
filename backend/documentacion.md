@@ -1509,3 +1509,50 @@ Actualiza el campo de estudio de un estudiante.
 - `GET /` calcula `total_certificates` a partir de la longitud del array de certificados cargados por la relación (alias `certificates`).
 - `GET /:wallet_address` calcula `total_certificates` con `Certificate.count()` directamente en base de datos, lo que garantiza un conteo preciso independiente del eager loading.
 - Ninguno de los endpoints normaliza la wallet a minúsculas en las consultas; se recomienda enviar la wallet en el mismo formato en que fue registrada.
+
+## Upload Endpoints (upload.js)
+
+Base path: `/api/upload`
+
+---
+
+### POST `/api/upload/image`
+
+Sube una imagen a IPFS mediante Pinata y retorna el CID y la URI resultantes. El archivo se procesa en memoria sin escribirse en disco.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `multipart/form-data` |
+
+**Body (form-data)**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `file` | `File` | ✅ | Imagen a subir. Se conserva el nombre original como metadato en Pinata |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Imagen subida correctamente. Retorna `cid` y `uri` |
+| `400` | No se proporcionó ningún archivo |
+| `500` | Error al subir la imagen a Pinata |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "cid": "Qm...",
+  "uri": "ipfs://Qm..."
+}
+```
+
+---
+
+### Notas generales
+
+- El almacenamiento es en memoria (`multer.memoryStorage()`), por lo que el archivo nunca se escribe en disco.
+- El `cid` retornado puede usarse como `imageCID` en el endpoint `POST /api/certificates` para construir los metadatos del certificado.
+- El nombre original del archivo (`originalname`) se usa como metadato de Pinata para facilitar su identificación en el panel de administración.
