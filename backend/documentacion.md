@@ -754,7 +754,7 @@ Retorna el total de certificados emitidos por un emisor.
 - `POST /mint` solo realiza validaciones previas al minteo; el minteo real ocurre en el frontend o en un servicio externo.
 - Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.
 
-## OpenSea Endpoints
+## OpenSea Endpoints (opensea.js)
 
 Base path: `/api/opensea`
 
@@ -901,3 +901,127 @@ Cuenta el total de certificados NFT emitidos por un educador específico. Recorr
 - Las URLs de OpenSea generadas apuntan a la red `matic` (Polygon).
 - `GET /certificates/:educator` realiza la comparación de nombres de forma insensible a mayúsculas y espacios (`trim().toLowerCase()`).
 - `GET /certificates/:educator` consulta hasta 200 NFTs del contrato en una sola llamada a la API de OpenSea.
+
+## Profile Endpoints (profile.js)
+
+Base path: `/api/profile`
+
+> Todos los endpoints requieren autenticación mediante Bearer token (JWT).
+
+---
+
+### GET `/api/profile/me`
+
+Retorna el perfil del usuario autenticado.
+
+**Autenticación:** Bearer token requerido.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <token>` |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Datos del perfil del usuario autenticado |
+| `401` | Token ausente o inválido |
+| `500` | Error interno del servidor |
+
+---
+
+### PUT `/api/profile/me`
+
+Actualiza los datos del perfil del usuario autenticado. Todos los campos son opcionales.
+
+**Autenticación:** Bearer token requerido.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <token>` |
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Validación | Descripción |
+|---|---|---|---|---|
+| `name` | `string` | ❌ | Mínimo 1 caracter | Nombre del usuario |
+| `lastName` | `string` | ❌ | Mínimo 1 caracter | Apellido del usuario |
+| `age` | `integer` | ❌ | Entero ≥ 0 | Edad del usuario |
+| `bio` | `string` | ❌ | Máximo 500 caracteres | Biografía del usuario |
+| `email` | `string` | ❌ | Formato email válido | Correo electrónico |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil actualizado correctamente |
+| `401` | Token ausente o inválido |
+| `422` | Error de validación en algún campo |
+| `500` | Error interno del servidor |
+
+---
+
+### GET `/api/profile/settings`
+
+Alias de `GET /api/profile/me`. Retorna el perfil del usuario autenticado.
+
+**Autenticación:** Bearer token requerido.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <token>` |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Datos del perfil del usuario autenticado |
+| `401` | Token ausente o inválido |
+| `500` | Error interno del servidor |
+
+---
+
+### PUT `/api/profile/settings`
+
+Alias de `PUT /api/profile/me`. Actualiza los datos del perfil del usuario autenticado. Todos los campos son opcionales.
+
+**Autenticación:** Bearer token requerido.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <token>` |
+| `Content-Type` | `application/json` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Validación | Descripción |
+|---|---|---|---|---|
+| `name` | `string` | ❌ | Mínimo 1 caracter | Nombre del usuario |
+| `lastName` | `string` | ❌ | Mínimo 1 caracter | Apellido del usuario |
+| `bio` | `string` | ❌ | Máximo 500 caracteres | Biografía del usuario |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil actualizado correctamente |
+| `401` | Token ausente o inválido |
+| `422` | Error de validación en algún campo |
+| `500` | Error interno del servidor |
+
+---
+
+### Notas generales
+
+- Los endpoints `/me` y `/settings` son funcionalmente equivalentes; `/settings` existe como alias para mayor claridad semántica en el contexto de configuración de cuenta.
+- La lógica de lectura y actualización está delegada al controlador `profileController` (`getMe` y `updateMe`).
+- `PUT /settings` acepta un subconjunto de los campos de `PUT /me` (no incluye `age` ni `email`).
