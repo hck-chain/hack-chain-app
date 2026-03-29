@@ -11,23 +11,104 @@ https://hack-chain-app.onrender.com
 * Sistema de gestión de base de datos: PostgreSQL
 * Base de datos: Neon DB
 * Plataforma donde está desplegado el backend: Render
-## Autenticacion.
-Para acceder a las rutas protegidas de la API, es obligatorio incluir un JSON Web Token (JWT). El sistema utiliza la wallet contenida en el token para identificar automáticamente tu rol (Issuer, Student o Recruiter) y tus permisos.
-### Headers de la petición.
-#### Header: Authorization.
-* Value: Bearer <TU_TOKEN_JWT>
-* Descripción: Obligatorio para rutas protegidas. Es indispensable que el token incluya el prefijo Bearer seguido de un espacio. Si se envía el token solo, el middleware devolverá un error.
-#### Header: Content-Type.
-* Value: application/json
-* Descripción: Necesario en todas las peticiones POST o PUT. Indica al servidor que los datos enviados en el cuerpo tienen formato JSON.
-### Especificaciones del token.
-* Type: JWT (JSON Web Token).
-* Payload esperado: { "wallet": "0x..." }
-* Expiración: 1 hora (tiempo configurado por defecto).
-* Lógica de Roles: El servidor busca la dirección de la wallet en orden de prioridad: primero en la tabla de Issuers, luego Students y finalmente Recruiters.
-### Manejo de errores.
-* 401 Unauthorized: * El header de Authorization no existe o no tiene el formato correcto. El token ha expirado o la firma de seguridad no coincide.
-* 500 Internal Server Error: * Ocurrió un fallo inesperado al verificar el token o al consultar la base de datos de usuarios.
+
+## Autenticación
+
+Para acceder a las rutas protegidas de la API es obligatorio incluir un JSON Web Token (JWT) en cada petición. El sistema extrae la wallet del token para identificar automáticamente el rol del usuario (`issuer`, `student` o `recruiter`) y aplicar los permisos correspondientes.
+
+---
+
+### Headers requeridos
+
+| Header | Valor | Descripción |
+|---|---|---|
+| `Authorization` | `Bearer <token>` | Obligatorio en rutas protegidas. El prefijo `Bearer` seguido de un espacio es indispensable; enviar solo el token resultará en error. |
+| `Content-Type` | `application/json` | Obligatorio en peticiones `POST` y `PUT`. Indica que el cuerpo de la petición está en formato JSON. |
+
+---
+
+### Especificaciones del token
+
+| Propiedad | Valor |
+|---|---|
+| Tipo | JWT (JSON Web Token) |
+| Payload | `{ "wallet": "0x..." }` |
+| Expiración | `1h` (configurable mediante la variable de entorno `JWT_EXPIRES_IN`) |
+| Algoritmo de firma | Clave secreta definida en `JWT_SECRET` |
+
+---
+
+### Resolución de roles
+
+Al recibir una petición autenticada, el middleware extrae la `wallet` del payload y la busca secuencialmente en las siguientes tablas, en orden de prioridad:
+
+1. **Issuers** — si se encuentra, el usuario es tratado como emisor de certificados.
+2. **Students** — si se encuentra, el usuario es tratado como estudiante.
+3. **Recruiters** — si se encuentra, el usuario es tratado como reclutador.
+
+Si la wallet no existe en ninguna de las tres tablas, la función `getUserFromToken` retorna `null`.
+
+---
+
+### Datos retornados por rol
+
+Dependiendo del rol resuelto, el objeto de usuario disponible en la respuesta varía:
+
+**Issuer**
+```json
+{
+  "modelName": "issuer",
+  "user": {
+    "wallet_address": "0x...",
+    "name": "Ana López",
+    "organization_name": "Universidad HackChain",
+    "email": "ana@hackchain.io"
+  }
+}
+```
+
+**Student**
+```json
+{
+  "modelName": "student",
+  "user": {
+    "wallet_address": "0x...",
+    "name": "Laura Gómez",
+    "email": "laura@ejemplo.com"
+  }
+}
+```
+
+**Recruiter**
+```json
+{
+  "modelName": "recruiter",
+  "user": {
+    "wallet_address": "0x...",
+    "name": "TechCorp S.A.",
+    "company_name": "TechCorp S.A.",
+    "email": "carlos@techcorp.com"
+  }
+}
+```
+
+---
+
+### Manejo de errores
+
+| Código | Causa |
+|---|---|
+| `401 Unauthorized` | El header `Authorization` está ausente, tiene formato incorrecto, o el token es inválido o ha expirado. |
+| `500 Internal Server Error` | Ocurrió un fallo inesperado durante la verificación del token o al consultar la base de datos. |
+
+---
+
+### Notas generales
+
+- La wallet del payload es normalizada a minúsculas (`.toLowerCase()`) antes de realizar cualquier consulta a la base de datos.
+- El middleware `authenticate` adjunta el payload decodificado a `req.auth`, disponible para los controladores como `{ wallet: "0x..." }`.
+- Para los roles `issuer` y `recruiter`, el campo `email` se resuelve con prioridad al `User` asociado; si no existe, se intenta usar el email propio del modelo.
+- El campo `name` del `recruiter` usa `company_name` como valor de respaldo si el `User` no tiene nombre registrado.
 
 ## Auth Endpoints (auth.js)
 
