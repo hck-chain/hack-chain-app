@@ -34,11 +34,6 @@ const AboutUs = () => {
       linkedinUrl: 'https://www.linkedin.com/in/giana-cantarini/'
     },
     {
-      name: 'Reykel',
-      role: t('team.roles.backendDeveloper'),
-      imageUrl: '/images/team/Reykel.png',
-    },
-    {
       name: 'Kelvin',
       role: t('team.roles.businessDevelopment'),
       imageUrl: '/images/team/Kelvin.png',
@@ -55,18 +50,6 @@ const AboutUs = () => {
       role: t('team.roles.devOpsEngineer'),
       imageUrl: '/images/team/Hector Garcia.png',
       linkedinUrl: 'https://www.linkedin.com/in/héctor-garcia-401873207/'
-    },
-    {
-      name: 'Alexander',
-      role: t('team.roles.cybersecurityAnalyst'),
-      imageUrl: '/images/team/Alexander.png',
-      linkedinUrl: 'https://www.linkedin.com/in/kevin-guillen-5282bb290/'
-    },
-    {
-      name: 'Noé Flores',
-      role: t('team.roles.marketing'),
-      imageUrl: '/images/team/Noe Flores.png',
-      linkedinUrl: 'https://www.linkedin.com/in/noe-flores-b161163ab/'
     }
   ];
 
