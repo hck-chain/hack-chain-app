@@ -116,10 +116,12 @@ const EducatorDashboard = () => {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`);
         if (response.ok) {
           const data = await response.json();
-          // The API returns { talents: [...] } or just [...]? 
-          // Based on file read: res.json({ talents: ... })
-          if (data.talents) {
-            setTalents(data.talents);
+          if (data.students) {
+            const normalizedTalents = data.students.map((s: any) => ({
+              ...s,
+              user: s.User || s.user 
+            }));
+            setTalents(normalizedTalents);
           }
         }
       } catch (error) {
