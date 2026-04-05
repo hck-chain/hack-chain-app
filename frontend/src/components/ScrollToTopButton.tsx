@@ -20,11 +20,11 @@ const ScrollToTopButton = () => {
     return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
 
-  // Función para hacer scroll al top con animación suave mejorada
+  // Function scroll to top with better animation
   const scrollToTop = () => {
     const scrollDuration = 800; // Duración en milisegundos
     const scrollStep = -window.scrollY / (scrollDuration / 15);
-    
+
     const scrollInterval = setInterval(() => {
       if (window.scrollY !== 0) {
         window.scrollBy(0, scrollStep);

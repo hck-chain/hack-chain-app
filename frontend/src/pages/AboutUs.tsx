@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Layout from '@/components/Layout';
 import Navbar from '@/components/Navbar';
 import { TeamMemberCard } from '@/components/TeamMemberCard';
+import { Timeline } from '@/components/Timeline';
 import { motion } from 'framer-motion';
 
 const AboutUs = () => {
@@ -138,6 +139,11 @@ const AboutUs = () => {
               {t('team.aboutBlock.p3')}
             </p>
           </motion.div>
+        </div>
+
+        {/* Timeline Section */}
+        <div className="relative z-10 border-t border-purple-500/20 pt-12 mt-12">
+          <Timeline />
         </div>
       </main>
     </Layout>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Recruiter {
     wallet_address: string;
