@@ -88,6 +88,11 @@ export const useWalletLogin = () => {
         //     setError(err.message || "Failed to connect wallet.");
         // }
         if (!window.ethereum) {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) {
+                window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+                return;
+            }
             throw new Error("MetaMask not detected");
         }
 
