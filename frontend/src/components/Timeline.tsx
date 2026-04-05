@@ -69,7 +69,7 @@ export const Timeline = () => {
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
+        viewport={{ once: false, margin: "-100px" }}
         transition={{ duration: 0.6 }}
         className="text-center mb-24 relative z-10"
       >
@@ -98,7 +98,7 @@ export const Timeline = () => {
                 key={item.id}
                 initial={{ opacity: 0, y: 50, x: isEven ? -50 : 50 }}
                 whileInView={{ opacity: 1, y: 0, x: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
+                viewport={{ once: false, margin: "-100px" }}
                 transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
                 className={`relative flex items-center md:justify-between w-full ${isEven ? 'md:flex-row-reverse' : ''}`}
               >
