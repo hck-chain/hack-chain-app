@@ -23,7 +23,7 @@ if (databaseUrl) {
   const dbName = process.env.DB_PGDATABASE || process.env.DB_NAME || "hackchain";
   const dbUser = process.env.DB_PGUSER || process.env.DB_USER || "postgres";
   const dbPassword = process.env.DB_PGPASSWORD || process.env.DB_PASSWORD;
-  const dbHost = process.env.DB_PGHOST || process.env.DB_HOST || "localhost";
+  const dbHost = process.env.DB_PGHOST || process.env.DB_HOST;
   const dbPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432;
 
   sequelize = new Sequelize(

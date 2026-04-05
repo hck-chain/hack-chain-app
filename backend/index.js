@@ -18,7 +18,6 @@ app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
 const allowedOrigins = [
   "https://hackchain.app",
   "https://www.hackchain.app",
-  "https://hack-chain-app-frontend-9oz24fv52.vercel.app"
 ];
 
 app.use(cors({
@@ -30,6 +29,33 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// ---------- CORS (ACTUALIZADO PARA VERCEL DINÁMICO) ----------
+// const allowedOrigins = [
+//   "https://hackchain.app",
+//   "https://www.hackchain.app"
+// ];
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     // 1. Permitir peticiones sin origen (como Postman o Server-to-Server)
+//     if (!origin) return callback(null, true);
+
+//     // 2. Verificar si el origen es un despliegue de Vercel o está en la lista fija
+//     const isVercel = origin.endsWith(".vercel.app");
+//     const isAllowed = allowedOrigins.includes(origin);
+
+//     if (isAllowed || isVercel) {
+//       return callback(null, true);
+//     } else {
+//       console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
+//       return callback(new Error("Not allowed by CORS"));
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
 
 // ---------- Middleware ----------
 app.use(express.json());
