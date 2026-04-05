@@ -225,7 +225,7 @@ const TalentDetailDashboard = () => {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.4 }}
-                                className="bg-slate-900/20 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden shadow-md hover:scale-[1.02] transition-transform"
+                                className="bg-slate-900/40 backdrop-blur-xl border border-white/5 border-t-white/10 border-l-white/10 rounded-xl overflow-hidden shadow-[0_8px_30px_rgba(168,85,247,0.1)] hover:shadow-[0_15px_40px_rgba(168,85,247,0.25)] hover:scale-[1.02] transition-all duration-300"
                             >
                                 <div className="w-full bg-black flex items-center justify-center">
                                     <img

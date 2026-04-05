@@ -18,6 +18,7 @@ interface WalletLoginResponse {
 export const useWalletLogin = () => {
     const navigate = useNavigate();
     const [error, setError] = useState<string | null>(null);
+    const [isConnecting, setIsConnecting] = useState(false);
 
     const mutation = useMutation({
         mutationFn: async (walletAddress: string) => {
@@ -87,31 +88,40 @@ export const useWalletLogin = () => {
         //     console.error("Wallet connection error:", err);
         //     setError(err.message || "Failed to connect wallet.");
         // }
-        if (!window.ethereum) {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            if (isMobile) {
-                window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-                return;
+        try {
+            setIsConnecting(true);
+
+            if (!window.ethereum) {
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (isMobile) {
+                    window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+                    setIsConnecting(false);
+                    return;
+                }
+                throw new Error("MetaMask not detected");
             }
-            throw new Error("MetaMask not detected");
+
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }],
+            });
+
+            const accounts = await window.ethereum.request({
+                method: "eth_requestAccounts",
+            });
+
+            const walletAddress = accounts[0];
+            mutation.mutate(walletAddress);
+        } catch (err: any) {
+            setError(err.message || "Failed to connect to wallet");
+        } finally {
+            setIsConnecting(false);
         }
-
-        await window.ethereum.request({
-            method: "wallet_requestPermissions",
-            params: [{ eth_accounts: {} }],
-        });
-
-        const accounts = await window.ethereum.request({
-            method: "eth_requestAccounts",
-        });
-
-        const walletAddress = accounts[0];
-        mutation.mutate(walletAddress);
     };
 
     return {
         connectAndLogin,
-        isLoading: mutation.isPending,
+        isLoading: isConnecting || mutation.isPending,
         error: error || mutation.error?.message,
     };
 };

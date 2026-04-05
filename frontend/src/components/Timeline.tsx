@@ -114,7 +114,7 @@ export const Timeline = () => {
 
                 {/* Content Card */}
                 <div className="w-full md:w-[45%] pl-16 md:pl-0">
-                  <div className={`p-6 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-purple-500/30 shadow-xl relative group transition-all duration-300 hover:border-purple-400/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]`}>
+                  <div className={`p-6 bg-slate-900/60 backdrop-blur-2xl rounded-2xl border border-purple-500/10 border-t-purple-500/40 border-l-purple-500/40 shadow-xl relative group transition-all duration-300 hover:border-purple-400/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]`}>
                     
                     {/* Connecting Line (Desktop) */}
                     <div className={`hidden md:block absolute top-1/2 transform -translate-y-1/2 w-8 h-[2px] bg-purple-500/30 ${isEven ? 'left-full' : 'right-full'}`}></div>

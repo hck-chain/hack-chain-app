@@ -404,7 +404,7 @@ const EducatorDashboard = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="lg:col-span-5 order-2 lg:order-1"
             >
-              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 border-t-white/10 border-l-white/10 rounded-3xl p-8 shadow-[0_8px_30px_rgba(168,85,247,0.15)] hover:shadow-[0_8px_40px_rgba(168,85,247,0.25)] relative overflow-hidden group transition-all duration-300">
                 {/* Internal decorative gradient */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -529,7 +529,7 @@ const EducatorDashboard = () => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
             >
-              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
+              <div className="bg-slate-900/20 backdrop-blur-xl border border-white/5 border-t-white/10 border-l-white/10 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative shadow-[0_8px_30px_rgba(168,85,247,0.1)]">
                 {/* "Preview" Label */}
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                   <span className="text-xs font-medium tracking-widest uppercase text-slate-400">Live Preview</span>

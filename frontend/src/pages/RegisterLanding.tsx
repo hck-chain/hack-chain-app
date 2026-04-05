@@ -116,10 +116,10 @@ const RegisterLanding = () => {
       {/* Hero Section */}
       <div className="relative z-20 animate-in fade-in duration-700 slide-in-from-bottom pt-24">
         <div className="z-10 flex flex-col items-center max-w-4xl mx-auto px-4 mt-8 mb-8 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6 tracking-tighter drop-shadow-md">
             {t('registerLanding.title1')}
             <br />
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
               {t('registerLanding.title2')}
             </span>
           </h1>

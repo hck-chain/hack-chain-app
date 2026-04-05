@@ -222,8 +222,8 @@ const RecruiterDashboard = () => {
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.35 }}
-                                className="bg-slate-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.5)] 
-                                    hover:scale-[1.03] hover:shadow-[0_15px_40px_rgba(0,0,0,0.6)] transition-all cursor-pointer"
+                                className="bg-slate-900/40 backdrop-blur-xl border border-white/5 border-t-white/10 border-l-white/10 rounded-3xl p-6 shadow-[0_8px_30px_rgba(168,85,247,0.1)] 
+                                    hover:scale-[1.03] hover:shadow-[0_15px_40px_rgba(168,85,247,0.25)] transition-all cursor-pointer group"
                                 onClick={() => navigate(`/recruiter/talent/${talent.wallet_address}`)}
                             >
                                 {/* Header */}

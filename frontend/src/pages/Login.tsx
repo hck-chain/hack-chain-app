@@ -83,9 +83,9 @@ export default function Login() {
 
               {/* Welcome Text */}
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
-                  {t('login.welcome')}
-                  <span className="bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent">
+                <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight tracking-tighter drop-shadow-md">
+                  {t('login.welcome')}{" "}
+                  <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]">
                     Hack Chain
                   </span>
                 </h1>
@@ -141,7 +141,7 @@ export default function Login() {
 
             {/* Right Side — Login Form, centered on mobile */}
             <div className="flex justify-center lg:col-auto col-span-1 animate-in slide-in-from-right duration-700 delay-500">
-              <Card className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-500/30 hover:border-purple-500/50 bg-gradient-to-br from-slate-900/95 via-purple-900/20 to-slate-900/95 backdrop-blur-xl rounded-2xl">
+              <Card className="w-full max-w-md shadow-[0_8px_30px_rgba(168,85,247,0.15)] hover:shadow-[0_8px_40px_rgba(168,85,247,0.25)] transition-all duration-300 border border-white/5 border-t-white/10 border-l-white/10 hover:border-purple-500/50 bg-gradient-to-br from-slate-900/95 via-purple-900/20 to-slate-900/95 backdrop-blur-2xl rounded-2xl">
 
                 <CardHeader className="flex flex-col items-center space-y-1 text-center font-lato">
                   <div className="flex items-center gap-3 mb-2">

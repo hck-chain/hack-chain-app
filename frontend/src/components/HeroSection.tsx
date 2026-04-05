@@ -21,10 +21,10 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="font-title text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+            className="font-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tighter drop-shadow-md"
           >
             {t('hero.title1')}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B11D1] to-[#F743EE]">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]">
               {t('hero.title2')}
             </span>
           </motion.h1>

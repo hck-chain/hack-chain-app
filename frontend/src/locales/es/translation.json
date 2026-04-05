@@ -367,5 +367,13 @@
     "modalDesc": "HackChain necesita una Web3 wallet para operar de manera segura. Por favor instala MetaMask para registrarte y continuar.",
     "cancel": "Cancelar",
     "downloadBtn": "Descargar MetaMask"
+  },
+  "cookieBanner": {
+    "title": "Privacidad y Cookies",
+    "desc1": "Utilizamos cookies propias y de terceros para mejorar tu experiencia, analizar el uso de nuestra infraestructura Web3 y personalizar el contenido. Puedes aceptar todas las cookies, rechazarlas o configurar tus preferencias. Para más detalles, consulta nuestra ",
+    "policyLink": "Política de Cookies",
+    "reject": "Rechazar",
+    "config": "Configurar",
+    "accept": "Aceptar todas"
   }
 }
