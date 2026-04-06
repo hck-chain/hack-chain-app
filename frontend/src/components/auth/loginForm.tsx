@@ -17,8 +17,37 @@ export const LoginForm = () => {
     await connectAndLogin();
   };
 
+  if (isWalletLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-6 py-8 animate-in zoom-in-95 duration-500">
+        <div className="relative flex items-center justify-center">
+          {/* Glowing rings */}
+          <div className="absolute inset-0 w-20 h-20 -m-2 rounded-full border-[3px] border-purple-500/10"></div>
+          <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-purple-400 border-l-purple-500 animate-spin shadow-[0_0_15px_rgba(168,85,247,0.5)]"></div>
+          {/* Inner fox */}
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="absolute w-7 h-7 animate-pulse drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+          <div className="w-16 h-16"></div> {/* Spacer for absolute positioning */}
+        </div>
+        
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-exo font-bold text-white tracking-wide animate-pulse drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]">
+            Awaiting Signature
+          </h3>
+          <p className="text-sm text-slate-400 font-lato">
+            Please approve the request in your wallet...
+          </p>
+        </div>
+
+        {/* Cyber Progress Bar */}
+        <div className="w-full max-w-[200px] h-1.5 bg-slate-800/80 rounded-full overflow-hidden relative shadow-inner">
+          <div className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-data-flow"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
 
       {/* Wallet Error */}
       {(walletError || errorMessage) && (
@@ -33,13 +62,9 @@ export const LoginForm = () => {
         variant="outline"
         onClick={handleWalletLogin}
         disabled={isWalletLoading}
-        className="w-full py-6 border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white transition-all duration-300 bg-slate-900/50"
+        className="w-full py-6 border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white transition-all duration-300 bg-slate-900/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
       >
-        {isWalletLoading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="mr-2 h-5 w-5" />
-        )}
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="mr-2 h-5 w-5 drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]" />
         {t('loginForm.connectMetaMask')}
       </Button>
 

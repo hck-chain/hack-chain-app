@@ -60,6 +60,12 @@ export function UserRegistrationForm() {
 
   const onSubmit = (data: UserRegistrationFormData) => {
     if (!window.ethereum) {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        // Redirige al navegador interno de MetaMask en móvil
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+        return;
+      }
       setShowMetamaskModal(true);
       return;
     }

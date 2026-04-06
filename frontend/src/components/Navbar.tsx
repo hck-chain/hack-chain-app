@@ -15,7 +15,7 @@ const Navbar = () => {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       // Hide on scroll down, show on scroll up, always show at the top
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
         setIsVisible(false);
@@ -23,7 +23,7 @@ const Navbar = () => {
       } else {
         setIsVisible(true);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
@@ -122,9 +122,8 @@ const Navbar = () => {
 
         {/* Mobile Navigation — animated slide-down */}
         <div
-          className={`md:hidden overflow-y-auto max-h-[calc(100vh-5rem)] transition-all duration-300 ease-in-out ${
-            isMenuOpen ? 'opacity-100 pb-4 origin-top scale-y-100' : 'opacity-0 pointer-events-none origin-top scale-y-0 h-0'
-          }`}
+          className={`md:hidden overflow-y-auto max-h-[calc(100vh-5rem)] transition-all duration-300 ease-in-out ${isMenuOpen ? 'opacity-100 pb-4 origin-top scale-y-100' : 'opacity-0 pointer-events-none origin-top scale-y-0 h-0'
+            }`}
         >
           <div className="glass rounded-xl p-3 mt-1 space-y-1">
             {navItems.map((item) => (

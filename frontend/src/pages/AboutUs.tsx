@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Layout from '@/components/Layout';
 import Navbar from '@/components/Navbar';
 import { TeamMemberCard } from '@/components/TeamMemberCard';
+import { Timeline } from '@/components/Timeline';
 import { motion } from 'framer-motion';
 
 const AboutUs = () => {
@@ -65,9 +66,11 @@ const AboutUs = () => {
             transition={{ duration: 0.5 }}
             className="mb-20 flex flex-col md:flex-row items-start md:items-center gap-6"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-title font-bold text-foreground">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-title font-bold text-foreground tracking-tighter drop-shadow-md">
               {t('team.title')}{' '}
-              <span className="text-foreground/40">{t('team.subtitle')}</span>
+              <span className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                {t('team.subtitle')}
+              </span>
             </h1>
             <div className="hidden md:block h-[2px] bg-foreground/20 flex-grow mt-2"></div>
           </motion.div>
@@ -121,6 +124,11 @@ const AboutUs = () => {
               {t('team.aboutBlock.p3')}
             </p>
           </motion.div>
+        </div>
+
+        {/* Timeline Section */}
+        <div className="relative z-10 border-t border-purple-500/20 pt-12 mt-12">
+          <Timeline />
         </div>
       </main>
     </Layout>

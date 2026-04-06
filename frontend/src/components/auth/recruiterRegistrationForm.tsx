@@ -61,6 +61,11 @@ export function RecruiterRegistrationForm() {
 
   const onSubmit = (data: RecruiterRegistrationFormData) => {
     if (!window.ethereum) {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+        return;
+      }
       setShowMetamaskModal(true);
       return;
     }
