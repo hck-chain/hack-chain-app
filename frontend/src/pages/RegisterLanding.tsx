@@ -52,13 +52,13 @@ const RegisterLanding = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#0B0B0F] font-lato">
-      {/* Background animations */}
+    <>
       <div className="fixed inset-0 z-0 bg-[#0B0B0F]" />
       <div className="fixed inset-0 z-10 pointer-events-none">
         <BackgroundAnimation />
         <FloatingElements />
       </div>
+      <div className="relative min-h-screen flex flex-col overflow-x-hidden font-lato">
 
       {/* Header */}
       <div className={`z-40 w-full border-b border-white/10 fixed top-0 left-0 right-0 bg-[#0B0B0F]/80 backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`} style={{ minHeight: '56px' }}>
@@ -265,10 +265,11 @@ const RegisterLanding = () => {
       </div>
 
       {/* Footer */}
-      <div className="w-full border-t border-white/10 bg-[#0B0B0F]">
-        <Footer />
-      </div>
+      <div className="mt-auto w-full">
+          <Footer />
+        </div>
     </div>
+    </>
   );
 };
 

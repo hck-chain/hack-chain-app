@@ -6,8 +6,8 @@ import Footer from './Footer';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="min-h-screen relative overflow-x-hidden">
-        <div className="absolute inset-0 -z-30 bg-background" />
-            <div className="absolute inset-0 -z-20">
+        <div className="fixed inset-0 -z-30 bg-background" />
+            <div className="fixed inset-0 -z-20 pointer-events-none">
             <BackgroundAnimation />
             <FloatingElements />
             </div>

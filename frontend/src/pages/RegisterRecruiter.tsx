@@ -172,11 +172,12 @@ export function RegisterRecruiter() {
         </div>
 
         {/* Footer */}
-        <div className="w-full border-t border-white/10 bg-[#0B0B0F] mt-auto">
+        <div className="mt-auto w-full">
           <Footer />
         </div>
 
       </div>
     </div>
+
   );
 }

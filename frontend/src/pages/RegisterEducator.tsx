@@ -33,13 +33,13 @@ export default function RegisterEducator() {
   }, [lastScrollY]);
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden bg-background flex flex-col font-lato">
-      {/* Background Animation */}
-      <div className="fixed inset-0 z-0 bg-background" />
-      <div className="fixed inset-0 z-10 pointer-events-none">
+    <>
+      <div className="fixed inset-0 -z-30 bg-background" />
+      <div className="fixed inset-0 -z-20 pointer-events-none">
         <BackgroundAnimation />
         <FloatingElements />
       </div>
+      <div className="min-h-screen relative overflow-x-hidden flex flex-col font-lato">
 
       {/* Page Content */}
       <div className="relative z-20 animate-in fade-in duration-700 flex flex-col flex-1">
@@ -184,11 +184,12 @@ export default function RegisterEducator() {
         </div>
 
         {/* Footer */}
-        <div className="w-full border-t border-white/10 bg-[#0B0B0F] mt-auto">
+        <div className="mt-auto w-full">
           <Footer />
         </div>
 
       </div>
     </div>
+    </>
   );
 }
