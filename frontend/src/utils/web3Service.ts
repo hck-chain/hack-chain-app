@@ -784,7 +784,7 @@ export const web3Service = {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    issuerWallet
+                    issuerWallet:issuerWallet.toLowerCase()
                 })
             });
 
