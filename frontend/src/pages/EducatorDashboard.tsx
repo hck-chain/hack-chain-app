@@ -119,7 +119,7 @@ const EducatorDashboard = () => {
           if (data.students) {
             const normalizedTalents = data.students.map((s: any) => ({
               ...s,
-              user: s.User || s.user 
+              user: s.User || s.user
             }));
             setTalents(normalizedTalents);
           }
@@ -296,104 +296,106 @@ const EducatorDashboard = () => {
         >
 
           {/* Header Section */}
-          <header
-            className="mb-8 sm:mb-16 md:mb-28 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
-          >
-            <div>
+          <header className="mb-8 sm:mb-16 md:mb-28 grid grid-cols-1 md:grid-cols-3 items-start md:items-center gap-6">
+
+            {/* Columna Izquierda: Títulos */}
+            <div className="flex flex-col">
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
                   Educator Dashboard
                 </span>
               </h1>
-
               <p className="text-lg text-slate-400 font-light">
                 Create and issue blockchain-verified credentials with ease.
               </p>
             </div>
-            {/* Logo centrado */}
-            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
-              <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+
+            {/* Columna Central: Logo (Centrado real y seguro) */}
+            <div className="hidden md:flex justify-center">
+              <img src={HackChainLogo} alt="Logo" className="h-16 md:h-24 object-contain" />
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+
+            {/* Columna Derecha: Popover de Usuario */}
+            <div className="flex justify-end">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
+                  >
+                    <div className="flex flex-row items-baseline gap-1 overflow-hidden">
+                      <span className="text-sm text-slate-400 font-medium whitespace-nowrap">Welcome back,</span>
+                      <span className="text-sm font-bold text-white truncate max-w-[120px] lg:max-w-[180px]">
+                        {userData.organization_name || "Educator"}
+                      </span>
+                    </div>
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                      <Award className="h-5 w-5 text-white" />
+                    </div>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                  </Button>
+                </PopoverTrigger>
+
+                <PopoverContent
+                  className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
+                  align="end"
+                  sideOffset={8}
                 >
-                  <div className="flex flex-row items-baseline gap-1">
-                    <span className="text-sm text-slate-400 font-medium">Welcome back,</span>
-                    <span className="text-sm font-bold text-white">{userData.organization_name || "Educator"}</span>
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                    <Award className="h-5 w-5 text-white" />
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
-                </Button>
-              </PopoverTrigger>
-
-              <PopoverContent
-                className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
-                align="end"
-                sideOffset={8}
-              >
-                <div className="p-6 space-y-4">
-                  {/* Header with Avatar */}
-                  <div className="flex items-center gap-4 pb-4 border-b border-white/10">
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                      <Award className="h-7 w-7 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-base font-bold text-white">{userData.organization_name || "My Organization"}</h3>
-                      <p className="text-xs text-purple-400 font-medium">{userData.role || "Issuer"}</p>
-                    </div>
-                  </div>
-
-                  {/* User Information */}
-                  <div className="space-y-3">
-                    {/* Email */}
-                    <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Certificates Issued</p>
-                        <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : "No certificates issued yet"}</p>
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center gap-4 pb-4 border-b border-white/10">
+                      <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                        <Award className="h-7 w-7 text-white" />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <h3 className="text-base font-bold text-white truncate">
+                          {userData.organization_name || "My Organization"}
+                        </h3>
+                        <p className="text-xs text-purple-400 font-medium">{userData.role || "Issuer"}</p>
                       </div>
                     </div>
 
-                    {/* Role */}
-                    <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Role</p>
-                        <p className="text-sm text-slate-200">Educator</p>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                        <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Certificates Issued</p>
+                          <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : "None yet"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                        <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Role</p>
+                          <p className="text-sm text-slate-200">Educator</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                        <Wallet className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Wallet Address</p>
+                          <p className="text-sm text-slate-200 font-mono">
+                            ••••{userData.walletAddress?.slice(-4) || "••••"}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Wallet */}
-                    <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <Wallet className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Wallet Address</p>
-                        <p className="text-sm text-slate-200 font-mono">
-                          ••••{userData.walletAddress?.slice(-4) || "••••"}
-                        </p>
-                      </div>
+                    <div className="pt-4 border-t border-white/10">
+                      <Button
+                        onClick={handleLogout}
+                        variant="outline"
+                        className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Logout Button */}
-                  <div className="pt-4 border-t border-white/10">
-                    <Button
-                      onClick={handleLogout}
-                      variant="outline"
-                      className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            </div>
           </header>
 
           {/* Main Content Grid */}

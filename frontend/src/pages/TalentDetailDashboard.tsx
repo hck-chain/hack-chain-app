@@ -112,7 +112,9 @@ const TalentDetailDashboard = () => {
                 >
 
                     {/* Header */}
-                    <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <header className="mb-12 grid grid-cols-1 md:grid-cols-3 items-start md:items-center gap-6">
+
+                        {/* Columna Izquierda: Botón Back y Nombre */}
                         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                             <Button
                                 onClick={goBackToRecruiterDashboard}
@@ -121,9 +123,9 @@ const TalentDetailDashboard = () => {
                             >
                                 <ArrowLeft className="h-5 w-5" /> Back
                             </Button>
-                            <div>
-                                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2 font-title">
-                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                            <div className="min-w-0"> {/* min-w-0 ayuda a manejar textos largos */}
+                                <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-2 font-title leading-tight">
+                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 break-words">
                                         {talent.name}
                                     </span>
                                 </h1>
@@ -132,89 +134,85 @@ const TalentDetailDashboard = () => {
                                 </p>
                             </div>
                         </div>
-                        {/* Logo centrado */}
-                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
-                            <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+
+                        {/* Columna Central: Logo (Ahora sí centrado y respetando espacios) */}
+                        <div className="hidden md:flex justify-center">
+                            <img src={HackChainLogo} alt="Logo" className="h-16 md:h-24 object-contain" />
                         </div>
 
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
+                        {/* Columna Derecha: Popover */}
+                        <div className="flex justify-end">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
+                                    >
+                                        <div className="flex flex-row items-baseline gap-1">
+                                            <span className="text-xs text-slate-400 font-body font-medium">Talent:</span>
+                                            <span className="text-sm font-title font-bold text-white truncate max-w-[100px] lg:max-w-none">
+                                                {talent.name}
+                                            </span>
+                                        </div>
+                                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                                            <Award className="h-4 w-4 text-white" />
+                                        </div>
+                                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                                    </Button>
+                                </PopoverTrigger>
+                                {/* ... resto del PopoverContent se queda igual ... */}
+                                <PopoverContent
+                                    className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
+                                    align="end"
+                                    sideOffset={8}
                                 >
-                                    <div className="flex flex-row items-baseline gap-1">
-                                        <span className="text-xs text-slate-400 font-body font-medium">Talent:</span>
-                                        <span className="text-sm font-title font-bold text-white">
-                                            {talent.name}
-                                        </span>
-                                    </div>
-                                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                                        <Award className="h-4 w-4 text-white" />
-                                    </div>
-                                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
-                                align="end"
-                                sideOffset={8}
-                            >
-                                <div className="p-6 space-y-4">
-                                    <div className="flex items-center gap-4 pb-4 border-b border-white/10">
-                                        <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                                            <Award className="h-6 w-6 text-white" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="text-base font-title font-bold text-white">{talent.name}</h3>
-                                        </div>
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="space-y-3">
-                                        {/* Certificates */}
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Award className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Certificates</p>
-                                                <p className="text-sm text-slate-200 font-body">{talent.total_certificates}</p>
+                                    <div className="p-6 space-y-4">
+                                        <div className="flex items-center gap-4 pb-4 border-b border-white/10">
+                                            <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                                                <Award className="h-6 w-6 text-white" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-base font-title font-bold text-white">{talent.name}</h3>
                                             </div>
                                         </div>
-
-                                        {/* Field of Study */}
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
-                                                <p className="text-sm text-slate-200 font-body">{talent.field_of_study}</p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Award className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">Certificates</p>
+                                                    <p className="text-sm text-slate-200 font-body">{talent.total_certificates}</p>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        {/* Wallet */}
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Wallet</p>
-                                                <p className="text-sm text-slate-200 font-body">
-                                                    ••••{talent.wallet_address.slice(-4)}
-                                                </p>
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
+                                                    <p className="text-sm text-slate-200 font-body">{talent.field_of_study}</p>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        {/* Registered */}
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">Registered</p>
-                                                <p className="text-sm text-slate-200 font-body">
-                                                    {new Date(talent.created_at || '').toLocaleDateString()}
-                                                </p>
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">Wallet</p>
+                                                    <p className="text-sm text-slate-200 font-body">
+                                                        ••••{talent.wallet_address.slice(-4)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">Registered</p>
+                                                    <p className="text-sm text-slate-200 font-body">
+                                                        {new Date(talent.created_at || '').toLocaleDateString()}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </header>
 
                     {/* Certificates Grid */}

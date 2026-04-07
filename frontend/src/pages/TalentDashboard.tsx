@@ -115,9 +115,11 @@ const TalentDashboard = () => {
 
 
                     {/* Header */}
-                    <header className="mb-14 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div>
-                            <h1 className="text-4xl md:text-5xl font-title font-bold tracking-tight mb-2">
+                    <header className="mb-14 grid grid-cols-1 md:grid-cols-3 items-start md:items-center gap-6">
+
+                        {/* Lado Izquierdo: Títulos */}
+                        <div className="flex flex-col">
+                            <h1 className="text-4xl lg:text-5xl font-title font-bold tracking-tight mb-2">
                                 <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                                     Talent Dashboard
                                 </span>
@@ -126,109 +128,112 @@ const TalentDashboard = () => {
                                 View your tokenized certificates.
                             </p>
                         </div>
-                        {/* Logo — hidden on mobile to avoid overlap */}
-                        <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
-                            <img src={HackChainLogo} alt="Logo" className="h-16 md:h-28" />
+
+                        {/* Centro: Logo (Ahora sí centrado real y seguro) */}
+                        <div className="hidden md:flex justify-center">
+                            <img src={HackChainLogo} alt="Logo" className="h-16 md:h-24 object-contain" />
                         </div>
 
-                        {/* User Popover */}
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all"
-                                >
-                                    <div className="flex flex-row items-baseline gap-1">
-                                        <span className="text-xs text-slate-400 font-body font-medium">
-                                            Welcome back,
-                                        </span>
-                                        <span className="text-sm font-body font-bold text-white">
-                                            {talent.name || "Talent"}
-                                        </span>
-                                    </div>
-
-                                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                                        <Award className="h-4 w-4 text-white" />
-                                    </div>
-
-                                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                                </Button>
-                            </PopoverTrigger>
-
-                            <PopoverContent
-                                className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
-                                align="end"
-                                sideOffset={8}
-                            >
-                                <div className="p-6 space-y-4">
-                                    {/* Header */}
-                                    <div className="flex items-center gap-4 pb-4 border-b border-white/10">
-                                        <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                                            <Award className="h-6 w-6 text-white" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="text-base font-title font-bold text-white">
+                        {/* Lado Derecho: User Popover */}
+                        <div className="flex justify-end">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all max-w-full"
+                                    >
+                                        <div className="flex flex-row items-baseline gap-1 overflow-hidden">
+                                            <span className="text-xs text-slate-400 font-body font-medium whitespace-nowrap">
+                                                Welcome back,
+                                            </span>
+                                            <span className="text-sm font-body font-bold text-white truncate max-w-[120px] lg:max-w-[180px]">
                                                 {talent.name || "Talent"}
-                                            </h3>
-                                            <p className="text-xs text-blue-400 font-body font-medium">
-                                                Talent
-                                            </p>
+                                            </span>
+                                        </div>
+
+                                        <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                                            <Award className="h-4 w-4 text-white" />
+                                        </div>
+
+                                        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                                    </Button>
+                                </PopoverTrigger>
+
+                                <PopoverContent
+                                    className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
+                                    align="end"
+                                    sideOffset={8}
+                                >
+                                    <div className="p-6 space-y-4">
+                                        {/* Header dentro del Popover */}
+                                        <div className="flex items-center gap-4 pb-4 border-b border-white/10">
+                                            <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                                                <Award className="h-6 w-6 text-white" />
+                                            </div>
+                                            <div className="flex-1 overflow-hidden">
+                                                <h3 className="text-base font-title font-bold text-white truncate">
+                                                    {talent.name || "Talent"}
+                                                </h3>
+                                                <p className="text-xs text-blue-400 font-body font-medium">
+                                                    Talent
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Award className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">
+                                                        Total Certificates
+                                                    </p>
+                                                    <p className="text-sm text-slate-200 font-body">
+                                                        {totalCertificates || 0}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">
+                                                        Role
+                                                    </p>
+                                                    <p className="text-sm text-slate-200 font-body">
+                                                        {talent.role}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs uppercase text-slate-500 font-body font-semibold">
+                                                        Wallet
+                                                    </p>
+                                                    <p className="text-sm text-slate-200 font-mono">
+                                                        ••••{talent.wallet_address.slice(-4)}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Logout Button */}
+                                            <div className="pt-4 border-t border-white/10">
+                                                <Button
+                                                    onClick={handleLogout}
+                                                    variant="outline"
+                                                    className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 font-body"
+                                                >
+                                                    <LogOut className="h-4 w-4 mr-2" />
+                                                    Logout
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Info */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Mail className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">
-                                                    Total Certificates
-                                                </p>
-                                                <p className="text-sm text-slate-200 font-body truncate">
-                                                    {totalCertificates || "No certificate found"}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">
-                                                    Role
-                                                </p>
-                                                <p className="text-sm text-slate-200 font-body">
-                                                    {talent.role}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                            <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs uppercase text-slate-500 font-body font-semibold">
-                                                    Wallet
-                                                </p>
-                                                <p className="text-sm text-slate-200 font-mono font-body">
-                                                    ••••{talent.wallet_address.slice(-4)}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Logout Button */}
-                                        <div className="pt-4 border-t border-white/10">
-                                            <Button
-                                                onClick={handleLogout}
-                                                variant="outline"
-                                                className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 font-body"
-                                            >
-                                                <LogOut className="h-4 w-4 mr-2" />
-                                                Logout
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </header>
 
                     {/* Certificates Grid */}
