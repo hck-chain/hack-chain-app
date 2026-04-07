@@ -801,10 +801,15 @@ export const web3Service = {
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/certificates/database`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
+                    student_wallet_address: talentWallet.toLowerCase(),
                     issuer_wallet_address: issuerWallet,
                     title: courseName,
                     description: "Tokenized HackChain Certificate",
