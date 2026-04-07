@@ -150,6 +150,7 @@ All colors MUST be HSL.
       linear-gradient(hsl(var(--neon-purple) / 0.1) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--neon-purple) / 0.1) 1px, transparent 1px);
     background-size: 50px 50px;
+    background-attachment: fixed;
   }
 
   .language-transitioning {

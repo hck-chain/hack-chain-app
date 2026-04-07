@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import {
   FaLinkedin,
   FaInstagram,
@@ -38,7 +39,9 @@ const socials = [
 
 
 const Footer: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEs = i18n.language.startsWith('es');
+
   return (
   <footer className="py-14 glass border-t border-white/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -75,8 +78,18 @@ const Footer: React.FC = () => {
         ))}
       </div>
 
-      {/* Legal */}
-      <div className="mt-8 font-body text-sm text-muted-foreground">
+      {/* Legal Links */}
+      <div className="mt-8 mb-4 flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-gray-400 font-body">
+        <Link to="/legal/privacy" className="hover:text-purple-400 transition-colors">{isEs ? "Política de Privacidad" : "Privacy Policy"}</Link>
+        <Link to="/legal/terms" className="hover:text-purple-400 transition-colors">{isEs ? "Términos de Servicio" : "Terms of Service"}</Link>
+        <Link to="/legal/cookies" className="hover:text-purple-400 transition-colors">{isEs ? "Política de Cookies" : "Cookie Policy"}</Link>
+        <Link to="/legal/blockchain" className="hover:text-purple-400 transition-colors flex items-center gap-1">
+          {isEs ? "Aviso Blockchain" : "Disclaimer"}
+        </Link>
+      </div>
+
+      {/* Legal Copyright */}
+      <div className="font-body text-sm text-muted-foreground/60">
         {t('footer.copyright')}
       </div>
 

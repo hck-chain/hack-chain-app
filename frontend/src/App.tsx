@@ -16,6 +16,12 @@ import Login from "./pages/Login";
 import AboutUs from "./pages/AboutUs";
 import Contact from "./pages/Contact";
 import ScrollToTop from "./components/ScrollToTop";
+import CookieBanner from "./components/CookieBanner";
+
+import CookiePolicy from "./pages/legal/CookiePolicy";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
+import BlockchainDisclaimer from "./pages/legal/BlockchainDisclaimer";
 
 // PRUEBAS //////////////////////////
 import React from "react";
@@ -49,9 +55,15 @@ const App = () => (
           <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/about" element={<AboutUs />} />
-          <Route path="/contact" element={<Contact />} />
+          {/* Legal Routes */}
+          <Route path="/legal/cookies" element={<CookiePolicy />} />
+          <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+          <Route path="/legal/terms" element={<TermsOfService />} />
+          <Route path="/legal/blockchain" element={<BlockchainDisclaimer />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <CookieBanner />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

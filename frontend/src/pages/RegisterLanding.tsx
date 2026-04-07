@@ -52,10 +52,13 @@ const RegisterLanding = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-[#0B0B0F] font-lato">
-      {/* Background animations */}
-      <BackgroundAnimation />
-      <FloatingElements />
+    <>
+      <div className="fixed inset-0 z-0 bg-[#0B0B0F]" />
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <BackgroundAnimation />
+        <FloatingElements />
+      </div>
+      <div className="relative min-h-screen flex flex-col overflow-x-hidden font-lato">
 
       {/* Header */}
       <div className={`z-40 w-full border-b border-white/10 fixed top-0 left-0 right-0 bg-[#0B0B0F]/80 backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`} style={{ minHeight: '56px' }}>
@@ -74,11 +77,11 @@ const RegisterLanding = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
             <LanguageToggle />
-            <Link to="/">
-              <Button variant="ghost" className="font-lato text-gray-300 hover:text-white">
-                <ArrowLeft className="h-4 w-4 mr-2" />
+            <Link to="/" className="flex items-center gap-2 group">
+              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
+              <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
                 {t('login.backHome')}
-              </Button>
+              </span>
             </Link>
           </div>
 
@@ -101,22 +104,22 @@ const RegisterLanding = () => {
             <Link 
               to="/" 
               onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-2 text-lg font-lato text-blue-400 hover:text-blue-300 py-2"
+              className="flex items-center gap-2 group text-lg py-2"
             >
-              <ArrowLeft className="h-5 w-5" />
-              <span>{t('login.backHome')}</span>
+              <ArrowLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
+              <span className="font-lato text-slate-300 group-hover:text-purple-400 transition-colors duration-300">{t('login.backHome')}</span>
             </Link>
           </div>
         </div>
       </div>
 
       {/* Hero Section */}
-      <div className="animate-in fade-in duration-700 slide-in-from-bottom pt-24">
+      <div className="relative z-20 animate-in fade-in duration-700 slide-in-from-bottom pt-24">
         <div className="z-10 flex flex-col items-center max-w-4xl mx-auto px-4 mt-8 mb-8 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-exo font-bold text-white leading-tight mb-4 sm:mb-6 tracking-tighter drop-shadow-md">
             {t('registerLanding.title1')}
             <br />
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
               {t('registerLanding.title2')}
             </span>
           </h1>
@@ -262,10 +265,11 @@ const RegisterLanding = () => {
       </div>
 
       {/* Footer */}
-      <div className="w-full border-t border-white/10 bg-[#0B0B0F]">
-        <Footer />
-      </div>
+      <div className="mt-auto w-full">
+          <Footer />
+        </div>
     </div>
+    </>
   );
 };
 

@@ -106,6 +106,55 @@
       "p1": "HackChain is an educational-labor ecosystem that links Talent, Educators, and Recruiters in order to promote constant learning and transparency in recruitment processes.",
       "p2": "We believe Web3 technology should be accessible, decentralized, and designed to empower real users. Our goal is to accompany professionals in their growth with immutable tools and credentials that truly make a difference.",
       "p3": "Our vision is to become the global standard for talent verification, creating a world where every acquired skill is recognized globally without barriers or intermediaries, effectively bridging the gap between education and employment."
+    },
+    "timeline": {
+      "title": "COMPANY EVOLUTION",
+      "subtitle": "OUR MILESTONES • TIMELINE",
+      "jul25": {
+        "date": "JUL 2025",
+        "title": "HackChain is born",
+        "description": "The foundation and core idea of the project are established."
+      },
+      "aug25": {
+        "date": "AUG 2025",
+        "title": "Development Starts",
+        "description": "Initial development of the landing page and platform architecture begins."
+      },
+      "sep25": {
+        "date": "SEP 2025",
+        "title": "Tokenized Certificates",
+        "description": "First design and architecture of the tokenized certificate system."
+      },
+      "oct25": {
+        "date": "OCT 2025",
+        "title": "Tokenomics Creation",
+        "description": "Start of the tokenomics design and economic model for the platform."
+      },
+      "nov25": {
+        "date": "NOV 2025",
+        "title": "First Token Version",
+        "description": "First version of the token is audited and ready for deployment."
+      },
+      "dec25": {
+        "date": "DEC 2025",
+        "title": "Public Presale",
+        "description": "Public presale sequence for the first version of the token begins."
+      },
+      "jan26": {
+        "date": "JAN 2026",
+        "title": "Pilot Testing",
+        "description": "Pilot tests for the first design of tokenized certificates."
+      },
+      "feb26": {
+        "date": "FEB 2026",
+        "title": "Production Launch",
+        "description": "HackChain is officially launched to the public mainnet."
+      },
+      "mar26": {
+        "date": "MAR 2026",
+        "title": "First Users",
+        "description": "First Talents and Educators successfully registered on the platform."
+      }
     }
   },
   "login": {
@@ -318,5 +367,13 @@
     "modalDesc": "HackChain requires a Web3 wallet to operate safely. Please install MetaMask to register and continue.",
     "cancel": "Cancel",
     "downloadBtn": "Download MetaMask"
+  },
+  "cookieBanner": {
+    "title": "Privacy & Cookies",
+    "desc1": "We use first and third-party cookies to improve your experience, analyze the use of our Web3 infrastructure, and personalize content. You can accept all cookies, reject them, or set your preferences. For more details, check our ",
+    "policyLink": "Cookie Policy",
+    "reject": "Reject",
+    "config": "Preferences",
+    "accept": "Accept all"
   }
 }
