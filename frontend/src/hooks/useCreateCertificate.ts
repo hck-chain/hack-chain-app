@@ -25,11 +25,14 @@ export const useCreateCertificate = () => {
 
       // 1. Backend: Validate Talent & Pin Metadata to IPFS
       const payload = {
-        walletTalent: data.talentWallet,
-        nameTalent: data.talentName,
-        professor: professorWallet,
-        courseName: data.courseName,
-        imageUri: data.imageUri
+        // walletTalent: data.talentWallet,
+        // nameTalent: data.talentName,
+        // professor: professorWallet,
+        // courseName: data.courseName,
+        // imageUri: data.imageUri
+        studentWalletAddress: data.talentWallet, 
+        professor: professorWallet,              
+        tokenUri: data.imageUri
       };
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/mint`, {

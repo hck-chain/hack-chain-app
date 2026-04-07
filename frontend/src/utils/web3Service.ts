@@ -784,7 +784,7 @@ export const web3Service = {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    issuerWallet
+                    issuerWallet:issuerWallet.toLowerCase()
                 })
             });
 
@@ -805,7 +805,7 @@ export const web3Service = {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    issuer_wallet_address: issuerWallet,
+                    issuer_wallet_address: issuerWallet.toLowerCase(),
                     title: courseName,
                     description: "Tokenized HackChain Certificate",
                     certificate_hash: tokenUri,
