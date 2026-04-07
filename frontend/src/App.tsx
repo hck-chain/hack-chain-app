@@ -55,6 +55,7 @@ const App = () => (
           <Route path="/mint" element={<MintCertificate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<Contact />} />
           {/* Legal Routes */}
           <Route path="/legal/cookies" element={<CookiePolicy />} />
           <Route path="/legal/privacy" element={<PrivacyPolicy />} />
