@@ -197,18 +197,23 @@ const EducatorDashboard = () => {
 
       // Limpieza temporal de efectos para la captura
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+      card.classList.add('is-capturing');
 
       toast({
         title: "Processing...",
         description: "Generating certificate image and uploading to IPFS...",
       });
 
+      await new Promise(r => setTimeout(r, 100));
+
       const canvas = await html2canvas(card, {
         backgroundColor: '#0b0b0b',
-        scale: 2, // Alta calidad
+        scale: 2,
         useCORS: true,
         logging: false,
       });
+
+      card.classList.remove('is-capturing');
 
       // 3. Conversión de Canvas a Blob (para Multer)
       const imageBlob = await new Promise<Blob>((resolve, reject) => {
@@ -270,6 +275,11 @@ const EducatorDashboard = () => {
       }
 
     } catch (error: any) {
+      const container = cardRef.current;
+      if (container) {
+        const card = container.querySelector('.pc-card');
+        card?.classList.remove('is-capturing');
+      }
       console.error('Full creation process error:', error);
       toast({
         title: "Error",
