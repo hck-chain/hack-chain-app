@@ -3,9 +3,10 @@ const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
+const { authenticate } = require("../middleware/auth");
 
 // GET /api/issuers
-router.get("/", async (req, res) => {
+router.get("/", authenticate, async (req, res) => {
   try {
     const issuers = await Issuer.findAll({
       include: [{
@@ -46,7 +47,7 @@ router.post("/authorize", async (req, res) => {
 });
 //|| !certificate_hash || !token_id)
 // POST /api/issuers/mint
-router.post("/mint", async (req, res) => {
+router.post("/mint", authenticate, async (req, res) => {
   try {
     const {
       studentWalletAddress,
@@ -81,7 +82,7 @@ router.post("/mint", async (req, res) => {
 });
 
 // GET /api/issuers/:wallet_address
-router.get("/:wallet_address", async (req, res) => {
+router.get("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
 
@@ -119,7 +120,7 @@ router.get("/:wallet_address", async (req, res) => {
 });
 
 // PUT /api/issuers/:wallet_address
-router.put("/:wallet_address", async (req, res) => {
+router.put("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
     const { organization_name } = req.body;
@@ -138,7 +139,7 @@ router.put("/:wallet_address", async (req, res) => {
 });
 
 // POST /api/issuers/increment-certificates
-router.post("/increment-certificates", async (req, res) => {
+router.post("/increment-certificates", authenticate, async (req, res) => {
   try {
     const { issuerWallet } = req.body;
     if (!issuerWallet) return res.status(400).json({ error: "issuerWallet required" });
