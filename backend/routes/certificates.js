@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
 
     const metadata = {
       name: `Certificate for ${name}`,
-      description: "HackChain Tokenized Certificate",
+      description: "",
       //image: `ipfs://${imageCID}`,
       image: imageCID.startsWith('ipfs://') ? imageCID : `ipfs://${imageCID}`,
       attributes: [

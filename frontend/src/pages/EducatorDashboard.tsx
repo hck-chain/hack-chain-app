@@ -296,11 +296,12 @@ const EducatorDashboard = () => {
 
     try {
       const canvas = await html2canvas(card, {
-        backgroundColor: '#0b0b0b',
+        backgroundColor: '#0b0b0b', // Forza el color de fondo oscuro de tu app
         scale: 2,
         useCORS: true,
         logging: false,
         allowTaint: true,
+        imageTimeout: 0, // Evita que se capture antes de cargar recursos
       });
       const dataUrl = canvas.toDataURL('image/png');
 
