@@ -778,10 +778,14 @@ export const web3Service = {
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
+            const token = localStorage.getItem('authToken');
+            if (!token) return false;
+
             await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/increment-certificates`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     issuerWallet:issuerWallet.toLowerCase()
@@ -801,7 +805,6 @@ export const web3Service = {
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
-            const token = localStorage.getItem('authToken');
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/certificates/database`, {
                 method: "POST",
                 headers: {

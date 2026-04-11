@@ -35,10 +35,13 @@ export const useCreateCertificate = () => {
         tokenUri: data.imageUri
       };
 
+      const token = localStorage.getItem('authToken');
+      if (!token) return false;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/mint`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
