@@ -209,7 +209,9 @@ const EducatorDashboard = () => {
       talentName: form.talentName,
       talentWallet: form.talentWallet,
       courseName: form.certificateTitle, // Using title as course name
-      imageUri: "bafybeia4ndso2yw4fkfhpfbkyzhgldbs4qkqocpaqk34jbgw7azpsuxjom", // Placeholder as we aren't uploading the image file yet
+      professorName: form.issuer,
+      issueDate: form.issueDate,
+      imageUri: "bafkreidqdnjdv2w2nsmhmzq43ezqaywuhtsvzj7ldwgrf3ly5khjhu5774", // Placeholder as we aren't uploading the image file yet
     };
 
     // Enviar al hook logic
