@@ -22,8 +22,9 @@ router.post("/", async (req, res) => {
 
     const metadata = {
       name: `Certificate for ${name}`,
-      description: "HackChain Tokenized Certificate",
-      image: `ipfs://${imageCID}`,
+      description: "",
+      //image: `ipfs://${imageCID}`,
+      image: imageCID.startsWith('ipfs://') ? imageCID : `ipfs://${imageCID}`,
       attributes: [
         { trait_type: "Student", value: name },
         { trait_type: "Course", value: course },
@@ -33,7 +34,8 @@ router.post("/", async (req, res) => {
     };
 
     const result = await pinata.upload.public.json(metadata, {
-      pinataMetadata: { name: `Certificate-${name}` },
+      //  pinataMetadata: { name: `Certificate-${name}` },
+      pinataMetadata: { name: `Certificate-${name}-${course}`.replace(/\s+/g, '-').toLowerCase() },
     });
 
     res.json({

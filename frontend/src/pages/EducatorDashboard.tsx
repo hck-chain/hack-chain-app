@@ -182,58 +182,116 @@ const EducatorDashboard = () => {
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    // Validar que el usuario esté autenticado y tenga wallet
+    // 1. Validaciones iniciales
     if (!userData?.walletAddress) {
-      toast({
-        title: "Error",
-        description: "No wallet address found. Please login again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No wallet found. Please login.", variant: "destructive" });
       navigate('/login');
       return;
     }
 
-    // Validar campos requeridos
     if (!form.certificateTitle || !form.talentName || !form.issuer || !form.talentWallet) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields, including selecting a talent.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
 
-    // Preparar datos para enviar al hook
-    // Note: imageUri is mocked here as we don't have a real file upload to IPFS in this step yet,
-    // but the backend might expect it. We'll pass the logo blob URL or a placeholder.
-    // In a real app, we'd upload the image first.
-    // For this implementation, we focus on the logic flow.
+    try {
+      // 2. Captura del Certificado (Capa Visual)
+      const container = cardRef.current;
+      if (!container) return;
 
-    const certificateData = {
-      talentName: form.talentName,
-      talentWallet: form.talentWallet,
-      courseName: form.certificateTitle, // Using title as course name
-      imageUri: "bafybeia4ndso2yw4fkfhpfbkyzhgldbs4qkqocpaqk34jbgw7azpsuxjom", // Placeholder as we aren't uploading the image file yet
-    };
+      // Limpieza temporal de efectos para la captura
+      const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+      card.classList.add('is-capturing');
 
-    // Enviar al hook logic
-    const success = await createCertificate(certificateData, userData.walletAddress);
-
-    if (success) {
-      // Limpiar formulario después de crear
-      setForm({
-        certificateType: '',
-        certificateTitle: '',
-        talentName: '',
-        talentWallet: '',
-        issuer: '',
-        issueDate: new Date().toISOString().split('T')[0],
-        logo: '',
-        imageUri: '',
+      toast({
+        title: "Processing...",
+        description: "Generating certificate image and uploading to IPFS...",
       });
-      setLogoPreview('');
+
+      await new Promise(r => setTimeout(r, 100));
+
+      const canvas = await html2canvas(card, {
+        backgroundColor: '#0b0b0b',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      card.classList.remove('is-capturing');
+
+      // 3. Conversión de Canvas a Blob (para Multer)
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Canvas to Blob conversion failed"));
+        }, 'image/png');
+      });
+
+      // 4. Subida al backend (upload.js -> /api/upload/image)
+      const formData = new FormData();
+      formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
+
+      const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/image`, {
+        method: "POST",
+        body: formData, // Enviamos como FormData para que Multer lo procese
+      });
+
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.json();
+        throw new Error(uploadError.error || "Failed to upload image to Pinata");
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const realImageCID = uploadResult.cid; // El CID de la imagen real
+      console.log("Image successfully pinned:", realImageCID);
+
+      // 5. Preparar datos finales para el Hook (Metadata JSON)
+      const certificateData = {
+        talentName: form.talentName,
+        talentWallet: form.talentWallet,
+        courseName: form.certificateTitle,
+        professorName: form.issuer,  // Enviamos el nombre del profesor/organización
+        issueDate: form.issueDate,    // Enviamos la fecha seleccionada
+        imageUri: realImageCID,       // ✅ Pasamos el CID real de la imagen
+      };
+
+      // 6. Ejecutar proceso de Minteo y creación de JSON Metadata
+      const success = await createCertificate(certificateData, userData.walletAddress);
+
+      if (success) {
+        toast({
+          title: "Successfully Minted!",
+          description: "The certificate is now live on the blockchain with traits.",
+        });
+
+        // Limpiar formulario
+        setForm({
+          certificateType: '',
+          certificateTitle: '',
+          talentName: '',
+          talentWallet: '',
+          issuer: '',
+          issueDate: new Date().toISOString().split('T')[0],
+          logo: '',
+          imageUri: '',
+        });
+        setLogoPreview('');
+      }
+
+    } catch (error: any) {
+      const container = cardRef.current;
+      if (container) {
+        const card = container.querySelector('.pc-card');
+        card?.classList.remove('is-capturing');
+      }
+      console.error('Full creation process error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -252,11 +310,12 @@ const EducatorDashboard = () => {
 
     try {
       const canvas = await html2canvas(card, {
-        backgroundColor: '#0b0b0b',
+        backgroundColor: '#0b0b0b', // Forza el color de fondo oscuro de tu app
         scale: 2,
         useCORS: true,
         logging: false,
         allowTaint: true,
+        imageTimeout: 0, // Evita que se capture antes de cargar recursos
       });
       const dataUrl = canvas.toDataURL('image/png');
 

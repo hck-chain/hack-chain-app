@@ -7,6 +7,8 @@ export interface CertificateData {
   talentWallet: string;
   courseName: string;
   imageUri: string;
+  professorName: string; 
+  issueDate: string;
 }
 
 export const useCreateCertificate = () => {
@@ -23,21 +25,18 @@ export const useCreateCertificate = () => {
         throw new Error("Invalid talent wallet address");
       }
 
-      // 1. Backend: Validate Talent & Pin Metadata to IPFS
+      // 1. Backend: Llamar al endpoint que REALMENTE sube el JSON a Pinata
       const payload = {
-        // walletTalent: data.talentWallet,
-        // nameTalent: data.talentName,
-        // professor: professorWallet,
-        // courseName: data.courseName,
-        // imageUri: data.imageUri
-        studentWalletAddress: data.talentWallet, 
-        professor: professorWallet,              
-        tokenUri: data.imageUri
+        name: data.talentName,
+        course: data.courseName,
+        professor: data.professorName, 
+        date: data.issueDate,          
+        imageCID: data.imageUri.replace('ipfs://', '') // Limpiamos el prefijo si lo tiene
       };
 
       const token = localStorage.getItem('authToken');
       if (!token) return false;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/mint`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/certificates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,13 +46,12 @@ export const useCreateCertificate = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload metadata to IPFS');
+        throw new Error('Error al subir metadata a Pinata');
       }
 
       const result = await response.json();
-      const tokenUri = result.tokenUri;
-      console.log("Metadata pinned to IPFS:", tokenUri);
+      const tokenUri = result.uri; // Este ahora sí es el IPFS del JSON (con los traits)
+      console.log("JSON Metadata en IPFS:", tokenUri);
 
       // 2. Blockchain: Mint Certificate
       const mintSuccess = await web3Service.mintCertificateOnChain(

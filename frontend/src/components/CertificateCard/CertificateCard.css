@@ -1,4 +1,4 @@
-certificatecard.ccs    :root {
+certificatecard.ccs :root {
   --pointer-x: 50%;
   --pointer-y: 50%;
   --pointer-from-center: 0;
@@ -193,12 +193,12 @@ certificatecard.ccs    :root {
 }
 
 .pc-section {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: start;
-    padding: 0px;
-    margin: 0px 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  padding: 0px;
+  margin: 0px 16px;
 }
 
 /* Title gradient now rendered with SVG; keep layout-only rules */
@@ -219,7 +219,8 @@ certificatecard.ccs    :root {
   white-space: nowrap;
   font-size: 14px;
   width: fit-content;
-  color: #9ca3af; /* Tailwind gray-400 approximation for safety in export */
+  color: #9ca3af;
+  /* Tailwind gray-400 approximation for safety in export */
   border-radius: 0px;
 }
 
@@ -299,4 +300,35 @@ certificatecard.ccs    :root {
   .pc-details p {
     font-size: 11px;
   }
+}
+
+/* --- Fix para Captura de Imagen (html2canvas) --- */
+.pc-card.is-capturing {
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  --card-opacity: 0.3 !important;
+  /* Bajamos la opacidad del brillo */
+}
+
+/* Forzamos el brillo a 1 (normal) y quitamos el modo 'color-dodge' que quema la imagen */
+.pc-card.is-capturing .pc-shine,
+.pc-card.is-capturing .pc-shine::before,
+.pc-card.is-capturing .pc-shine::after {
+  filter: brightness(1) contrast(1) saturate(1) !important;
+  mix-blend-mode: normal !important;
+  /* 'normal' o 'screen' para evitar el quemado */
+  opacity: 0.4 !important;
+}
+
+/* Suavizamos el resplandor */
+.pc-card.is-capturing .pc-glare {
+  mix-blend-mode: normal !important;
+  opacity: 0.1 !important;
+  filter: brightness(1) !important;
+}
+
+/* Quitamos el resplandor de fondo que causa bordes brillantes */
+.pc-card-wrapper.is-capturing::before {
+  display: none !important;
 }
