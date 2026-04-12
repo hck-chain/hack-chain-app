@@ -2,9 +2,10 @@
 const express = require("express");
 const router = express.Router();
 const { Student, User, Certificate } = require("../models");
+const { authenticate } = require("../middleware/auth");
 
 // GET /api/students
-router.get("/", async (req, res) => {
+router.get("/", authenticate, async (req, res) => {
   try {
     const students = await Student.findAll({
       include: [
@@ -39,7 +40,7 @@ router.get("/", async (req, res) => {
 
 
 // GET /api/students/:wallet_address
-router.get("/:wallet_address", async (req, res) => {
+router.get("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
 
@@ -84,7 +85,7 @@ router.get("/:wallet_address", async (req, res) => {
 
 
 // PUT /api/students/:wallet_address
-router.put("/:wallet_address", async (req, res) => {
+router.put("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
     const { field_of_study } = req.body;

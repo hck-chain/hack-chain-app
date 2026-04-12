@@ -34,9 +34,14 @@ export const useCreateCertificate = () => {
         imageCID: data.imageUri.replace('ipfs://', '') // Limpiamos el prefijo si lo tiene
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/certificates`, { 
+      const token = localStorage.getItem('authToken');
+      if (!token) return false;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/certificates`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
 

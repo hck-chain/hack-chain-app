@@ -113,7 +113,11 @@ const EducatorDashboard = () => {
     // Fetch Talents
     const fetchTalents = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`);
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.students) {
