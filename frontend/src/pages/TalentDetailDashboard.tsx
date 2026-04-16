@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+import { api } from '@/services/api';
+const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Certificate {
     identifier: string;
@@ -39,14 +40,8 @@ const TalentDetailDashboard = () => {
             if (!wallet_address) return;
 
             try {
-                const token = localStorage.getItem('authToken');
-                if (!token) return;
-
                 // Talent info
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/students/${wallet_address}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const data = await res.json();
+                const data = await api.get<{ student: any }>(`/api/students/${wallet_address}`);
                 if (!data.student) throw new Error("Talent not found");
 
                 setTalent({
@@ -58,15 +53,9 @@ const TalentDetailDashboard = () => {
                 });
 
                 // Certificates
-                const certRes = await fetch(`${import.meta.env.VITE_API_URL}/api/opensea/certificates/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ address: wallet_address }),
+                const certData = await api.post<Certificate[]>('/api/opensea/certificates/', {
+                    address: wallet_address,
                 });
-                const certData = await certRes.json();
                 setCertificates(certData);
             } catch (err) {
                 console.error(err);

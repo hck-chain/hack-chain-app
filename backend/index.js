@@ -24,7 +24,7 @@ app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
+    console.warn(`Bloqueado CORS desde origin: ${origin}`);
     callback(new Error("Not allowed by CORS"));
   },
   credentials: true
@@ -33,7 +33,8 @@ app.use(cors({
 // ---------- CORS (ACTUALIZADO PARA VERCEL DINÁMICO) ----------
 // const allowedOrigins = [
 //   "https://hackchain.app",
-//   "https://www.hackchain.app"
+//   "https://www.hackchain.app",
+//   ...(process.env.NODE_ENV != "production" ? ["http://localhost:8080"] : []),
 // ];
 
 // app.use(cors({

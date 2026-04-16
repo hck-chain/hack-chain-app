@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/services/api';
 
-const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Certificate {
     identifier: string;
@@ -37,14 +38,8 @@ const TalentDashboard = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const token = localStorage.getItem('authToken');
-                if (!token) return;
-
                 // Talent info
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const data = await res.json();
+                const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
                 setTalent({
                     wallet_address: data.user.wallet_address,
                     name: data.user.name,
@@ -52,16 +47,10 @@ const TalentDashboard = () => {
                     role: data.modelName || 'Talent',
                 });
 
-                // Certificates //
-                const certRes = await fetch(`${import.meta.env.VITE_API_URL}/api/opensea/certificates/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ address: data.user.wallet_address }),
+                // Certificates
+                const certData = await api.post<Certificate[]>('/api/opensea/certificates/', {
+                    address: data.user.wallet_address,
                 });
-                const certData = await certRes.json();
                 setCertificates(certData);
             } catch (err) {
                 console.error(err);

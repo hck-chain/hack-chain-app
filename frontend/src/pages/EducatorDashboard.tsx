@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
+import { api } from '@/services/api';
 const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
 
 
@@ -66,27 +67,7 @@ const EducatorDashboard = () => {
 
     const loadProfile = async () => {
       try {
-        const token = localStorage.getItem("authToken");
-
-        if (!token) {
-          console.error("No auth token found");
-          return;
-        }
-
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-
-        console.log("AUTH /me RESPONSE 👉", data);
-
-        if (!res.ok) {
-          console.error("Auth error:", data);
-          return;
-        }
+        const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
 
         // data.user viene de ISSUERS
         // data.modelName === "issuer"
@@ -113,20 +94,13 @@ const EducatorDashboard = () => {
     // Fetch Talents
     const fetchTalents = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.students) {
-            const normalizedTalents = data.students.map((s: any) => ({
-              ...s,
-              user: s.User || s.user
-            }));
-            setTalents(normalizedTalents);
-          }
+        const data = await api.get<{ students: any[] }>('/api/students');
+        if (data.students) {
+          const normalizedTalents = data.students.map((s: any) => ({
+            ...s,
+            user: s.User || s.user
+          }));
+          setTalents(normalizedTalents);
         }
       } catch (error) {
         console.error("Failed to fetch talents", error);
@@ -231,18 +205,8 @@ const EducatorDashboard = () => {
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
 
-      const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/image`, {
-        method: "POST",
-        body: formData, // Enviamos como FormData para que Multer lo procese
-      });
-
-      if (!uploadResponse.ok) {
-        const uploadError = await uploadResponse.json();
-        throw new Error(uploadError.error || "Failed to upload image to Pinata");
-      }
-
-      const uploadResult = await uploadResponse.json();
-      const realImageCID = uploadResult.cid; // El CID de la imagen real
+      const uploadResult = await api.uploadPublic<{ cid: string }>('/api/upload/image', formData);
+      const realImageCID = uploadResult.cid;
       console.log("Image successfully pinned:", realImageCID);
 
       // 5. Preparar datos finales para el Hook (Metadata JSON)

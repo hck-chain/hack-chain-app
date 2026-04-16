@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Users, Award, GraduationCapIcon, ArrowDownNarrowWideIcon } from "lucide-react";
@@ -6,15 +6,26 @@ import { EducatorRegistrationForm } from "@/components/auth/educatorRegistration
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BackgroundAnimation from "@/components/BackgroundAnimation";
-import FloatingElements from "@/components/FloatingElements";
 import Footer from "@/components/Footer";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { FormCardParticles } from "@/components/animations/FormCardParticles";
+import { useScrollReveal } from "@/hooks/useAnimeHooks";
+import { useCardAnimation } from "@/hooks/useFormCardAnimation";
 import hackChainLogo from "/images/logoHackchain.png";
 
 export default function RegisterEducator() {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  
+  // Animation refs
+  const formCardRef = useRef<HTMLDivElement>(null);
+  
+  // Apply scroll reveal for left side elements
+  useScrollReveal();
+  
+  // Apply card entrance animation
+  useCardAnimation(formCardRef, { delay: 300 });
 
   // Auto-hide navbar logic
   useEffect(() => {
@@ -37,7 +48,6 @@ export default function RegisterEducator() {
       <div className="fixed inset-0 -z-30 bg-background" />
       <div className="fixed inset-0 -z-20 pointer-events-none">
         <BackgroundAnimation />
-        <FloatingElements />
       </div>
       <div className="min-h-screen relative overflow-x-hidden flex flex-col font-lato">
 
@@ -75,13 +85,13 @@ export default function RegisterEducator() {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-28 pb-12 flex-1 flex items-start animate-in slide-in-from-bottom duration-700 delay-150">
-          <div className="grid lg:grid-cols-2 gap-12 items-start w-full">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-28 pb-12 flex-1 animate-in slide-in-from-bottom duration-700 delay-150">
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-start w-full">
 
             {/* Left Side — only visible on lg+ */}
-            <div className="hidden lg:block space-y-8 animate-in slide-in-from-left duration-700 delay-300">
+            <div className="hidden lg:block space-y-6 reveal-group">
 
-              <div className="space-y-4">
+              <div className="space-y-4 reveal-item">
                 <h1 className="text-4xl md:text-5xl font-exo font-bold text-white leading-tight">
                   {t('registerEducator.title1')}
                   <br />
@@ -90,7 +100,7 @@ export default function RegisterEducator() {
                   </span>
                 </h1>
 
-                <p className="text-lg md:text-lg text-gray-300 font-lato leading-relaxed">
+                <p className="text-[14px] text-gray-300 font-lato leading-relaxed">
                   {t('registerEducator.desc')}
                 </p>
               </div>
@@ -98,7 +108,7 @@ export default function RegisterEducator() {
 
               {/* Features */}
               <div className="space-y-6">
-                <div className="flex items-start gap-4 group p-6 glass rounded-xl border border-blue-500/30 hover:border-blue-500/50 transition-all duration-300">
+                <div className="flex items-start gap-4 group p-6 glass rounded-xl border border-blue-500/30 hover:border-blue-500/50 transition-all duration-300 reveal-item">
                   <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
                     <ArrowDownNarrowWideIcon className="h-8 w-8 text-white" />
                   </div>
@@ -112,26 +122,26 @@ export default function RegisterEducator() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p1')}</span>
+                        <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p1')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p2')}</span>
+                        <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p2')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p3')}</span>
+                        <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p3')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                        <span className="text-sm text-slate-400 font-lato">{t('registerEducator.p4')}</span>
+                        <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p4')}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Additional Benefits */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 reveal-item">
                   <div className="flex items-center gap-3 p-4 glass rounded-lg border border-cyan-500/20 hover:border-cyan-500/30 transition-all duration-200">
                     <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
                       <GraduationCapIcon className="h-5 w-5 text-white" />
@@ -158,23 +168,28 @@ export default function RegisterEducator() {
             </div>
 
             {/* Right Side - Registration Form */}
-            <div className="flex flex-col items-center lg:items-end w-full animate-in slide-in-from-right duration-700 delay-500 mt-4 lg:mt-0">
-              <Card className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 glass border-blue-500/20 hover:border-blue-500/40 rounded-2xl">
-                <CardHeader className="space-y-1 text-center font-lato">
-                  <div className="flex justify-center mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-                      <Award className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                  <CardTitle className="text-2xl font-exo font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <div className="flex items-center lg:items-start w-full pt-8 lg:pt-12 lg:pl-8 xl:pl-12">
+              <Card 
+                ref={formCardRef}
+                className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 glass border-blue-500/20 hover:border-blue-500/40 rounded-2xl relative overflow-hidden"
+              >
+                {/* Floating Particles - Blue/Cyan theme */}
+                <FormCardParticles 
+                  color="rgba(59, 130, 246, 0.15)" 
+                  shadowColor="rgba(59, 130, 246, 0.3)"
+                  count={25}
+                />
+                
+                <CardHeader className="space-y-1 text-center font-lato relative z-10">
+                  <CardTitle className="text-[22px] font-exo font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                     {t('registerEducator.formTitle')}
                   </CardTitle>
-                  <CardDescription className="text-slate-300 font-lato">
+                  <CardDescription className="text-[13px] text-white/50 font-normal font-lato mb-6">
                     {t('registerEducator.formDesc')}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="font-lato text-slate-300">
+                <CardContent className="font-lato text-slate-300 relative z-10">
                   <EducatorRegistrationForm />
                 </CardContent>
               </Card>
@@ -184,9 +199,7 @@ export default function RegisterEducator() {
         </div>
 
         {/* Footer */}
-        <div className="mt-auto w-full">
-          <Footer />
-        </div>
+        <Footer />
 
       </div>
     </div>

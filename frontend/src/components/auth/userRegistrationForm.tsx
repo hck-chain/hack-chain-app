@@ -181,7 +181,7 @@ export function UserRegistrationForm() {
 
           <Button
             type="submit"
-            className="w-full font-lato text-base bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
+            className="w-full font-lato text-base bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(192,38,211,0.4)] hover:shadow-[0_0_30px_rgba(192,38,211,0.6)] hover:-translate-y-0.5"
             disabled={isLoading}
           >
             {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('registrationForm.creating')}</> : t('registrationForm.create')}

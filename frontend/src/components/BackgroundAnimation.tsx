@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { BlockchainBackground } from './auth/BlockchainBackground';
+import FloatingElements from './FloatingElements';
 
 const BackgroundAnimation = () => {
   const dataFlowStyles = useMemo(() => {
@@ -21,25 +23,31 @@ const BackgroundAnimation = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
       {/* Cyber Grid */}
-      <div className="absolute inset-0 cyber-grid opacity-20" />
+      <div className="absolute inset-0 cyber-grid opacity-10" />
+      
+      {/* Blockchain Network Background */}
+      <BlockchainBackground />
+      
+      {/* Floating Tech Icons (Code, Lock, Shield, etc.) */}
+      <FloatingElements />
       
       {/* Data Flow Animation */}
       <div className="absolute top-0 left-0 w-full h-full">
         {dataFlowStyles.map((style, i) => (
           <div
             key={i}
-            className="absolute h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-data-flow opacity-30"
+            className="absolute h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-data-flow opacity-20"
             style={style}
           />
         ))}
       </div>
       
-      {/* Floating Particles - Uncommented but subtle */}
+      {/* Floating Particles - Subtle */}
       <div className="absolute inset-0">
         {particleStyles.map((style, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-purple-400 rounded-full animate-pulse-neon opacity-20"
+            className="absolute w-1 h-1 bg-purple-400 rounded-full animate-pulse-neon opacity-15"
             style={style}
           />
         ))}

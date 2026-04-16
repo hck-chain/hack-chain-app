@@ -6,58 +6,25 @@ import {
 } from '../lib/validations/auth';
 import {
     RecruiterRegistrationResponse,
-    ApiError,
-    isApiError
 } from '../types/auth';
+import { api } from '@/services/api';
 
-//API base URL --> adjust according to your configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-//API function register a new recruiter
-const registerRecruiter = async (recruiterData: RecruiterRegistrationRequestData & { wallet_address: string; role: string }): Promise<RecruiterRegistrationResponse> => {
-    const response = await fetch(`${API_BASE_URL}/api/users/register`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(recruiterData),
-    });
-
-    const data = await response.json();
-
-    //handle http errors
-    if (!response.ok) {
-        if (isApiError(data)) {
-            throw new Error(data.error);
-        }
-        throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
-    }
-
-    // Backend returns { user, roleData }
-    if (!data.message || !data.user) {
-        throw new Error("Invalid response structure");
-    }
-
-    return data as RecruiterRegistrationResponse;
+// API function register a new recruiter
+const registerRecruiter = async (
+    recruiterData: RecruiterRegistrationRequestData & { wallet_address: string; role: string }
+): Promise<RecruiterRegistrationResponse> => {
+    return api.postPublic<RecruiterRegistrationResponse>('/api/users/register', recruiterData);
 };
 
-//custom hook for recruiter Registration
+// Custom hook for recruiter Registration
 export const useRecruiterRegistration = () => {
     return useMutation({
-        mutationFn: async (formData: RecruiterRegistrationFormData) => {  //////////////////////////
-            //transform data for backend request
+        mutationFn: async (formData: RecruiterRegistrationFormData) => {
             const requestData = transformRecruiterFormDataToRequest(formData);
-
-            /////////////////////////////////////////////////////////////////////////////////////
 
             if (!window.ethereum) {
                 throw new Error("MetaMask not detected");
             }
-
-            // await window.ethereum.request({
-            //     method: "wallet_requestPermissions",
-            //     params: [{ eth_accounts: {} }],
-            // });
 
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
@@ -69,12 +36,9 @@ export const useRecruiterRegistration = () => {
 
             const walletAddress = accounts[0];
 
-            /////////////////////////////////////////////////////////////////////////////////////
-
-            // Merge with wallet address and role
             const payload = {
                 ...requestData,
-                wallet_address: walletAddress,   ////////////////////////////////////////////
+                wallet_address: walletAddress,
                 role: 'recruiter'
             };
             return registerRecruiter(payload);
@@ -88,26 +52,19 @@ export const useRecruiterRegistration = () => {
     });
 };
 
-//Helper hook to manage recruiter registration state
+// Helper hook to manage recruiter registration state
 export const useRecruiterRegistrationState = () => {
     const mutation = useRecruiterRegistration();
 
     return {
-        // Loading states
         isLoading: mutation.isPending,
         isSuccess: mutation.isSuccess,
         isError: mutation.isError,
-
-        // Data
         data: mutation.data,
         error: mutation.error,
-
-        // Actions
         register: mutation.mutate,
         registerAsync: mutation.mutateAsync,
         reset: mutation.reset,
-
-        // Utilities
         canSubmit: !mutation.isPending,
         errorMessage: mutation.error?.message || null,
         successMessage: mutation.data?.message || null,
