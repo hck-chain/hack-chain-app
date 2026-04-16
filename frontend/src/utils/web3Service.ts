@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { api } from '@/services/api';
 
 const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
 const CONTRACT_ADDRESS = '0x61d2e94543DD498b7FD86450f1fC8135cB60021C';
@@ -781,15 +782,8 @@ export const web3Service = {
             const token = localStorage.getItem('authToken');
             if (!token) return false;
 
-            await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/increment-certificates`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    issuerWallet:issuerWallet.toLowerCase()
-                })
+            await api.post('/api/issuers/increment-certificates', {
+                issuerWallet: issuerWallet.toLowerCase()
             });
 
             const transferEvent = receipt.logs.map(log => {
@@ -805,28 +799,16 @@ export const web3Service = {
 
             // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/certificates/database`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    student_wallet_address: talentWallet.toLowerCase(),
-                    issuer_wallet_address: issuerWallet,
-                    title: courseName,
-                    description: "Tokenized HackChain Certificate",
-                    certificate_hash: tokenUri,
-                    blockchain_tx_hash: tx.hash,
-                    token_id: tokenId,
-                    issue_date
-                })
+            await api.post('/api/certificates/database', {
+                student_wallet_address: talentWallet.toLowerCase(),
+                issuer_wallet_address: issuerWallet,
+                title: courseName,
+                description: "Tokenized HackChain Certificate",
+                certificate_hash: tokenUri,
+                blockchain_tx_hash: tx.hash,
+                token_id: tokenId,
+                issue_date
             });
-
-            if (!response.ok) {
-                console.error("Failed to save certificate in DB");
-                return false;
-            }
 
             // alert("Certificate minted and saved successfully!");
             return true;
@@ -838,12 +820,7 @@ export const web3Service = {
 };
 
 export async function getCertificatesByEducator(wallet: string) {
-    console.log("getCertificatesByEducator called with wallet:", wallet); // 🔹 log frontend
-
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/${wallet}/certificates-count`);
-    const data = await res.json();
-
-    console.log("getCertificatesByEducator response:", data); // 🔹 log frontend
+    const data = await api.get<{ total: number }>(`/api/issuers/${wallet}/certificates-count`);
     return data.total;
 }
 

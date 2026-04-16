@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { api } from '@/services/api';
 
 interface WalletLoginResponse {
     message: string;
@@ -22,25 +21,9 @@ export const useWalletLogin = () => {
 
     const mutation = useMutation({
         mutationFn: async (walletAddress: string) => {
-            // TODO: BACKEND DEVELOPER - Implement this endpoint!
-            // Endpoint: POST /api/auth/login-wallet
-            // Body: { wallet_address: string }
-            // Response: { token: string, user: { id, email, role, wallet_address } }
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                //body: JSON.stringify({ wallet_address: walletAddress }),
-                body: JSON.stringify({ wallet_address: walletAddress }),
+            return api.postPublic<WalletLoginResponse>('/api/auth/login', {
+                wallet_address: walletAddress,
             });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to authenticate with wallet');
-            }
-
-            return response.json() as Promise<WalletLoginResponse>;
         },
         onSuccess: (data) => {
             // Store auth data
@@ -66,28 +49,6 @@ export const useWalletLogin = () => {
     const connectAndLogin = async () => {
         setError(null);
 
-        // if (!window.ethereum) {
-        //     setError("MetaMask is not installed. Please install it to continue.");
-        //     return;
-        // }
-
-        // try {
-        //     // Request account access
-        //     const accounts = await window.ethereum.request({
-        //         method: 'eth_requestAccounts'
-        //     });
-
-        //     if (accounts && accounts.length > 0) {
-        //         const address = accounts[0];
-        //         // Attempt login with backend
-        //         mutation.mutate(address);
-        //     } else {
-        //         setError("No accounts found. Please unlock MetaMask.");
-        //     }
-        // } catch (err: any) {
-        //     console.error("Wallet connection error:", err);
-        //     setError(err.message || "Failed to connect wallet.");
-        // }
         try {
             setIsConnecting(true);
 

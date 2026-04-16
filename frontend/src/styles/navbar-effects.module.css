@@ -1,0 +1,68 @@
+/* Navbar Desktop Hover Effects */
+
+/* Desktop Navigation Links */
+.navLink {
+  position: relative;
+  font-family: 'Lato', sans-serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  color: hsl(var(--foreground) / 0.7);
+  transition: color 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.navLink:hover {
+  color: hsl(var(--foreground));
+}
+
+/* Animated underline that grows from center */
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+  transition: all 0.3s ease-in-out;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+.navLink:hover::after {
+  width: 100%;
+}
+
+/* Tooltip wrapper */
+.navItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Tooltip text - hidden by default, slides up on hover */
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  font-family: 'Lato', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.navItem:hover .tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

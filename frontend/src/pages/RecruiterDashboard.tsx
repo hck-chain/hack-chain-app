@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+import { api } from '@/services/api';
+const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Recruiter {
     wallet_address: string;
@@ -36,14 +37,7 @@ const RecruiterDashboard = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const token = localStorage.getItem('authToken');
-                if (!token) return;
-
-                // Fetch recruiter info
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const data = await res.json();
+                const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
                 setRecruiter({
                     wallet_address: data.user.wallet_address,
                     name: data.user.name,
@@ -51,10 +45,7 @@ const RecruiterDashboard = () => {
                 });
 
                 // Fetch talents
-                const resTalents = await fetch(`${import.meta.env.VITE_API_URL}/api/students`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const dataTalents = await resTalents.json();
+                const dataTalents = await api.get<{ students: any[] }>('/api/students');
 
                 const talentsMapped: TalentSummary[] = dataTalents.students.map((s: any) => ({
                     id: s.id,

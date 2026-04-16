@@ -1,57 +1,49 @@
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { useHoverInteractions } from '@/hooks/useAnimeHooks';
+import { AnimeParticles } from '@/components/animations/AnimeComponents';
 
 const HeroSection = () => {
   const { t } = useTranslation();
+  const { handleIconHover, handleIconLeave } = useHoverInteractions();
+  
   return (
     <section
       id="home"
-      className="min-h-[90vh] flex items-center justify-center relative overflow-hidden pt-16 sm:pt-20 mt-6 sm:mt-10"
+      className="min-h-[90vh] flex items-center justify-center relative overflow-hidden pt-16 sm:pt-20 mt-6 sm:mt-10 reveal-group"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="glass rounded-3xl p-6 sm:p-10 md:p-14"
+        <div
+          className="glass rounded-3xl p-6 sm:p-10 md:p-14 relative overflow-hidden reveal-item opacity-0 border border-white/5"
         >
+          <AnimeParticles />
 
-          {/* Main Headline , hola mundo*/}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="font-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tighter drop-shadow-md"
+          <div className="relative z-10">
+
+          {/* Main Headline */}
+          <h1
+            className="font-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tighter drop-shadow-md reveal-item opacity-0"
           >
             {t('hero.title1')}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]">
               {t('hero.title2')}
             </span>
-          </motion.h1>
+          </h1>
 
           {/* Subheadline */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="font-body text-base sm:text-xl text-muted-foreground mb-0 max-w-4xl mx-auto leading-relaxed"
+          <p
+            className="font-body text-base sm:text-xl text-muted-foreground mb-0 max-w-4xl mx-auto leading-relaxed reveal-item opacity-0"
           >
             {t('hero.subTitle1')}
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            className="font-body text-base sm:text-xl text-muted-foreground mb-10 md:mb-24 max-w-4xl mx-auto leading-relaxed"
+          </p>
+          <p
+            className="font-body text-base sm:text-xl text-muted-foreground mb-10 md:mb-24 max-w-4xl mx-auto leading-relaxed reveal-item opacity-0"
           >
             {t('hero.subTitle2')}
-          </motion.p>
+          </p>
 
           {/* Infrastructure Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1 }}
+          <div
+            className="reveal-item opacity-0"
           >
             <p className="font-title text-xl sm:text-3xl font-bold mb-6 sm:mb-8 leading-tight">
               {t('hero.infrastructure')}
@@ -64,25 +56,26 @@ const HeroSection = () => {
                 { src: '/images/opensea.png', alt: 'OpenSea', label: 'OpenSea' },
                 { src: '/images/metamask.png', alt: 'MetaMask', label: 'MetaMask' },
               ].map((item) => (
-                <motion.div
+                <div
                   key={item.label}
-                  whileHover={{ scale: 1.1 }}
-                  className="flex flex-col items-center gap-3 cursor-default"
+                  onMouseEnter={(e) => handleIconHover(e as unknown as React.MouseEvent<HTMLDivElement>)}
+                  onMouseLeave={(e) => handleIconLeave(e as unknown as React.MouseEvent<HTMLDivElement>)}
+                  className="flex flex-col items-center gap-3 cursor-pointer"
                 >
                   <img
                     src={item.src}
                     alt={item.alt}
-                    className="h-14 sm:h-20 md:h-28"
+                    className="h-14 sm:h-20 md:h-28 transition-transform duration-300 hover:scale-105"
                   />
                   <span className="font-body text-xs sm:text-sm text-white/80">
                     {item.label}
                   </span>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
-
-        </motion.div>
+          </div>
+          </div>
+        </div>
       </div>
     </section>
   );

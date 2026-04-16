@@ -6,59 +6,25 @@ import {
 } from '../lib/validations/auth';
 import {
     UserRegistrationResponse,
-    ApiError,
-    isApiError
 } from '../types/auth';
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-//API base URL --> adjust according to your configuration
+import { api } from '@/services/api';
 
-
-//API function register a new user
-const registerUser = async (requestData: UserRegistrationRequestData & { wallet_address: string; role: string }): Promise<UserRegistrationResponse> => {
-    const response = await fetch(`${API_BASE_URL}/api/users/register`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-    });
-
-
-    const data = await response.json();
-
-    //handle http erros
-    if (!response.ok) {
-        if (isApiError(data)) {
-            throw new Error(data.error);
-        }
-        throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
-    }
-
-    if (!data.message || !data.user) {
-        throw new Error("Invalid response structure");
-    }
-
-    return data as UserRegistrationResponse;
-
+// API function register a new user
+const registerUser = async (
+    requestData: UserRegistrationRequestData & { wallet_address: string; role: string }
+): Promise<UserRegistrationResponse> => {
+    return api.postPublic<UserRegistrationResponse>('/api/users/register', requestData);
 };
 
-
-//custom hook for user Registration
+// Custom hook for user Registration
 export const useUserRegistration = () => {
     return useMutation({
         mutationFn: async (formData: UserRegistrationFormData) => {
-            //tranform data for backend request
             const requestData = transformFormDataToRequest(formData);
-            /////////////////////////////////////////////////////////////////////////////////////
 
             if (!window.ethereum) {
                 throw new Error("MetaMask not detected");
             }
-
-            // await window.ethereum.request({
-            //     method: "wallet_requestPermissions",
-            //     params: [{ eth_accounts: {} }],
-            // });
 
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
@@ -70,18 +36,13 @@ export const useUserRegistration = () => {
 
             const walletAddress = accounts[0];
 
-            /////////////////////////////////////////////////////////////////////////////////////
-
-            // Merge with wallet address and role
             const payload = {
                 ...requestData,
-                wallet_address: walletAddress,   ////////////////////////////////////////////
+                wallet_address: walletAddress,
                 role: 'student'
             };
             return registerUser(payload);
         },
-
-
         onSuccess: (data: UserRegistrationResponse) => {
             console.log("User registered successfully:", data.user.email);
         },
@@ -91,26 +52,19 @@ export const useUserRegistration = () => {
     });
 };
 
-//Helper hook to manage registration state
+// Helper hook to manage registration state
 export const useRegistrationState = () => {
     const mutation = useUserRegistration();
 
     return {
-        // Loading states
         isLoading: mutation.isPending,
         isSuccess: mutation.isSuccess,
         isError: mutation.isError,
-
-        // Data
         data: mutation.data,
         error: mutation.error,
-
-        // Actions
         register: mutation.mutate,
         registerAsync: mutation.mutateAsync,
         reset: mutation.reset,
-
-        // Utilities
         canSubmit: !mutation.isPending,
         errorMessage: mutation.error?.message || null,
         successMessage: mutation.data?.message || null,

@@ -202,7 +202,7 @@ export function RecruiterRegistrationForm() {
 
           <Button
             type="submit"
-            className="w-full font-lato text-base bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105"
+            className="w-full font-lato text-base bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] hover:-translate-y-0.5"
             disabled={isLoading}
           >
             {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('recruiterForm.creating')}</> : t('recruiterForm.create')}
