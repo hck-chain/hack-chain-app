@@ -1,30 +1,38 @@
-import { User, Issuer } from "../models/index.js";
-console.log("🧩 getUserFromToken FILE LOADED");
+// Usa require si tu backend es CommonJS
+const { Student, Issuer, Recruiter } = require("../models");
 
-export async function getUserFromToken(authPayload) {
+async function getUserFromToken(authPayload) {
+  // 1. Aseguramos minúsculas
   const wallet = authPayload.wallet.toLowerCase();
-  console.log("🔑 WALLET FROM TOKEN:", wallet);
+  const role = authPayload.role;
 
-  const issuer = await Issuer.findOne({
-    where: { wallet_address: wallet },
+  let found = null;
+
+  // 2. Buscamos según el rol
+  // Usamos el modelo correspondiente
+  const models = {
+    student: Student,
+    issuer: Issuer,
+    recruiter: Recruiter
+  };
+
+  const Model = models[role];
+  if (!Model) return null;
+
+  // 3. En Postgres, es mejor buscar así para evitar líos de mayúsculas
+  found = await Model.findOne({
+    where: {
+      wallet_address: wallet // Asegúrate que en la DB también estén en minúsculas
+    }
   });
 
-  console.log("🏛 ISSUER FOUND:", issuer?.dataValues);
+  if (!found) return null;
 
-  const user = await User.findOne({
-    where: { wallet_address: wallet },
-  });
-
-  console.log("👤 USER FOUND:", user?.dataValues);
-
-  if (!issuer) return null;
-
+  // 4. Retornamos la estructura que el frontend espera en /me
   return {
-    modelName: "issuer",
-    user: {
-      wallet_address: issuer.wallet_address,
-      organization_name: issuer.organization_name,
-      email: user?.email || null,
-    },
+    modelName: role,
+    user: found.toJSON ? found.toJSON() : found
   };
 }
+
+module.exports = { getUserFromToken };
