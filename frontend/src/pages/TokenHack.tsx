@@ -213,11 +213,7 @@ const TokenHack = () => {
 
               {/* Mission bullets — Reental style */}
               <ul className="space-y-4">
-                {[
-                  'Reward Talent, Educators, and Recruiters for their merits',
-                  'Power a transparent and trustless credential economy',
-                  'Grow a community-driven education ecosystem in LATAM',
-                ].map((text, idx) => (
+                {(t('token.ecosystemBullets', { returnObjects: true }) as string[]).map((text: string, idx: number) => (
                   <motion.li
                     key={idx}
                     initial={{ opacity: 0, x: -20 }}
@@ -268,14 +264,14 @@ const TokenHack = () => {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                     <AnimatedIcon Icon={PiTrophyFill} className="w-5 h-5 text-white" variant="bounce" />
                   </div>
-                  <span className="font-title font-bold text-lg">Token HACK Objectives</span>
+                  <span className="font-title font-bold text-lg">{t('token.objectivesTitle')}</span>
                 </div>
 
                 <div className="space-y-4">
                   {[
-                    { Icon: PiUsersThreeFill, label: 'Community Growth', desc: 'Empower every participant in our ecosystem', color: 'text-purple-400' },
-                    { Icon: PiShieldCheckFill, label: 'Platform Development', desc: 'Drive product improvements through governance', color: 'text-blue-400' },
-                    { Icon: PiHandshakeFill, label: 'User Engagement', desc: 'Reward and retain the most committed members', color: 'text-pink-400' },
+                    { Icon: PiUsersThreeFill, label: t('token.objCommunityLabel'), desc: t('token.objCommunityDesc'), color: 'text-purple-400' },
+                    { Icon: PiShieldCheckFill, label: t('token.objPlatformLabel'), desc: t('token.objPlatformDesc'), color: 'text-blue-400' },
+                    { Icon: PiHandshakeFill, label: t('token.objUserLabel'), desc: t('token.objUserDesc'), color: 'text-pink-400' },
                   ].map((item) => (
                     <div key={item.label} className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
                       <item.Icon className={`w-6 h-6 flex-shrink-0 mt-0.5 ${item.color}`} />
@@ -314,30 +310,30 @@ const TokenHack = () => {
             {[
               {
                 Icon: PiRocketLaunchFill,
-                label: 'For Talent',
+                label: t('token.forTalent'),
                 title: t('token.talentTitle'),
                 desc: t('token.talentDesc'),
-                perks: ['Earn Token HACK for completing courses', 'Spend Token HACK on premium certifications', 'Priority access to job postings'],
+                perks: [t('token.talentPerk1'), t('token.talentPerk2'), t('token.talentPerk3')],
                 gradient: 'from-purple-500 to-pink-500',
                 glow: 'rgba(168, 85, 247, 0.15)',
                 variant: 'bounce' as AnimVariant,
               },
               {
                 Icon: PiLightbulbFilamentFill,
-                label: 'For Educators',
+                label: t('token.forEducators'),
                 title: t('token.educatorTitle'),
                 desc: t('token.educatorDesc'),
-                perks: ['Receive Token HACK for issued certificates', 'Access educator-only governance tools', 'Expand your student reach'],
+                perks: [t('token.educatorPerk1'), t('token.educatorPerk2'), t('token.educatorPerk3')],
                 gradient: 'from-blue-500 to-cyan-500',
                 glow: 'rgba(59, 130, 246, 0.15)',
                 variant: 'pulse' as AnimVariant,
               },
               {
                 Icon: PiMagnifyingGlassFill,
-                label: 'For Recruiters',
+                label: t('token.forRecruiters'),
                 title: t('token.recruiterTitle'),
                 desc: t('token.recruiterDesc'),
-                perks: ['Use Token HACK to unlock talent profiles', 'Verify credentials in one click', 'Access exclusive talent pool'],
+                perks: [t('token.recruiterPerk1'), t('token.recruiterPerk2'), t('token.recruiterPerk3')],
                 gradient: 'from-green-500 to-emerald-500',
                 glow: 'rgba(34, 197, 94, 0.15)',
                 variant: 'swing' as AnimVariant,

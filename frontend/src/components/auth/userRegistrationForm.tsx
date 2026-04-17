@@ -62,7 +62,7 @@ export function UserRegistrationForm() {
     if (!window.ethereum) {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        // Redirige al navegador interno de MetaMask en móvil
+        // Redirect to MetaMask internal browser on mobile
         window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
         return;
       }
