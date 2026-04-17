@@ -20,7 +20,7 @@ import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
-const HackChainLogo = '/images/logoHackchain2.png'; // 🔹 Logo de HackChain
+const HackChainLogo = '/images/logoHackchain2.png'; // HackChain Logo
 
 
 interface Talent {
@@ -58,7 +58,7 @@ const EducatorDashboard = () => {
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
 
 
-  // Hook para crear certificado
+  // Hook to create certificate
   const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
 
@@ -69,7 +69,7 @@ const EducatorDashboard = () => {
       try {
         const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
 
-        // data.user viene de ISSUERS
+        // data.user comes from ISSUERS
         // data.modelName === "issuer"
         setUserData({
           organization_name: data.user.organization_name,
@@ -79,7 +79,7 @@ const EducatorDashboard = () => {
         });
 
 
-        // Aquí no usamos userData, usamos directamente la wallet
+        // Here we don't use userData, we directly use the wallet
         const certCount = await getCertificatesByEducator(data.user.wallet_address);
         console.log("Certificates fetched:", certCount);
 
@@ -173,7 +173,7 @@ const EducatorDashboard = () => {
       const container = cardRef.current;
       if (!container) return;
 
-      // Limpieza temporal de efectos para la captura
+      // Temporary effect cleanup for capturing
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
       card.classList.add('is-capturing');
 

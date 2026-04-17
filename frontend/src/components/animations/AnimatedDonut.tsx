@@ -23,13 +23,13 @@ export const AnimatedDonut: React.FC = () => {
 
   useEffect(() => {
     // Al montar: los segmentos están separados hacia afuera (efecto pizza cortada explotada)
-    // Inicializamos las posiciones desplazándolas en el sentido de su ángulo central.
+    // Initialize positions relative to their center angle
     pathsRef.current.forEach((el) => {
       if (!el) return;
       const tx = parseFloat(el.getAttribute('data-tx') || '0');
       const ty = parseFloat(el.getAttribute('data-ty') || '0');
       
-      // Multiplicador para separar bastante las porciones en la carga inicial (ej: 40px)
+      // Multiplier to space out slices during initial load (e.g., 40px)
       anime.set(el, {
         translateX: tx * 4,
         translateY: ty * 4,
@@ -37,7 +37,7 @@ export const AnimatedDonut: React.FC = () => {
       });
     });
 
-    // "Unirse" suavemente hacia el centro.
+    // Smoothly "join" towards the center
     anime({
       targets: pathsRef.current,
       translateX: 0,
@@ -56,7 +56,7 @@ export const AnimatedDonut: React.FC = () => {
     const ty = parseFloat(el.getAttribute('data-ty') || '0');
 
     anime.remove(el);
-    // Efecto Hover: se desplaza 10px en su dirección
+    // Hover effect: shifts 10px in its direction
     anime({
       targets: el,
       translateX: tx,
@@ -71,7 +71,7 @@ export const AnimatedDonut: React.FC = () => {
     if (!el) return;
 
     anime.remove(el);
-    // Regresa a su posición de dona perfecta
+    // Returns to perfect donut position
     anime({
       targets: el,
       translateX: 0,
@@ -83,7 +83,7 @@ export const AnimatedDonut: React.FC = () => {
 
   // ─── SVG Math helpers ────────────────────────────────────────────────────────
   
-  // Convierte coordenadas polares a cartesianas para calcular los puntos del SVG arc
+  // Converts polar coordinates to cartesian to build SVG arc points
   const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
     const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
     return {
@@ -92,9 +92,9 @@ export const AnimatedDonut: React.FC = () => {
     };
   };
 
-  // Construye la propiedad `d` de un <path> para formar un segmento de disco (dona)
+  // Builds a <path> `d` property to form a donut slice
   const describeArc = (x: number, y: number, innerRadius: number, outerRadius: number, startAngle: number, endAngle: number) => {
-    // Para renderizar correctamente SVG paths cuando es exactamente 360 grados, restamos un fraction minúsculo.
+    // Subtract a tiny fraction to correctly render SVG paths at exactly 360 degrees
     const renderEndAngle = endAngle - startAngle === 360 ? endAngle - 0.001 : endAngle;
     
     const startOut = polarToCartesian(x, y, outerRadius, renderEndAngle);
@@ -113,7 +113,7 @@ export const AnimatedDonut: React.FC = () => {
     ].join(" ");
   };
 
-  // ─── Procesamiento de datos y variables del círculo ────────────────────────
+  // ─── Data processing and circle variables ────────────────────────
   
   let cumulativeAngle = 0;
   const size = 450;
@@ -160,11 +160,11 @@ export const AnimatedDonut: React.FC = () => {
         {slices.map((slice, index) => (
           <g key={slice.label} className="group">
             <path
-              // Manejo de refs en SVG limpio
+              // Clean SVG ref handling
               ref={(el) => { pathsRef.current[index] = el; }}
               d={slice.pathData}
               fill={slice.color}
-              // Atributos de datos nativos para leer al animar
+              // Native data attributes for animation hooks
               data-tx={slice.tx}
               data-ty={slice.ty}
               stroke="#0f172a"

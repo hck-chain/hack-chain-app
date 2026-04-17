@@ -29,12 +29,6 @@ const AboutUs = () => {
       linkedinUrl: 'www.linkedin.com/in/héctor-raciel-ledesma-vázquez-a67136311'
     },
     {
-      name: 'Giana',
-      role: t('team.roles.brandManager'),
-      imageUrl: '/images/team/Giana Cantarini.png',
-      linkedinUrl: 'https://www.linkedin.com/in/giana-cantarini/'
-    },
-    {
       name: 'Kelvin',
       role: t('team.roles.businessDevelopment'),
       imageUrl: '/images/team/Kelvin.png',

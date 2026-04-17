@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Mostrar/ocultar el botón basado en la posición del scroll
+  // Show/hide the button based on scroll position
   useEffect(() => {
     const toggleVisibility = () => {
       if (window.pageYOffset > 300) {
@@ -20,9 +20,9 @@ const ScrollToTopButton = () => {
     return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
 
-  // Función para hacer scroll al top con animación suave mejorada
+  // Function to smoothly scroll to the top
   const scrollToTop = () => {
-    const scrollDuration = 800; // Duración en milisegundos
+    const scrollDuration = 800; // Duration in ms
     const scrollStep = -window.scrollY / (scrollDuration / 15);
     
     const scrollInterval = setInterval(() => {
