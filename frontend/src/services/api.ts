@@ -17,7 +17,7 @@ export class ApiServiceError extends Error {
 
 function getAuthHeaders(): Record<string, string> {
   // CAMBIO: Usamos 'token' para coincidir con useLogin
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

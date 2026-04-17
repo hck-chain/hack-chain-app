@@ -1,45 +1,36 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useNavigate } from "react-router-dom";
-
-interface LoginCredentials {
-  wallet_address: string; 
-  role: string;          
-}
-
-interface LoginResponse {
-  message: string;
-  token: string;
-  user: {
-    id: number;
-    email: string | null;
-    role: string; 
-    wallet_address: string; 
-  };
-}
+import { useAuth } from "@/contexts/AuthContext";  // ← agregar
 
 export const useLogin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();  // ← agregar
 
-  return useMutation<LoginResponse, Error, LoginCredentials>({
-    mutationFn: async (credentials) => {
-      // Enviamos wallet_address y role
+  return useMutation({
+    mutationFn: async (credentials: { wallet_address: string }) => {
       return api.postPublic<LoginResponse>('/api/auth/login', credentials);
     },
     onSuccess: (data) => {
-    
-      localStorage.setItem("token", data.token);
+      // Usar login() del contexto en lugar de localStorage directo
+      login(data.token, {
+        id: data.user.id,
+        email: data.user.email ?? '',
+        role: data.user.role,
+        name: null,
+        lastName: null,
+        walletAddress: data.user.wallet_address,
+      });
 
       const role = data.user.role.toLowerCase();
-      
-      if (role === 'student') navigate('/dashboard-talent');
-      else if (role === 'issuer') navigate('/dashboard-issuer');
-      else if (role === 'recruiter') navigate('/dashboard-recruiter');
-      else navigate('/'); 
+      if (role === 'student') navigate('/dashboard/talent');
+      else if (role === 'recruiter') navigate('/dashboard/recruiter');
+      else if (role === 'issuer') navigate('/educator/dashboard');
+      else navigate('/');
     },
     onError: (error) => {
       console.error("Error en el login:", error);
-      alert("No se pudo iniciar sesión. Revisa tu wallet o rol.");
+      alert("No se pudo iniciar sesión. Revisa tu wallet.");
     }
   });
 };
