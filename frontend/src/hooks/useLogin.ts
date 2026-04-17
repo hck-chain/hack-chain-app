@@ -1,9 +1,21 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";  // ← agregar
+import { useAuth } from "@/contexts/AuthContext";
+
+interface LoginResponse {
+  message: string;
+  token: string;
+  user: {
+    id: number;
+    email: string | null;
+    role: string;
+    wallet_address: string;
+  };
+}
 
 export const useLogin = () => {
+  // ... resto igual
   const navigate = useNavigate();
   const { login } = useAuth();  // ← agregar
 
