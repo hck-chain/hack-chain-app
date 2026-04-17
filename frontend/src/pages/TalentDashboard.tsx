@@ -67,9 +67,7 @@ const TalentDashboard = () => {
     }, [toast]);
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('token');
+        localStorage.clear();
         toast({
             title: "Sesión cerrada",
             description: "Vuelve pronto a HackChain",
