@@ -20,6 +20,7 @@ import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
+import { useQueryClient } from "@tanstack/react-query"; // <--- AÑADIR ESTO
 const HackChainLogo = '/images/logoHackchain2.png'; // HackChain Logo
 
 
@@ -116,15 +117,14 @@ const EducatorDashboard = () => {
 
   }, [navigate, toast]);
 
+  const queryClient = useQueryClient();
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('token');
+    localStorage.clear();
+    queryClient.clear();
     toast({
       title: "Sesión cerrada",
       description: "Vuelve pronto a HackChain",
     });
-
     window.location.href = '/login';
   };
 

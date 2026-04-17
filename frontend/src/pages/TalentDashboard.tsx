@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Award, ChevronDown, Mail, Briefcase, Wallet, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
-
+import { useQueryClient } from "@tanstack/react-query";
 const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Certificate {
@@ -66,13 +66,14 @@ const TalentDashboard = () => {
         loadData();
     }, [toast]);
 
+    const queryClient = useQueryClient();
     const handleLogout = () => {
         localStorage.clear();
+        queryClient.clear();
         toast({
             title: "Sesión cerrada",
             description: "Vuelve pronto a HackChain",
         });
-
         window.location.href = '/login';
     };
 
