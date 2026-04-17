@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import "./CertificateCard.css";
-// import { Award } from "lucide-react";
 import GradientText from "./GradientText.tsx";
 
 interface CertificateCardProps {
@@ -63,7 +62,7 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
   className = "",
   enableTilt = true,
   name = "Javi A. Torres",
-  title = "Software Engineer",
+  title = "Certificate Title",
   certificateType = "Certificate of Completion",
   issuer = "Issuer Name",
   issueDate = "Issue Date",
@@ -154,9 +153,7 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
     (event: PointerEvent) => {
       const card = cardRef.current;
       const wrap = wrapRef.current;
-
       if (!card || !wrap || !animationHandlers) return;
-
       const rect = card.getBoundingClientRect();
       animationHandlers.updateCardTransform(
         event.clientX - rect.left,
@@ -171,9 +168,7 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
   const handlePointerEnter = useCallback(() => {
     const card = cardRef.current;
     const wrap = wrapRef.current;
-
     if (!card || !wrap || !animationHandlers) return;
-
     animationHandlers.cancelAnimation();
     wrap.classList.add("active");
     card.classList.add("active");
@@ -183,9 +178,7 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
     (event: PointerEvent) => {
       const card = cardRef.current;
       const wrap = wrapRef.current;
-
       if (!card || !wrap || !animationHandlers) return;
-
       animationHandlers.createSmoothAnimation(
         ANIMATION_CONFIG.SMOOTH_DURATION,
         event.offsetX,
@@ -204,7 +197,6 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
 
     const card = cardRef.current;
     const wrap = wrapRef.current;
-
     if (!card || !wrap) return;
 
     const pointerMoveHandler = handlePointerMove as EventListener;
@@ -233,13 +225,7 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
       card.removeEventListener("pointerleave", pointerLeaveHandler);
       animationHandlers.cancelAnimation();
     };
-  }, [
-    enableTilt,
-    animationHandlers,
-    handlePointerMove,
-    handlePointerEnter,
-    handlePointerLeave,
-  ]);
+  }, [enableTilt, animationHandlers, handlePointerMove, handlePointerEnter, handlePointerLeave]);
 
   const cardStyle = useMemo(
     () =>
@@ -266,13 +252,14 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
           <div className="pc-glare" />
           <div className="pc-content">
             <div className="pc-details">
-              {/* Header Section */}
-              <div className="flex justify-between px-10 items-start">
-                <div className="flex flex-col max-w-[80%]">
-                  <p className="text-sm text-gray-400">{certificateType}</p>
+
+              {/* Header: tipo + título + sello */}
+              <div className="flex justify-between items-start px-6 pt-2">
+                <div className="flex flex-col max-w-[70%]">
+                  <p className="text-xs text-gray-400 mb-1">{certificateType}</p>
                   <GradientText
                     text={title}
-                    fontSize={28}
+                    fontSize={22}
                     fontWeight={700}
                     className="w-full"
                     gradientStops={[
@@ -281,18 +268,24 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
                     ]}
                   />
                 </div>
-                {/* <Award size={"48px"} color="gray"/> */}
-                <img src={sealLogo} alt="Seal" className="absolute -top-2 right-12 w-16 h-16 border-radius-full" />
+                <img
+                  src={sealLogo}
+                  alt="Seal"
+                  className="w-14 h-14 flex-shrink-0 mt-1"
+                />
               </div>
-              <hr className="mx-10 mt-4" />
-              <div className="flex flex-col gap-2 p-6">
-                {/* First Row: Awarded To and Issue Date */}
-                <div className="flex justify-between">
-                  <div className="pc-section w-1/2 pr-2">
-                    <p className="text-sm text-gray-400">Awarded To</p>
+
+              <hr className="mx-6 mt-3 border-white/10" />
+
+              <div className="flex flex-col gap-3 px-6 py-4">
+
+                {/* Awarded To + Issue Date */}
+                <div className="flex justify-between gap-4">
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-xs text-gray-400">Awarded To</p>
                     <GradientText
                       text={name}
-                      fontSize={24}
+                      fontSize={18}
                       fontWeight={700}
                       className="w-fit"
                       gradientStops={[
@@ -301,11 +294,11 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
                       ]}
                     />
                   </div>
-                  <div className="pc-section w-1/2 pl-2">
-                    <p className="text-sm text-gray-400">Issue Date</p>
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-xs text-gray-400">Issue Date</p>
                     <GradientText
                       text={issueDate}
-                      fontSize={24}
+                      fontSize={18}
                       fontWeight={700}
                       className="w-fit"
                       gradientStops={[
@@ -315,13 +308,14 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
                     />
                   </div>
                 </div>
-                {/* Second Row: Issuer and Logo */}
-                <div className="flex justify-between items-center pt-2">
-                  <div className="pc-section w-1/2 pr-2">
-                    <p className="text-sm text-gray-400">Issued By</p>
+
+                {/* Issued By + Logo */}
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-xs text-gray-400">Issued By</p>
                     <GradientText
                       text={issuer}
-                      fontSize={24}
+                      fontSize={18}
                       fontWeight={700}
                       className="w-fit"
                       gradientStops={[
@@ -330,24 +324,13 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
                       ]}
                     />
                   </div>
-                  {logoUrl ? (
-                    <div className="w-1/2 pl-2 flex justify-start">
-                      <img
-                        src={logoUrl}
-                        alt="Issuer Logo"
-                        className="h-20 w-auto object-contain max-w-full"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-1/2 pl-2 flex justify-start">
-                      <img
-                        src={hackChainLogo}
-                        alt="Default Logo"
-                        className="h-20 w-auto object-contain max-w-full"
-                      />
-                    </div>
-                  )}
+                  <img
+                    src={logoUrl ?? hackChainLogo}
+                    alt="Logo"
+                    className="h-12 w-auto object-contain max-w-[35%] flex-shrink-0"
+                  />
                 </div>
+
               </div>
             </div>
           </div>
