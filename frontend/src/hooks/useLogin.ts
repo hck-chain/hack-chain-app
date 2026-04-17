@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/services/api";
-import { useNavigate } from "react-router-dom";s
+import { useNavigate } from "react-router-dom";
 
 interface LoginCredentials {
   wallet_address: string; 

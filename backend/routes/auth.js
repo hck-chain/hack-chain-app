@@ -76,8 +76,11 @@ router.post(
 
       const { modelName, user } = found;
 
-      const payload = { wallet: wallet_address }; // usa wallet en vez de sub + role
-      const token = signToken(payload);
+      const payload = {
+        sub: user.id,
+        role: modelName,
+        wallet: wallet_address
+      }; const token = signToken(payload);
 
 
       // // sanitize user
