@@ -119,11 +119,13 @@ const EducatorDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('authToken');
+    localStorage.removeItem('token');
     toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
+      title: "Sesión cerrada",
+      description: "Vuelve pronto a HackChain",
     });
-    navigate('/login');
+
+    window.location.href = '/login';
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
