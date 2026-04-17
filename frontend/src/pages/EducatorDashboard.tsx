@@ -82,8 +82,6 @@ const EducatorDashboard = () => {
 
         // Here we don't use userData, we directly use the wallet
         const certCount = await getCertificatesByEducator(data.user.wallet_address);
-        console.log("Certificates fetched:", certCount);
-
         setCertificatesIssued(certCount); // <-- directo, es un número
 
       } catch (err) {
