@@ -1,21 +1,8 @@
-/**
- * Centralized API client for HackChain frontend.
- *
- * - Single source for base URL (`VITE_API_URL`)
- * - Auto-injects `Authorization: Bearer` header from localStorage
- * - Typed error handling with `ApiServiceError`
- * - 401 responses automatically clear auth and redirect to /login
- */
-
 const BASE_URL = import.meta.env.VITE_API_URL;
-
-// ---------------------------------------------------------------------------
-// Error type
-// ---------------------------------------------------------------------------
 
 export class ApiServiceError extends Error {
   constructor(
-    message: string,
+    public message: string,
     public status: number,
     public data?: unknown,
   ) {
@@ -29,14 +16,15 @@ export class ApiServiceError extends Error {
 // ---------------------------------------------------------------------------
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('authToken');
+  // CAMBIO: Usamos 'token' para coincidir con useLogin
+  const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function handle401() {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('user');
-  // Only redirect if we're not already on the login page
+  // Limpieza total para no dejar basura de ninguna wallet
+  localStorage.clear();
+
   if (!window.location.pathname.startsWith('/login')) {
     window.location.href = '/login';
   }
@@ -47,6 +35,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
     handle401();
     throw new ApiServiceError('Unauthorized', 401);
   }
+
+  // Si la respuesta es 204 (No Content), no intentamos parsear JSON
+  if (response.status === 204) return {} as T;
 
   const data = await response.json();
 
@@ -65,9 +56,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * GET request with auth headers.
- */
 async function get<T>(path: string): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'GET',
@@ -79,9 +67,6 @@ async function get<T>(path: string): Promise<T> {
   return handleResponse<T>(response);
 }
 
-/**
- * POST request with JSON body and auth headers.
- */
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
@@ -94,9 +79,6 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
-/**
- * POST request without auth headers (for public endpoints like login/register).
- */
 async function postPublic<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
@@ -108,14 +90,10 @@ async function postPublic<T>(path: string, body: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
-/**
- * Upload a file via FormData with auth headers.
- */
 async function upload<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: {
-      // No Content-Type header — browser sets it with boundary for FormData
       ...getAuthHeaders(),
     },
     body: formData,
@@ -123,9 +101,6 @@ async function upload<T>(path: string, formData: FormData): Promise<T> {
   return handleResponse<T>(response);
 }
 
-/**
- * Upload a file via FormData WITHOUT auth headers (for public upload endpoints).
- */
 async function uploadPublic<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
