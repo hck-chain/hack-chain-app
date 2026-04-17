@@ -22,317 +22,105 @@ interface CertificateCardProps {
 const hackChainLogo = "/images/logoHackchain.png";
 const sealLogo = "/images/certificateSeal.png";
 
-const DEFAULT_BEHIND_GRADIENT =
-  "radial-gradient(farthest-side circle at var(--pointer-x) var(--pointer-y),hsla(266,100%,90%,var(--card-opacity)) 4%,hsla(266,50%,80%,calc(var(--card-opacity)*0.75)) 10%,hsla(266,25%,70%,calc(var(--card-opacity)*0.5)) 50%,hsla(266,0%,60%,0) 100%),radial-gradient(35% 52% at 55% 20%,#00ffaac4 0%,#073aff00 100%),radial-gradient(100% 100% at 50% 50%,#00c1ffff 1%,#073aff00 76%),conic-gradient(from 124deg at 50% 50%,#c137ffff 0%,#07c6ffff 40%,#07c6ffff 60%,#c137ffff 100%)";
+const DEFAULT_BEHIND_GRADIENT = "radial-gradient(farthest-side circle at var(--pointer-x) var(--pointer-y),hsla(266,100%,90%,var(--card-opacity)) 4%,hsla(266,50%,80%,calc(var(--card-opacity)*0.75)) 10%,hsla(266,25%,70%,calc(var(--card-opacity)*0.5)) 50%,hsla(266,0%,60%,0) 100%),radial-gradient(35% 52% at 55% 20%,#00ffaac4 0%,#073aff00 100%),radial-gradient(100% 100% at 50% 50%,#00c1ffff 1%,#073aff00 76%),conic-gradient(from 124deg at 50% 50%,#c137ffff 0%,#07c6ffff 40%,#07c6ffff 60%,#c137ffff 100%)";
+const DEFAULT_INNER_GRADIENT = "linear-gradient(145deg,#60496e8c 0%,#71C4FF44 100%)";
 
-const DEFAULT_INNER_GRADIENT =
-  "linear-gradient(145deg,#60496e8c 0%,#71C4FF44 100%)";
-
-const ANIMATION_CONFIG = {
-  SMOOTH_DURATION: 600,
-  INITIAL_DURATION: 1500,
-  INITIAL_X_OFFSET: 70,
-  INITIAL_Y_OFFSET: 60,
-} as const;
-
-const clamp = (value: number, min = 0, max = 100): number =>
-  Math.min(Math.max(value, min), max);
-
-const round = (value: number, precision = 3): number =>
-  parseFloat(value.toFixed(precision));
-
-const adjust = (
-  value: number,
-  fromMin: number,
-  fromMax: number,
-  toMin: number,
-  toMax: number
-): number =>
-  round(toMin + ((toMax - toMin) * (value - fromMin)) / (fromMax - fromMin));
-
-const easeInOutCubic = (x: number): number =>
-  x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const clamp = (value: number, min = 0, max = 100) => Math.min(Math.max(value, min), max);
+const round = (value: number) => parseFloat(value.toFixed(3));
+const adjust = (v: number, fMin: number, fMax: number, tMin: number, tMax: number) => round(tMin + ((tMax - tMin) * (v - fMin)) / (fMax - fMin));
+const easeInOutCubic = (x: number) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
 const CertificateCardComponent: React.FC<CertificateCardProps> = ({
-  iconUrl = "<Placeholder for icon URL>",
-  grainUrl = "<Placeholder for grain URL>",
-  behindGradient,
-  innerGradient,
-  showBehindGradient = true,
-  className = "",
-  enableTilt = true,
-  name = "Javi A. Torres",
-  title = "Certificate Title",
-  certificateType = "Certificate of Completion",
-  issuer = "Issuer Name",
-  issueDate = "Issue Date",
-  logoUrl,
+  behindGradient, innerGradient, showBehindGradient = true, className = "", enableTilt = true,
+  name = "Talent Name", title = "Course Title", certificateType = "Certificate of Completion",
+  issuer = "Issuer Name", issueDate = "Issue Date", logoUrl, iconUrl, grainUrl
 }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // --- Lógica de Animación (Simplificada para el ejemplo) ---
   const animationHandlers = useMemo(() => {
     if (!enableTilt) return null;
-
     let rafId: number | null = null;
-
-    const updateCardTransform = (
-      offsetX: number,
-      offsetY: number,
-      card: HTMLElement,
-      wrap: HTMLElement
-    ) => {
-      const width = card.clientWidth;
-      const height = card.clientHeight;
-
-      const percentX = clamp((100 / width) * offsetX);
-      const percentY = clamp((100 / height) * offsetY);
-
-      const centerX = percentX - 50;
-      const centerY = percentY - 50;
-
-      const properties = {
-        "--pointer-x": `${percentX}%`,
-        "--pointer-y": `${percentY}%`,
-        "--background-x": `${adjust(percentX, 0, 100, 35, 65)}%`,
-        "--background-y": `${adjust(percentY, 0, 100, 35, 65)}%`,
-        "--pointer-from-center": `${clamp(Math.hypot(percentY - 50, percentX - 50) / 50, 0, 1)}`,
-        "--pointer-from-top": `${percentY / 100}`,
-        "--pointer-from-left": `${percentX / 100}`,
-        "--rotate-x": `${round(-(centerX / 5))}deg`,
-        "--rotate-y": `${round(centerY / 4)}deg`,
-      };
-
-      Object.entries(properties).forEach(([property, value]) => {
-        wrap.style.setProperty(property, value);
-      });
-    };
-
-    const createSmoothAnimation = (
-      duration: number,
-      startX: number,
-      startY: number,
-      card: HTMLElement,
-      wrap: HTMLElement
-    ) => {
-      const startTime = performance.now();
-      const targetX = wrap.clientWidth / 2;
-      const targetY = wrap.clientHeight / 2;
-
-      const animationLoop = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = clamp(elapsed / duration);
-        const easedProgress = easeInOutCubic(progress);
-
-        const currentX = adjust(easedProgress, 0, 1, startX, targetX);
-        const currentY = adjust(easedProgress, 0, 1, startY, targetY);
-
-        updateCardTransform(currentX, currentY, card, wrap);
-
-        if (progress < 1) {
-          rafId = requestAnimationFrame(animationLoop);
-        }
-      };
-
-      rafId = requestAnimationFrame(animationLoop);
-    };
-
     return {
-      updateCardTransform,
-      createSmoothAnimation,
-      cancelAnimation: () => {
-        if (rafId) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
-        }
+      updateCardTransform: (offsetX: number, offsetY: number, card: HTMLElement, wrap: HTMLElement) => {
+        const percentX = clamp((100 / card.clientWidth) * offsetX);
+        const percentY = clamp((100 / card.clientHeight) * offsetY);
+        wrap.style.setProperty("--pointer-x", `${percentX}%`);
+        wrap.style.setProperty("--pointer-y", `${percentY}%`);
+        wrap.style.setProperty("--rotate-x", `${round(-((percentX - 50) / 5))}deg`);
+        wrap.style.setProperty("--rotate-y", `${round((percentY - 50) / 4)}deg`);
       },
+      cancelAnimation: () => rafId && cancelAnimationFrame(rafId)
     };
   }, [enableTilt]);
 
-  const handlePointerMove = useCallback(
-    (event: PointerEvent) => {
-      const card = cardRef.current;
-      const wrap = wrapRef.current;
-      if (!card || !wrap || !animationHandlers) return;
-      const rect = card.getBoundingClientRect();
-      animationHandlers.updateCardTransform(
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-        card,
-        wrap
-      );
-    },
-    [animationHandlers]
-  );
-
-  const handlePointerEnter = useCallback(() => {
+  useEffect(() => {
     const card = cardRef.current;
     const wrap = wrapRef.current;
     if (!card || !wrap || !animationHandlers) return;
-    animationHandlers.cancelAnimation();
-    wrap.classList.add("active");
-    card.classList.add("active");
+
+    const move = (e: PointerEvent) => {
+      const rect = card.getBoundingClientRect();
+      animationHandlers.updateCardTransform(e.clientX - rect.left, e.clientY - rect.top, card, wrap);
+    };
+
+    card.addEventListener("pointermove", move);
+    card.addEventListener("pointerenter", () => { card.classList.add("active"); wrap.classList.add("active"); });
+    card.addEventListener("pointerleave", () => { card.classList.remove("active"); wrap.classList.remove("active"); });
+
+    return () => card.removeEventListener("pointermove", move);
   }, [animationHandlers]);
 
-  const handlePointerLeave = useCallback(
-    (event: PointerEvent) => {
-      const card = cardRef.current;
-      const wrap = wrapRef.current;
-      if (!card || !wrap || !animationHandlers) return;
-      animationHandlers.createSmoothAnimation(
-        ANIMATION_CONFIG.SMOOTH_DURATION,
-        event.offsetX,
-        event.offsetY,
-        card,
-        wrap
-      );
-      wrap.classList.remove("active");
-      card.classList.remove("active");
-    },
-    [animationHandlers]
-  );
-
-  useEffect(() => {
-    if (!enableTilt || !animationHandlers) return;
-
-    const card = cardRef.current;
-    const wrap = wrapRef.current;
-    if (!card || !wrap) return;
-
-    const pointerMoveHandler = handlePointerMove as EventListener;
-    const pointerEnterHandler = handlePointerEnter as EventListener;
-    const pointerLeaveHandler = handlePointerLeave as EventListener;
-
-    card.addEventListener("pointerenter", pointerEnterHandler);
-    card.addEventListener("pointermove", pointerMoveHandler);
-    card.addEventListener("pointerleave", pointerLeaveHandler);
-
-    const initialX = wrap.clientWidth - ANIMATION_CONFIG.INITIAL_X_OFFSET;
-    const initialY = ANIMATION_CONFIG.INITIAL_Y_OFFSET;
-
-    animationHandlers.updateCardTransform(initialX, initialY, card, wrap);
-    animationHandlers.createSmoothAnimation(
-      ANIMATION_CONFIG.INITIAL_DURATION,
-      initialX,
-      initialY,
-      card,
-      wrap
-    );
-
-    return () => {
-      card.removeEventListener("pointerenter", pointerEnterHandler);
-      card.removeEventListener("pointermove", pointerMoveHandler);
-      card.removeEventListener("pointerleave", pointerLeaveHandler);
-      animationHandlers.cancelAnimation();
-    };
-  }, [enableTilt, animationHandlers, handlePointerMove, handlePointerEnter, handlePointerLeave]);
-
-  const cardStyle = useMemo(
-    () =>
-      ({
-        "--icon": iconUrl ? `url(${iconUrl})` : "none",
-        "--grain": grainUrl ? `url(${grainUrl})` : "none",
-        "--behind-gradient": showBehindGradient
-          ? (behindGradient ?? DEFAULT_BEHIND_GRADIENT)
-          : "none",
-        "--inner-gradient": innerGradient ?? DEFAULT_INNER_GRADIENT,
-      }) as React.CSSProperties,
-    [iconUrl, grainUrl, showBehindGradient, behindGradient, innerGradient]
-  );
+  const cardStyle = useMemo(() => ({
+    "--behind-gradient": showBehindGradient ? (behindGradient ?? DEFAULT_BEHIND_GRADIENT) : "none",
+    "--inner-gradient": innerGradient ?? DEFAULT_INNER_GRADIENT,
+  } as React.CSSProperties), [showBehindGradient, behindGradient, innerGradient]);
 
   return (
-    <div
-      ref={wrapRef}
-      className={`pc-card-wrapper ${className}`.trim()}
-      style={cardStyle}
-    >
+    <div ref={wrapRef} className={`pc-card-wrapper ${className}`} style={cardStyle}>
       <section ref={cardRef} className="pc-card">
         <div className="pc-inside">
           <div className="pc-shine" />
           <div className="pc-glare" />
-          <div className="pc-content">
-            <div className="pc-details">
 
-              {/* Header: tipo + título + sello */}
-              <div className="flex justify-between items-start px-6 pt-2">
-                <div className="flex flex-col max-w-[70%]">
-                  <p className="text-xs text-gray-400 mb-1">{certificateType}</p>
-                  <GradientText
-                    text={title}
-                    fontSize={22}
-                    fontWeight={700}
-                    className="w-full"
-                    gradientStops={[
-                      { offset: 0, color: "#ffffff" },
-                      { offset: 1, color: "#6f6fbe" },
-                    ]}
-                  />
+          {/* Contenido con Flexbox para evitar superposición */}
+          <div className="pc-content relative z-10 flex flex-col h-full">
+
+            {/* 1. HEADER */}
+            <div className="relative flex justify-between px-10 pt-10 items-start">
+              <div className="flex flex-col max-w-[70%]">
+                <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">{certificateType}</p>
+                <GradientText text={title} fontSize={26} fontWeight={800} />
+              </div>
+              <img src={sealLogo} alt="Seal" className="w-20 h-20 drop-shadow-xl" />
+            </div>
+
+            <hr className="mx-10 my-4 border-white/10" />
+
+            {/* 2. BODY (flex-grow hace que este espacio empuje al footer hacia abajo) */}
+            <div className="flex flex-col gap-8 px-10 py-4 flex-grow">
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-[10px] uppercase text-gray-500 font-bold mb-1">Awarded To</p>
+                  <GradientText text={name} fontSize={22} />
                 </div>
-                <img
-                  src={sealLogo}
-                  alt="Seal"
-                  className="w-14 h-14 flex-shrink-0 mt-1"
-                />
+                <div className="text-right">
+                  <p className="text-[10px] uppercase text-gray-500 font-bold mb-1">Issue Date</p>
+                  <GradientText text={issueDate} fontSize={22} />
+                </div>
               </div>
 
-              <hr className="mx-6 mt-3 border-white/10" />
-
-              <div className="flex flex-col gap-3 px-6 py-4">
-
-                {/* Awarded To + Issue Date */}
-                <div className="flex justify-between gap-4">
-                  <div className="flex flex-col min-w-0">
-                    <p className="text-xs text-gray-400">Awarded To</p>
-                    <GradientText
-                      text={name}
-                      fontSize={18}
-                      fontWeight={700}
-                      className="w-fit"
-                      gradientStops={[
-                        { offset: 0, color: "#ffffff" },
-                        { offset: 1, color: "#4a4ac0" },
-                      ]}
-                    />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <p className="text-xs text-gray-400">Issue Date</p>
-                    <GradientText
-                      text={issueDate}
-                      fontSize={18}
-                      fontWeight={700}
-                      className="w-fit"
-                      gradientStops={[
-                        { offset: 0, color: "#ffffff" },
-                        { offset: 1, color: "#4a4ac0" },
-                      ]}
-                    />
-                  </div>
+              {/* 3. FOOTER (siempre al fondo gracias a mt-auto) */}
+              <div className="flex justify-between items-end mt-auto mb-6">
+                <div>
+                  <p className="text-[10px] uppercase text-gray-500 font-bold mb-1">Issued By</p>
+                  <GradientText text={issuer} fontSize={20} />
                 </div>
-
-                {/* Issued By + Logo */}
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col min-w-0">
-                    <p className="text-xs text-gray-400">Issued By</p>
-                    <GradientText
-                      text={issuer}
-                      fontSize={18}
-                      fontWeight={700}
-                      className="w-fit"
-                      gradientStops={[
-                        { offset: 0, color: "#ffffff" },
-                        { offset: 1, color: "#4a4ac0" },
-                      ]}
-                    />
-                  </div>
-                  <img
-                    src={logoUrl ?? hackChainLogo}
-                    alt="Logo"
-                    className="h-12 w-auto object-contain max-w-[35%] flex-shrink-0"
-                  />
-                </div>
-
+                <img src={logoUrl || hackChainLogo} alt="Logo" className="h-12 w-auto object-contain" />
               </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -340,6 +128,4 @@ const CertificateCardComponent: React.FC<CertificateCardProps> = ({
   );
 };
 
-const CertificateCard = React.memo(CertificateCardComponent);
-
-export default CertificateCard;
+export default React.memo(CertificateCardComponent);
