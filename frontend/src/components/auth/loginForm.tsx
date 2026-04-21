@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWalletLogin } from "@/hooks/useWalletLogin";
@@ -22,17 +22,13 @@ export const LoginForm = () => {
           <div className="absolute inset-0 -m-6 w-28 h-28 rounded-full border border-purple-500/30 animate-ping" />
           <div className="absolute inset-0 -m-4 w-24 h-24 rounded-full border border-pink-500/20 animate-pulse" />
           
-          <div 
+          <div
             className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
             style={{
               boxShadow: '0 0 40px rgba(139, 92, 246, 0.5), 0 0 80px rgba(139, 92, 246, 0.2)',
             }}
           >
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" 
-              alt="MetaMask" 
-              className="w-14 h-14 animate-pulse"
-            />
+            <Wallet className="w-14 h-14 text-purple-400 animate-pulse" />
           </div>
         </div>
         
@@ -128,15 +124,9 @@ export const LoginForm = () => {
 
         {/* Content - centered */}
         <div className="relative z-10 flex items-center justify-center gap-3">
-          {/* MetaMask Icon - floating, no background */}
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" 
-            alt="MetaMask" 
-            className="w-7 h-7 transition-transform duration-300 group-hover:scale-110"
-          />
-          
+          <Wallet className="w-7 h-7 text-purple-400 transition-transform duration-300 group-hover:scale-110" />
           <span className="text-base font-semibold text-slate-200 group-hover:text-white transition-colors tracking-wide">
-            {t('loginForm.connectMetaMask')}
+            {t('loginForm.connectWallet')}
           </span>
         </div>
 

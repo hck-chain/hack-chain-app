@@ -185,6 +185,7 @@
     "signingInBtn": "Signing In...",
     "continueWith": "Or continue with",
     "connectMetaMask": "Connect MetaMask",
+    "connectWallet": "Connect Wallet",
     "noAccount": "Don't have an account?",
     "createOne": "Create one",
     "success": "Signed in successfully!"

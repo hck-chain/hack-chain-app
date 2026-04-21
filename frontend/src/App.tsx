@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { useModalScrollLock } from '@/hooks/useModalScrollLock';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,7 +46,9 @@ function PageLoadingFallback() {
   );
 }
 
-const App = () => (
+const App = () => {
+  useModalScrollLock();
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -111,6 +114,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
