@@ -8,42 +8,27 @@ import {
     RecruiterRegistrationResponse,
 } from '../types/auth';
 import { api } from '@/services/api';
+import { getConnectedWallet } from '@/utils/web3Service';
 
-// API function register a new recruiter
 const registerRecruiter = async (
     recruiterData: RecruiterRegistrationRequestData & { wallet_address: string; role: string }
 ): Promise<RecruiterRegistrationResponse> => {
     return api.postPublic<RecruiterRegistrationResponse>('/api/users/register', recruiterData);
 };
 
-// Custom hook for recruiter Registration
 export const useRecruiterRegistration = () => {
     return useMutation({
         mutationFn: async (formData: RecruiterRegistrationFormData) => {
             const requestData = transformRecruiterFormDataToRequest(formData);
+            const walletAddress = await getConnectedWallet();
 
-            if (!window.ethereum) {
-                throw new Error("MetaMask not detected");
-            }
-
-            const accounts = await window.ethereum.request({
-                method: "eth_requestAccounts",
-            });
-
-            if (!accounts || accounts.length === 0) {
-                throw new Error("No account selected");
-            }
-
-            const walletAddress = accounts[0];
-
-            const payload = {
+            return registerRecruiter({
                 ...requestData,
                 wallet_address: walletAddress,
-                role: 'recruiter'
-            };
-            return registerRecruiter(payload);
+                role: 'recruiter',
+            });
         },
-        onSuccess: (data: RecruiterRegistrationResponse) => {
+        onSuccess: () => {
             console.log("Recruiter registered successfully");
         },
         onError: (error: Error) => {
@@ -52,7 +37,6 @@ export const useRecruiterRegistration = () => {
     });
 };
 
-// Helper hook to manage recruiter registration state
 export const useRecruiterRegistrationState = () => {
     const mutation = useRecruiterRegistration();
 

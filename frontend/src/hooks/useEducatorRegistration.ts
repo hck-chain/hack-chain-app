@@ -8,45 +8,29 @@ import {
     EducatorRegistrationResponse,
 } from '../types/auth';
 import { api } from '@/services/api';
+import { getConnectedWallet } from '@/utils/web3Service';
 
-// API function register a new educator
 const registerEducator = async (
     educatorData: EducatorRegistrationRequestData & { wallet_address: string; role: string }
 ): Promise<EducatorRegistrationResponse> => {
     return api.postPublic<EducatorRegistrationResponse>('/api/users/register', educatorData);
 };
 
-// Custom hook for educator Registration
 export const useEducatorRegistration = () => {
     return useMutation({
         mutationFn: async (formData: EducatorRegistrationFormData) => {
             const requestData = transformEducatorFormDataToRequest(formData);
+            const walletAddress = await getConnectedWallet();
 
-            if (!window.ethereum) {
-                throw new Error("MetaMask not detected");
-            }
-
-            const accounts = await window.ethereum.request({
-                method: "eth_requestAccounts",
-            });
-
-            if (!accounts || accounts.length === 0) {
-                throw new Error("No account selected");
-            }
-
-            const walletAddress = accounts[0];
-
-            // Authorize the wallet as an issuer on-chain
             await api.postPublic('/api/issuers/authorize', { issuer: walletAddress });
 
-            const payload = {
+            return registerEducator({
                 ...requestData,
                 wallet_address: walletAddress,
-                role: 'issuer'
-            };
-            return registerEducator(payload);
+                role: 'issuer',
+            });
         },
-        onSuccess: (data: EducatorRegistrationResponse) => {
+        onSuccess: () => {
             console.log("Educator registered successfully");
         },
         onError: (error: Error) => {
@@ -55,7 +39,6 @@ export const useEducatorRegistration = () => {
     });
 };
 
-// Helper hook to manage educator registration state
 export const useEducatorRegistrationState = () => {
     const mutation = useEducatorRegistration();
 

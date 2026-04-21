@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { appKit } from '@/config/walletConfig';
 
 interface WalletLoginResponse {
     message: string;
@@ -53,26 +54,30 @@ export const useWalletLogin = () => {
         try {
             setIsConnecting(true);
 
-            if (!window.ethereum) {
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                if (isMobile) {
-                    window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-                    setIsConnecting(false);
-                    return;
-                }
-                throw new Error("MetaMask not detected");
+            await appKit.open();
+
+            // Wait for a connected address from the modal
+            const walletAddress = await new Promise<string | null>((resolve) => {
+                const unsubscribeAccount = appKit.subscribeAccount((account) => {
+                    if (account.address) {
+                        unsubscribeAccount();
+                        resolve(account.address);
+                    }
+                });
+
+                appKit.subscribeEvents((event) => {
+                    if (event.data.event === 'MODAL_CLOSE') {
+                        unsubscribeAccount();
+                        resolve(null);
+                    }
+                });
+            });
+
+            if (!walletAddress) {
+                setError("No wallet connected");
+                return;
             }
 
-            await window.ethereum.request({
-                method: "wallet_requestPermissions",
-                params: [{ eth_accounts: {} }],
-            });
-
-            const accounts = await window.ethereum.request({
-                method: "eth_requestAccounts",
-            });
-
-            const walletAddress = accounts[0];
             mutation.mutate(walletAddress);
         } catch (err: any) {
             setError(err.message || "Failed to connect to wallet");

@@ -8,40 +8,25 @@ import {
     UserRegistrationResponse,
 } from '../types/auth';
 import { api } from '@/services/api';
+import { getConnectedWallet } from '@/utils/web3Service';
 
-// API function register a new user
 const registerUser = async (
     requestData: UserRegistrationRequestData & { wallet_address: string; role: string }
 ): Promise<UserRegistrationResponse> => {
     return api.postPublic<UserRegistrationResponse>('/api/users/register', requestData);
 };
 
-// Custom hook for user Registration
 export const useUserRegistration = () => {
     return useMutation({
         mutationFn: async (formData: UserRegistrationFormData) => {
             const requestData = transformFormDataToRequest(formData);
+            const walletAddress = await getConnectedWallet();
 
-            if (!window.ethereum) {
-                throw new Error("MetaMask not detected");
-            }
-
-            const accounts = await window.ethereum.request({
-                method: "eth_requestAccounts",
-            });
-
-            if (!accounts || accounts.length === 0) {
-                throw new Error("No account selected");
-            }
-
-            const walletAddress = accounts[0];
-
-            const payload = {
+            return registerUser({
                 ...requestData,
                 wallet_address: walletAddress,
-                role: 'student'
-            };
-            return registerUser(payload);
+                role: 'student',
+            });
         },
         onSuccess: (data: UserRegistrationResponse) => {
             console.log("User registered successfully:", data.user.email);
@@ -52,7 +37,6 @@ export const useUserRegistration = () => {
     });
 };
 
-// Helper hook to manage registration state
 export const useRegistrationState = () => {
     const mutation = useUserRegistration();
 
