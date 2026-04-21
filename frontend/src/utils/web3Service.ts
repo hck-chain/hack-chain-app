@@ -2,8 +2,6 @@ import { ethers } from 'ethers';
 import { api } from '@/services/api';
 import { appKit } from '@/config/walletConfig';
 
-const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
-
 // Opens the AppKit modal and resolves with the connected wallet address.
 // Rejects if the user closes the modal without connecting.
 export const getConnectedWallet = (): Promise<string> => {
@@ -19,13 +17,15 @@ export const getConnectedWallet = (): Promise<string> => {
         const unsubscribeAccount = appKit.subscribeAccount((account) => {
             if (account.address) {
                 unsubscribeAccount();
+                unsubscribeEvents();
                 resolve(account.address);
             }
         });
 
-        appKit.subscribeEvents((event) => {
+        const unsubscribeEvents = appKit.subscribeEvents((event) => {
             if (event.data.event === 'MODAL_CLOSE') {
                 unsubscribeAccount();
+                unsubscribeEvents();
                 reject(new Error('Wallet connection cancelled'));
             }
         });
@@ -753,33 +753,6 @@ const CONTRACT_ABI = [
 ]
 
 export const web3Service = {
-    connectWallet: async (): Promise<string | null> => {
-        try {
-            await appKit.open();
-
-            // Wait for the wallet to connect and return the address
-            return new Promise((resolve) => {
-                const unsubscribe = appKit.subscribeAccount((account) => {
-                    if (account.address) {
-                        unsubscribe();
-                        resolve(account.address);
-                    }
-                });
-
-                // Resolve null if modal is closed without connecting
-                appKit.subscribeEvents((event) => {
-                    if (event.data.event === 'MODAL_CLOSE') {
-                        unsubscribe();
-                        resolve(null);
-                    }
-                });
-            });
-        } catch (err) {
-            console.error("Wallet connection failed:", err);
-            return null;
-        }
-    },
-
     mintCertificateOnChain: async (
         talentWallet: string,
         talentName: string,
