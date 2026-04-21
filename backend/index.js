@@ -18,6 +18,7 @@ app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
 const allowedOrigins = [
   "https://hackchain.app",
   "https://www.hackchain.app",
+  ...(process.env.NODE_ENV !== "production" ? ["http://localhost:8080", "http://localhost:5173"] : []),
 ];
 
 app.use(cors({
