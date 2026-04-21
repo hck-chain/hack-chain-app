@@ -1,7 +1,36 @@
 import { ethers } from 'ethers';
 import { api } from '@/services/api';
+import { appKit } from '@/config/walletConfig';
 
-const POLYGON_CHAIN_ID = '0x89'; // Polygon Mainnet
+// Opens the AppKit modal and resolves with the connected wallet address.
+// Rejects if the user closes the modal without connecting.
+export const getConnectedWallet = (): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+        const currentAddress = appKit.getAddress();
+        if (currentAddress) {
+            resolve(currentAddress);
+            return;
+        }
+
+        await appKit.open();
+
+        const unsubscribeAccount = appKit.subscribeAccount((account) => {
+            if (account.address) {
+                unsubscribeAccount();
+                unsubscribeEvents();
+                resolve(account.address);
+            }
+        });
+
+        const unsubscribeEvents = appKit.subscribeEvents((event) => {
+            if (event.data.event === 'MODAL_CLOSE') {
+                unsubscribeAccount();
+                unsubscribeEvents();
+                reject(new Error('Wallet connection cancelled'));
+            }
+        });
+    });
+};
 const CONTRACT_ADDRESS = '0x61d2e94543DD498b7FD86450f1fC8135cB60021C';
 const CONTRACT_ABI = [
     {
@@ -724,40 +753,6 @@ const CONTRACT_ABI = [
 ]
 
 export const web3Service = {
-    connectWallet: async (): Promise<string | null> => {
-        if (!window.ethereum) {
-            alert("Please install MetaMask!");
-            return null;
-        }
-
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const account = accounts[0];
-
-            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-            if (chainId !== POLYGON_CHAIN_ID) {
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: POLYGON_CHAIN_ID }],
-                    });
-                } catch (switchError: any) {
-                    if (switchError.code === 4902) {
-                        alert("Please add Polygon Mainnet to MetaMask manually.");
-                    } else {
-                        console.error("Failed to switch chain:", switchError);
-                    }
-                    return null;
-                }
-            }
-
-            return account;
-        } catch (err) {
-            console.error("Wallet connection failed:", err);
-            return null;
-        }
-    },
-
     mintCertificateOnChain: async (
         talentWallet: string,
         talentName: string,
@@ -765,10 +760,11 @@ export const web3Service = {
         tokenUri: string,
         issuerWallet: string
     ): Promise<boolean> => {
-        if (!window.ethereum) return false;
+        const walletProvider = appKit.getWalletProvider();
+        if (!walletProvider) return false;
 
         try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const provider = new ethers.providers.Web3Provider(walletProvider as any);
             const signer = provider.getSigner();
             const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
