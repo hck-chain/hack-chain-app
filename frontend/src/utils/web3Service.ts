@@ -770,7 +770,7 @@ export const web3Service = {
 
             console.log(`Minting certificate for ${talentName} (${talentWallet})...`);
 
-            // Blockchain minting
+            // Minteo en blockchain
             const tx = await contract.issueCertificate(talentWallet, talentName, courseName, tokenUri);
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
@@ -793,7 +793,7 @@ export const web3Service = {
             const tokenId = transferEvent.args.tokenId.toString();
 
 
-            // Save to database
+            // Guardar en la base de datos
             const issue_date = new Date().toISOString().split('T')[0];
             await api.post('/api/certificates/database', {
                 student_wallet_address: talentWallet.toLowerCase(),

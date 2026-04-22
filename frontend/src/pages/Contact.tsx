@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Mail, User, Award, Building } from 'lucide-react';
+import { Mail, User, Award, Building, Info, Handshake, LifeBuoy, ShieldAlert, Send } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
@@ -151,31 +151,65 @@ const Contact = () => {
           </div>
         </section>
 
-        {/* Contact CTA */}
+        {/* Contact Directory */}
         <div className="relative flex items-center mb-16">
           <div className="flex-1 h-px bg-white/10" />
           <span className="mx-5 text-xs font-exo tracking-widest uppercase text-gray-500">
-            {t('contact.stillQuestions')}
+            {t('contact.directoryTitle')}
           </span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        <section className="text-center">
-          <h2 className="font-exo font-bold text-white text-2xl mb-2">
-            {t('contact.directTitle')}
-          </h2>
-          <p className="text-gray-400 text-sm mb-8">
-            {t('contact.directSubtitle')}
-          </p>
-          <Button
-            onClick={openGmail}
-            className="gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-exo px-8 py-5 text-base tracking-wide transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/25"
-          >
-            <Mail className="h-5 w-5" />
-            {t('contact.sendBtn')}
-          </Button>
-          <p className="text-gray-600 text-xs mt-4">hackchain13@gmail.com</p>
+        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[
+            { key: 'contacto', icon: <Info className="w-5 h-5" />, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', hover: 'hover:border-blue-500/50' },
+            { key: 'colaboraciones', icon: <Handshake className="w-5 h-5" />, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', hover: 'hover:border-pink-500/50' },
+            { key: 'soporte', icon: <LifeBuoy className="w-5 h-5" />, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', hover: 'hover:border-orange-500/50' },
+            { key: 'talentos', icon: <User className="w-5 h-5" />, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', hover: 'hover:border-purple-500/50' },
+            { key: 'educadores', icon: <Award className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', hover: 'hover:border-emerald-500/50' },
+            { key: 'reclutadores', icon: <Building className="w-5 h-5" />, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', hover: 'hover:border-cyan-500/50' },
+            { key: 'bugbounty', icon: <ShieldAlert className="w-5 h-5" />, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', hover: 'hover:border-red-500/50' }
+          ].map((item, i) => {
+            const email = t(`contact.directory.${item.key}.email`);
+            const desc = t(`contact.directory.${item.key}.desc`);
+            const subject = encodeURIComponent(t(`contact.directory.${item.key}.subject`));
+            const body = encodeURIComponent(t(`contact.directory.${item.key}.body`));
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}&body=${body}`;
+
+            return (
+            <div 
+              key={i} 
+              className={`relative flex flex-col p-5 rounded-2xl border ${item.border} ${item.bg} backdrop-blur-sm transition-all duration-300 group overflow-hidden`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg bg-[#0B0B0F]/50 ${item.color}`}>
+                  {item.icon}
+                </div>
+              </div>
+              <h4 className={`font-exo font-bold text-[15px] mb-2 truncate transition-colors duration-300 group-hover:text-white/30 text-white`} title={email}>
+                {email}
+              </h4>
+              <p className="text-gray-400 text-xs leading-relaxed mt-auto transition-colors duration-300 group-hover:text-gray-600">
+                {desc}
+              </p>
+
+              {/* Hover Overlay Button */}
+              <div className="absolute inset-0 bg-[#0B0B0F]/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
+                <a 
+                  href={gmailUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border ${item.border} ${item.color} ${item.hover} hover:bg-white/10 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0`}
+                >
+                  <Mail className="w-4 h-4" />
+                  <span className="text-sm font-semibold font-exo tracking-wide">{t('contact.openInGmail', 'Abrir en Gmail')}</span>
+                </a>
+              </div>
+            </div>
+            );
+          })}
         </section>
+
 
       </main>
 

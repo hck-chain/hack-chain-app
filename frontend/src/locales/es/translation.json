@@ -188,7 +188,9 @@
     "connectWallet": "Conectar Wallet",
     "noAccount": "¿No tienes cuenta?",
     "createOne": "Crear una",
-    "success": "¡Inicio de sesión exitoso!"
+    "success": "¡Inicio de sesión exitoso!",
+    "walletNotFound": "Esta wallet no está registrada.",
+    "registerHere": "Creá una cuenta para comenzar"
   },
   "registerLanding": {
     "backHome": "Volver al Inicio",
@@ -359,7 +361,18 @@
     "sendBtn": "Enviar Mensaje",
     "emailSubject": "Contacto vía HackChain",
     "emailFrom": "De",
-    "emailReply": "Responder a"
+    "emailReply": "Responder a",
+    "openInGmail": "Abrir en Gmail",
+    "directoryTitle": "Directorio de Contactos",
+    "directory": {
+      "contacto": { "email": "contacto@hackchain.app", "desc": "Información general acerca de HackChain.", "subject": "Consulta General - HackChain", "body": "Hola equipo de HackChain,\n\nMe gustaría obtener más información sobre..." },
+      "colaboraciones": { "email": "colaboraciones@hackchain.app", "desc": "Trabajo en equipo con proyectos, marcas, comunidades, personas, etc.", "subject": "Propuesta de Colaboración", "body": "Hola,\n\nMe pongo en contacto para proponer una colaboración relacionada con...\n\nDetalles de la propuesta:" },
+      "soporte": { "email": "soporte@hackchain.app", "desc": "Solución de inconvenientes con la página o el token.", "subject": "Solicitud de Soporte", "body": "Hola Soporte,\n\nEstoy teniendo el siguiente inconveniente:\n\n[Describe tu problema aquí, incluye capturas de pantalla si es posible]" },
+      "talentos": { "email": "talentos@hackchain.app", "desc": "Dudas sobre eventos, beneficios o comunidad.", "subject": "Dudas de Talento / Comunidad", "body": "Hola,\n\nSoy un Talento en HackChain y tengo la siguiente duda:\n\n" },
+      "educadores": { "email": "educadores@hackchain.app", "desc": "Dudas sobre eventos, beneficios o comunidad.", "subject": "Consulta de Educador", "body": "Hola,\n\nSoy un Educador (o me interesa serlo) y me gustaría saber:\n\n" },
+      "reclutadores": { "email": "reclutadores@hackchain.app", "desc": "Dudas sobre eventos, beneficios o comunidad.", "subject": "Consulta de Reclutador", "body": "Hola,\n\nRepresento a una empresa/soy reclutador y me interesa conocer más sobre cómo encontrar talento:\n\n" },
+      "bugbounty": { "email": "bugbounty@hackchain.app", "desc": "Programa de recompensa por identificar errores.", "subject": "Reporte de Vulnerabilidad - Bug Bounty", "body": "Equipo de Seguridad,\n\nHe identificado un error/vulnerabilidad en la plataforma. Detalles a continuación:\n\n- Qué ocurrió:\n- Pasos para reproducirlo:\n- URL donde ocurrió:\n\n[Adjunta cualquier evidencia]" }
+    }
   },
   "partner": {
     "text": "HackChain es asesorado por Token Consulting Group. Consultoría integral especializada en proyectos de tokenización."

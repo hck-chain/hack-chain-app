@@ -188,7 +188,9 @@
     "connectWallet": "Connect Wallet",
     "noAccount": "Don't have an account?",
     "createOne": "Create one",
-    "success": "Signed in successfully!"
+    "success": "Signed in successfully!",
+    "walletNotFound": "This wallet is not registered.",
+    "registerHere": "Create an account to get started"
   },
   "registerLanding": {
     "backHome": "Back to Home",
@@ -359,7 +361,18 @@
     "sendBtn": "Send Message",
     "emailSubject": "Contact via HackChain",
     "emailFrom": "From",
-    "emailReply": "Reply to"
+    "emailReply": "Reply to",
+    "openInGmail": "Open in Gmail",
+    "directoryTitle": "Contact Directory",
+    "directory": {
+      "contacto": { "email": "contacto@hackchain.app", "desc": "General information about HackChain.", "subject": "General Inquiry - HackChain", "body": "Hello HackChain team,\n\nI would like to get more information about..." },
+      "colaboraciones": { "email": "colaboraciones@hackchain.app", "desc": "Teamwork with projects, brands, communities, people, etc.", "subject": "Collaboration Proposal", "body": "Hello,\n\nI am reaching out to propose a collaboration regarding...\n\nProposal details:" },
+      "soporte": { "email": "soporte@hackchain.app", "desc": "Troubleshooting issues with the page or token.", "subject": "Support Request", "body": "Hello Support,\n\nI am experiencing the following issue:\n\n[Describe your problem here, attach screenshots if possible]" },
+      "talentos": { "email": "talentos@hackchain.app", "desc": "Questions about events, benefits, or the community.", "subject": "Talent / Community Questions", "body": "Hello,\n\nI am a Talent on HackChain and I have the following question:\n\n" },
+      "educadores": { "email": "educadores@hackchain.app", "desc": "Questions about events, benefits, or the community.", "subject": "Educator Inquiry", "body": "Hello,\n\nI am an Educator (or interested in becoming one) and I would like to know:\n\n" },
+      "reclutadores": { "email": "reclutadores@hackchain.app", "desc": "Questions about events, benefits, or the community.", "subject": "Recruiter Inquiry", "body": "Hello,\n\nI represent a company/I am a recruiter and I am interested in knowing more about how to find talent:\n\n" },
+      "bugbounty": { "email": "bugbounty@hackchain.app", "desc": "Bounty program for identifying bugs and errors.", "subject": "Vulnerability Report - Bug Bounty", "body": "Security Team,\n\nI have identified a bug/vulnerability on the platform. Details below:\n\n- What happened:\n- Steps to reproduce:\n- URL where it occurred:\n\n[Attach any evidence]" }
+    }
   },
   "partner": {
     "text": "HackChain is advised by Token Consulting Group. Comprehensive consulting specialized in tokenization projects."

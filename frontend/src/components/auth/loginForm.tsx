@@ -7,7 +7,7 @@ import { useWalletLogin } from "@/hooks/useWalletLogin";
 export const LoginForm = () => {
   const { t } = useTranslation();
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const { connectAndLogin, isLoading: isWalletLoading, error: walletError } = useWalletLogin();
+  const { connectAndLogin, isLoading: isWalletLoading, error: walletError, isWalletNotFound } = useWalletLogin();
 
   const handleWalletLogin = async () => {
     setErrorMessage("");
@@ -66,12 +66,25 @@ export const LoginForm = () => {
   return (
     <div className="space-y-5">
       {/* Error state */}
-      {(walletError || errorMessage) && (
+      {isWalletNotFound ? (
+        <div className="flex flex-col gap-2 p-3 text-sm bg-amber-500/10 rounded-lg border border-amber-500/20">
+          <div className="flex items-center gap-2 text-amber-400">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{t('loginForm.walletNotFound')}</span>
+          </div>
+          <Link
+            to="/register"
+            className="ml-6 text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
+          >
+            {t('loginForm.registerHere')}
+          </Link>
+        </div>
+      ) : (walletError || errorMessage) ? (
         <div className="flex items-center gap-2 p-3 text-sm text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{walletError || errorMessage}</span>
         </div>
-      )}
+      ) : null}
 
       {/* MetaMask Connect Button - Neon Border Animation */}
       <button

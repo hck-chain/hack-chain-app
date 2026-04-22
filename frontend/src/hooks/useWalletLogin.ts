@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/services/api';
+import { api, ApiServiceError } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 
@@ -20,6 +20,7 @@ export const useWalletLogin = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [error, setError] = useState<string | null>(null);
+    const [isWalletNotFound, setIsWalletNotFound] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
 
     const mutation = useMutation({
@@ -44,12 +45,15 @@ export const useWalletLogin = () => {
             else navigate('/');
         },
         onError: (err: Error) => {
+            const notFound = err instanceof ApiServiceError && err.status === 404;
+            setIsWalletNotFound(notFound);
             setError(err.message);
         }
     });
 
     const connectAndLogin = async () => {
         setError(null);
+        setIsWalletNotFound(false);
 
         try {
             setIsConnecting(true);
@@ -90,5 +94,6 @@ export const useWalletLogin = () => {
         connectAndLogin,
         isLoading: isConnecting || mutation.isPending,
         error: error || mutation.error?.message,
+        isWalletNotFound,
     };
 };
