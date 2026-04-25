@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "jest --runInBand --detectOpenHandles",
+    "migrate:issuer-profile": "node scripts/migrate-issuer-profile.js"
   },
   "keywords": [],
   "author": "",

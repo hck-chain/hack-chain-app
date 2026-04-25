@@ -5,24 +5,49 @@ const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { authenticate } = require("../middleware/auth");
 
-// GET /api/issuers
-router.get("/", authenticate, async (req, res) => {
+// GET /api/issuers  — public, paginated educator discovery
+// Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
+router.get("/", async (req, res) => {
   try {
-    const issuers = await Issuer.findAll({
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const area  = typeof req.query.area === "string" ? req.query.area.trim() : null;
+
+    const where = {};
+    if (area) {
+      const { Op } = require("sequelize");
+      where.knowledge_areas = { [Op.contains]: [area] };
+    }
+
+    const { count, rows } = await Issuer.findAndCountAll({
+      where,
       include: [{
         model: User,
-        attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
-      }]
+        attributes: ["name", "lastname", "created_at"],
+      }],
+      order: [["certificates_issued", "DESC"]],
+      limit,
+      offset: (page - 1) * limit,
     });
 
     res.json({
-      issuers: issuers.map(issuer => ({
-        id: issuer.id,
-        wallet_address: issuer.wallet_address,
-        organization_name: issuer.organization_name,
-        user: issuer.User,
-        created_at: issuer.created_at
-      }))
+      educators: rows.map((issuer) => ({
+        wallet_address:     issuer.wallet_address,
+        organization_name:  issuer.organization_name,
+        name:               issuer.User?.name     || null,
+        lastname:           issuer.User?.lastname  || null,
+        photo_url:          issuer.photo_url       || null,
+        bio:                issuer.bio             || null,
+        knowledge_areas:    issuer.knowledge_areas || [],
+        certificates_issued: issuer.certificates_issued,
+        joined_at:          issuer.User?.created_at || issuer.created_at,
+      })),
+      pagination: {
+        total: count,
+        page,
+        limit,
+        pages: Math.ceil(count / limit),
+      },
     });
 
   } catch (err) {
@@ -81,36 +106,76 @@ router.post("/mint", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/issuers/:wallet_address
-router.get("/:wallet_address", authenticate, async (req, res) => {
+// PATCH /api/issuers/me/photo  — update own profile photo (ipfs:// URI only)
+router.patch("/me/photo", authenticate, async (req, res) => {
   try {
-    const { wallet_address } = req.params;
+    const wallet = req.auth.wallet.toLowerCase();
+    const { photo_url } = req.body;
 
+    if (!photo_url || typeof photo_url !== "string") {
+      return res.status(400).json({ error: "photo_url is required" });
+    }
+
+    if (!/^ipfs:\/\/[a-zA-Z0-9]+$/.test(photo_url)) {
+      return res.status(400).json({ error: "photo_url must be a valid ipfs:// URI" });
+    }
+
+    const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
+
+    await issuer.update({ photo_url });
+
+    res.json({ photo_url: issuer.photo_url });
+
+  } catch (err) {
+    console.error("Failed to update issuer photo:", err);
+    res.status(500).json({ error: "Failed to update photo" });
+  }
+});
+
+// GET /api/issuers/:wallet_address  — public profile (no email exposed)
+router.get("/:wallet_address", async (req, res) => {
+  try {
+    const wallet_address = req.params.wallet_address.toLowerCase();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet_address)) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+
+    const { Op } = require("sequelize");
     const issuer = await Issuer.findOne({
       where: { wallet_address },
       include: [
         {
           model: User,
-          attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+          attributes: ["name", "lastname", "created_at"],
         },
         {
           model: Certificate,
-          attributes: ['id', 'title', 'description', 'issue_date', 'is_revoked', 'created_at']
-        }
-      ]
+          attributes: ["student_wallet_address"],
+        },
+      ],
     });
 
     if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
+    const talents_formed = new Set(
+      (issuer.Certificates || []).map((c) => c.student_wallet_address)
+    ).size;
+
     res.json({
       issuer: {
-        id: issuer.id,
         wallet_address: issuer.wallet_address,
         organization_name: issuer.organization_name,
-        user: issuer.User,
-        certificates: issuer.Certificates,
-        created_at: issuer.created_at
-      }
+        name: issuer.User?.name || null,
+        lastname: issuer.User?.lastname || null,
+        photo_url: issuer.photo_url || null,
+        bio: issuer.bio || null,
+        knowledge_areas: issuer.knowledge_areas || [],
+        certificates_issued: issuer.certificates_issued,
+        talents_formed,
+        joined_at: issuer.User?.created_at || issuer.created_at,
+      },
     });
 
   } catch (err) {
@@ -119,16 +184,38 @@ router.get("/:wallet_address", authenticate, async (req, res) => {
   }
 });
 
-// PUT /api/issuers/:wallet_address
+// PUT /api/issuers/:wallet_address  — only the issuer themselves can update their own profile
 router.put("/:wallet_address", authenticate, async (req, res) => {
   try {
-    const { wallet_address } = req.params;
-    const { organization_name } = req.body;
+    const wallet_address = req.params.wallet_address.toLowerCase();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet_address)) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+
+    if (req.auth.wallet.toLowerCase() !== wallet_address) {
+      return res.status(403).json({ error: "Forbidden: cannot modify another issuer's profile" });
+    }
+
+    const { organization_name, bio, knowledge_areas } = req.body;
+
+    if (
+      knowledge_areas !== undefined &&
+      (!Array.isArray(knowledge_areas) ||
+        knowledge_areas.some((a) => typeof a !== "string" || a.length > 100))
+    ) {
+      return res.status(400).json({ error: "knowledge_areas must be an array of strings (max 100 chars each)" });
+    }
 
     const issuer = await Issuer.findOne({ where: { wallet_address } });
     if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
-    await issuer.update({ organization_name });
+    const updates = {};
+    if (organization_name !== undefined) updates.organization_name = organization_name;
+    if (bio !== undefined) updates.bio = bio;
+    if (knowledge_areas !== undefined) updates.knowledge_areas = knowledge_areas;
+
+    await issuer.update(updates);
 
     res.json({ message: "Issuer updated successfully" });
 

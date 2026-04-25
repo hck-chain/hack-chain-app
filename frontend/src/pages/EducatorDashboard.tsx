@@ -1,6 +1,8 @@
 import Layout from '@/components/Layout';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -20,7 +22,9 @@ import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
-import { useQueryClient } from "@tanstack/react-query"; // <--- AÑADIR ESTO
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from '@/contexts/AuthContext';
+import { appKit } from '@/config/walletConfig';
 const HackChainLogo = '/images/logoHackchain2.png'; // HackChain Logo
 
 
@@ -38,6 +42,7 @@ interface Talent {
 
 const EducatorDashboard = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     certificateType: '',
     certificateTitle: '',
@@ -105,7 +110,7 @@ const EducatorDashboard = () => {
         console.error("Failed to fetch talents", error);
         toast({
           title: "Error",
-          description: "Failed to load talent list.",
+          description: t('educatorDashboard.errorLoad'),
           variant: "destructive",
         });
       }
@@ -116,12 +121,14 @@ const EducatorDashboard = () => {
   }, [navigate, toast]);
 
   const queryClient = useQueryClient();
-  const handleLogout = () => {
-    localStorage.clear();
+  const { logout } = useAuth();
+  const handleLogout = async () => {
+    logout();
     queryClient.clear();
+    try { await appKit.disconnect(); } catch (_) {}
     toast({
-      title: "Sesión cerrada",
-      description: "Vuelve pronto a HackChain",
+      title: t('dashboard.logoutTitle'),
+      description: t('dashboard.logoutDesc'),
     });
     window.location.href = '/login';
   };
@@ -158,13 +165,13 @@ const EducatorDashboard = () => {
 
     // 1. Validaciones iniciales
     if (!userData?.walletAddress) {
-      toast({ title: "Error", description: "No wallet found. Please login.", variant: "destructive" });
+      toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
       navigate('/login');
       return;
     }
 
     if (!form.certificateTitle || !form.talentName || !form.issuer || !form.talentWallet) {
-      toast({ title: "Error", description: "Please fill in all required fields.", variant: "destructive" });
+      toast({ title: "Error", description: t('educatorDashboard.fillFields'), variant: "destructive" });
       return;
     }
 
@@ -178,8 +185,8 @@ const EducatorDashboard = () => {
       card.classList.add('is-capturing');
 
       toast({
-        title: "Processing...",
-        description: "Generating certificate image and uploading to IPFS...",
+        title: t('educatorDashboard.processing'),
+        description: t('educatorDashboard.processingDesc'),
       });
 
       await new Promise(r => setTimeout(r, 100));
@@ -224,8 +231,8 @@ const EducatorDashboard = () => {
 
       if (success) {
         toast({
-          title: "Successfully Minted!",
-          description: "The certificate is now live on the blockchain with traits.",
+          title: t('educatorDashboard.mintSuccess'),
+          description: t('educatorDashboard.mintSuccessDesc'),
         });
 
         // Limpiar formulario
@@ -251,7 +258,7 @@ const EducatorDashboard = () => {
       console.error('Full creation process error:', error);
       toast({
         title: "Error",
-        description: error.message || "An unexpected error occurred",
+        description: error.message || t('educatorDashboard.errorUnexpected'),
         variant: "destructive",
       });
     }
@@ -290,14 +297,14 @@ const EducatorDashboard = () => {
       link.click();
 
       toast({
-        title: "Downloaded!",
-        description: "Certificate preview downloaded successfully.",
+        title: t('educatorDashboard.downloadSuccess'),
+        description: t('educatorDashboard.downloadSuccessDesc'),
       });
     } catch (err) {
       console.error('Failed to generate image', err);
       toast({
         title: "Error",
-        description: "Failed to download certificate preview.",
+        description: t('educatorDashboard.downloadError'),
         variant: "destructive",
       });
     } finally {
@@ -329,11 +336,11 @@ const EducatorDashboard = () => {
             <div className="flex flex-col">
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                  Educator Dashboard
+                  {t('educatorDashboard.title')}
                 </span>
               </h1>
               <p className="text-lg text-slate-400 font-light">
-                Create and issue blockchain-verified credentials with ease.
+                {t('educatorDashboard.subtitle')}
               </p>
             </div>
 
@@ -343,7 +350,8 @@ const EducatorDashboard = () => {
             </div>
 
             {/* Columna Derecha: Popover de Usuario */}
-            <div className="flex justify-end">
+            <div className="flex justify-end items-center gap-2">
+              <LanguageToggle />
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -351,9 +359,9 @@ const EducatorDashboard = () => {
                     className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
                   >
                     <div className="flex flex-row items-baseline gap-1 overflow-hidden">
-                      <span className="text-sm text-slate-400 font-medium whitespace-nowrap">Welcome back,</span>
+                      <span className="text-sm text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
                       <span className="text-sm font-bold text-white truncate max-w-[120px] lg:max-w-[180px]">
-                        {userData.organization_name || "Educator"}
+                        {userData.organization_name || t('educatorDashboard.roleName')}
                       </span>
                     </div>
                     <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
@@ -377,7 +385,7 @@ const EducatorDashboard = () => {
                         <h3 className="text-base font-bold text-white truncate">
                           {userData.organization_name || "My Organization"}
                         </h3>
-                        <p className="text-xs text-purple-400 font-medium">{userData.role || "Issuer"}</p>
+                        <p className="text-xs text-purple-400 font-medium">{userData.role || t('educatorDashboard.roleName')}</p>
                       </div>
                     </div>
 
@@ -385,23 +393,23 @@ const EducatorDashboard = () => {
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Certificates Issued</p>
-                          <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : "None yet"}</p>
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.certificatesIssued')}</p>
+                          <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : t('educatorDashboard.noneYet')}</p>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Role</p>
-                          <p className="text-sm text-slate-200">Educator</p>
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.roleLabel')}</p>
+                          <p className="text-sm text-slate-200">{t('educatorDashboard.roleName')}</p>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <Wallet className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Wallet Address</p>
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.walletLabel')}</p>
                           <p className="text-sm text-slate-200 font-mono">
                             ••••{userData.walletAddress?.slice(-4) || "••••"}
                           </p>
@@ -416,7 +424,7 @@ const EducatorDashboard = () => {
                         className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
-                        Logout
+                        {t('educatorDashboard.logout')}
                       </Button>
                     </div>
                   </div>
@@ -440,29 +448,29 @@ const EducatorDashboard = () => {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
 
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-white mb-2">Details</h2>
-                  <p className="text-slate-400 text-sm">Fill in the certificate information below.</p>
+                  <h2 className="text-2xl font-bold text-white mb-2">{t('educatorDashboard.formTitle')}</h2>
+                  <p className="text-slate-400 text-sm">{t('educatorDashboard.formSubtitle')}</p>
                 </div>
 
                 <form className="space-y-6">
                   <div className="space-y-4">
                     <div className="group/input">
-                      <Label htmlFor="certificateTitle" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Certificate Title</Label>
+                      <Label htmlFor="certificateTitle" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldCertTitle')}</Label>
                       <Input
                         id="certificateTitle"
                         name="certificateTitle"
                         value={form.certificateTitle}
                         onChange={handleChange}
-                        placeholder="e.g. Master of Blockchain 2024"
+                        placeholder={t('educatorDashboard.fieldCertTitlePlaceholder')}
                         className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
                       />
                     </div>
 
                     <div className="group/input">
-                      <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Talent Name</Label>
+                      <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldTalentName')}</Label>
                       <Select onValueChange={handleTalentChange} value={form.talentWallet}>
                         <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-12">
-                          <SelectValue placeholder="Select a talent" />
+                          <SelectValue placeholder={t('educatorDashboard.selectTalent')} />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900 border-white/10 text-white">
                           {talents.map((talent) => (
@@ -473,24 +481,24 @@ const EducatorDashboard = () => {
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] text-slate-500 mt-1 pl-1">
-                        Selected Wallet: {form.talentWallet || "None"}
+                        {t('educatorDashboard.selectedWallet')} {form.talentWallet || t('educatorDashboard.selectedWalletNone')}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="group/input">
-                        <Label htmlFor="issuer" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Issuer</Label>
+                        <Label htmlFor="issuer" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldIssuer')}</Label>
                         <Input
                           id="issuer"
                           name="issuer"
                           value={form.issuer}
                           onChange={handleChange}
-                          placeholder="Organization"
+                          placeholder={t('educatorDashboard.fieldIssuerPlaceholder')}
                           className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
                         />
                       </div>
                       <div className="group/input">
-                        <Label htmlFor="issueDate" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Date</Label>
+                        <Label htmlFor="issueDate" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldDate')}</Label>
                         <Input
                           id="issueDate"
                           name="issueDate"
@@ -503,19 +511,19 @@ const EducatorDashboard = () => {
                     </div>
 
                     <div className="group/input">
-                      <Label htmlFor="certificateType" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Type / Subtitle</Label>
+                      <Label htmlFor="certificateType" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldType')}</Label>
                       <Input
                         id="certificateType"
                         name="certificateType"
                         value={form.certificateType}
                         onChange={handleChange}
-                        placeholder="e.g. Certificate of Excellence"
+                        placeholder={t('educatorDashboard.fieldTypePlaceholder')}
                         className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
                       />
                     </div>
 
                     <div className="group/input">
-                      <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">Logo Upload</Label>
+                      <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldLogo')}</Label>
                       <div className="relative">
                         <Input
                           id="logo"
@@ -537,8 +545,8 @@ const EducatorDashboard = () => {
                       className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {isLoading ? (
-                        <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating...</span>
-                      ) : 'Create Certificate'}
+                        <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('educatorDashboard.creating')}</span>
+                      ) : t('educatorDashboard.createCertificate')}
                     </Button>
                     <Button
                       type="button"
@@ -546,7 +554,7 @@ const EducatorDashboard = () => {
                       variant="outline"
                       className="px-6 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-[1.02]"
                     >
-                      Preview
+                      {t('educatorDashboard.preview')}
                     </Button>
                   </div>
                 </form>
@@ -563,7 +571,7 @@ const EducatorDashboard = () => {
               <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
                 {/* "Preview" Label */}
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                  <span className="text-xs font-medium tracking-widest uppercase text-slate-400">Live Preview</span>
+                  <span className="text-xs font-medium tracking-widest uppercase text-slate-400">{t('educatorDashboard.livePreview')}</span>
                 </div>
 
                 <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
@@ -580,9 +588,9 @@ const EducatorDashboard = () => {
                 </div>
 
                 <div className="mt-3 text-center max-w-md">
-                  <h3 className="text-white font-semibold text-lg mb-1">Review before Minting</h3>
+                  <h3 className="text-white font-semibold text-lg mb-1">{t('educatorDashboard.reviewTitle')}</h3>
                   <p className="text-slate-500 text-sm">
-                    This is exactly how the NFT metadata will appear. Once minted, the details are immutable on the blockchain.
+                    {t('educatorDashboard.reviewDesc')}
                   </p>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 // backend/routes/students.js
 const express = require("express");
 const router = express.Router();
-const { Student, User, Certificate } = require("../models");
+const { Student, User, Certificate, Issuer } = require("../models");
 const { authenticate } = require("../middleware/auth");
 
 // GET /api/students
@@ -83,6 +83,76 @@ router.get("/:wallet_address", authenticate, async (req, res) => {
 });
 
 
+
+// GET /api/students/:wallet_address/educators
+// Returns the list of educators who have issued certificates to this student.
+// Only the student themselves can access this endpoint.
+router.get("/:wallet_address/educators", authenticate, async (req, res) => {
+  try {
+    const wallet = req.params.wallet_address.toLowerCase();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+
+    if (req.auth.wallet.toLowerCase() !== wallet) {
+      return res.status(403).json({ error: "Forbidden: cannot access another student's educators" });
+    }
+
+    const certs = await Certificate.findAll({
+      where: { student_wallet_address: wallet },
+      attributes: ["issuer_wallet_address"],
+      include: [
+        {
+          model: Issuer,
+          attributes: [
+            "wallet_address",
+            "organization_name",
+            "photo_url",
+            "bio",
+            "knowledge_areas",
+            "certificates_issued",
+          ],
+          include: [
+            {
+              model: User,
+              attributes: ["name", "lastname", "created_at"],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Group by issuer and count how many certs this specific student received from each
+    const issuerMap = new Map();
+    for (const cert of certs) {
+      const wa = cert.issuer_wallet_address;
+      if (!issuerMap.has(wa)) {
+        issuerMap.set(wa, { issuer: cert.Issuer, certs_to_me: 0 });
+      }
+      issuerMap.get(wa).certs_to_me += 1;
+    }
+
+    const educators = Array.from(issuerMap.values()).map(({ issuer, certs_to_me }) => ({
+      wallet_address: issuer.wallet_address,
+      organization_name: issuer.organization_name,
+      name: issuer.User?.name || null,
+      lastname: issuer.User?.lastname || null,
+      photo_url: issuer.photo_url || null,
+      bio: issuer.bio || null,
+      knowledge_areas: issuer.knowledge_areas || [],
+      certificates_issued: issuer.certificates_issued,
+      joined_at: issuer.User?.created_at || null,
+      certs_to_me,
+    }));
+
+    res.json({ educators });
+
+  } catch (err) {
+    console.error("Failed to fetch student educators:", err);
+    res.status(500).json({ error: "Failed to fetch educators" });
+  }
+});
 
 // PUT /api/students/:wallet_address
 router.put("/:wallet_address", authenticate, async (req, res) => {

@@ -40,7 +40,7 @@ function RouterWrapper({ children, initialPath = '/protected' }: WrapperProps) {
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  localStorage.clear();
+  sessionStorage.clear();
 });
 
 // ─── ProtectedRoute ───────────────────────────────────────────────────────────
@@ -60,8 +60,8 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children when authenticated (no role check)', () => {
-    localStorage.setItem('authToken', 'valid-jwt');
-    localStorage.setItem('user', JSON.stringify({
+    sessionStorage.setItem('authToken', 'valid-jwt');
+    sessionStorage.setItem('user', JSON.stringify({
       id: 1, email: 'a@b.com', role: 'issuer',
       name: 'Ana', lastName: null, walletAddress: null,
     }));
@@ -78,8 +78,8 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children when user has the required role', () => {
-    localStorage.setItem('authToken', 'valid-jwt');
-    localStorage.setItem('user', JSON.stringify({
+    sessionStorage.setItem('authToken', 'valid-jwt');
+    sessionStorage.setItem('user', JSON.stringify({
       id: 2, email: 'r@b.com', role: 'recruiter',
       name: 'Bob', lastName: null, walletAddress: null,
     }));
@@ -96,8 +96,8 @@ describe('ProtectedRoute', () => {
   });
 
   it('redirects to /login when authenticated but wrong role', () => {
-    localStorage.setItem('authToken', 'valid-jwt');
-    localStorage.setItem('user', JSON.stringify({
+    sessionStorage.setItem('authToken', 'valid-jwt');
+    sessionStorage.setItem('user', JSON.stringify({
       id: 3, email: 's@b.com', role: 'student',
       name: 'Sam', lastName: null, walletAddress: null,
     }));

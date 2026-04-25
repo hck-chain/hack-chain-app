@@ -1,6 +1,7 @@
-// src/pages/RecruiterDashboard.tsx
 import Layout from '@/components/Layout';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
-import { useQueryClient } from "@tanstack/react-query"; // <--- AÑADIR ESTO
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from '@/contexts/AuthContext';
+import { appKit } from '@/config/walletConfig';
 const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Recruiter {
@@ -30,6 +33,7 @@ interface TalentSummary {
 
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [recruiter, setRecruiter] = useState<Recruiter | null>(null);
     const [talents, setTalents] = useState<TalentSummary[]>([]);
@@ -65,7 +69,7 @@ const RecruiterDashboard = () => {
                 console.error(err);
                 toast({
                     title: 'Error',
-                    description: 'Failed to load recruiter or talents.',
+                    description: t('recruiterDashboard.errorLoad'),
                     variant: 'destructive',
                 });
             } finally {
@@ -77,12 +81,14 @@ const RecruiterDashboard = () => {
     }, [toast]);
 
     const queryClient = useQueryClient();
-    const handleLogout = () => {
-        localStorage.clear();
+    const { logout } = useAuth();
+    const handleLogout = async () => {
+        logout();
         queryClient.clear();
+        try { await appKit.disconnect(); } catch (_) {}
         toast({
-            title: "Sesión cerrada",
-            description: "Vuelve pronto a HackChain",
+            title: t('dashboard.logoutTitle'),
+            description: t('dashboard.logoutDesc'),
         });
         window.location.href = '/login';
     };
@@ -104,11 +110,11 @@ const RecruiterDashboard = () => {
                         <div className="flex flex-col">
                             <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2 font-title">
                                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                                    Recruiter Dashboard
+                                    {t('recruiterDashboard.title')}
                                 </span>
                             </h1>
                             <p className="text-lg text-slate-400 font-light font-body">
-                                Manage your talents efficiently and track their progress.
+                                {t('recruiterDashboard.subtitle')}
                             </p>
                         </div>
 
@@ -118,7 +124,8 @@ const RecruiterDashboard = () => {
                         </div>
 
                         {/* Columna Derecha: Info del Reclutador */}
-                        <div className="flex justify-end">
+                        <div className="flex justify-end items-center gap-2">
+                            <LanguageToggle />
                             {recruiter && (
                                 <Popover>
                                     <PopoverTrigger asChild>
@@ -127,7 +134,7 @@ const RecruiterDashboard = () => {
                                             className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all max-w-full"
                                         >
                                             <div className="flex flex-row items-baseline gap-1 overflow-hidden">
-                                                <span className="text-xs text-slate-400 font-medium font-body whitespace-nowrap">Welcome back,</span>
+                                                <span className="text-xs text-slate-400 font-medium font-body whitespace-nowrap">{t('recruiterDashboard.welcome')}</span>
                                                 <span className="text-sm font-bold text-white font-title truncate max-w-[120px] lg:max-w-[180px]">
                                                     {recruiter.name}
                                                 </span>
@@ -153,7 +160,7 @@ const RecruiterDashboard = () => {
                                                 </div>
                                                 <div className="flex-1 overflow-hidden">
                                                     <h3 className="text-base font-bold text-white font-title truncate">{recruiter.name}</h3>
-                                                    <p className="text-xs text-blue-400 font-medium font-body">Recruiter</p>
+                                                    <p className="text-xs text-blue-400 font-medium font-body">{t('recruiterDashboard.recruiterFallback')}</p>
                                                 </div>
                                             </div>
 
@@ -161,7 +168,7 @@ const RecruiterDashboard = () => {
                                                 <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                                     <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                                     <div>
-                                                        <p className="text-xs uppercase text-slate-500 font-semibold font-body">Total Candidates</p>
+                                                        <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.totalCandidates')}</p>
                                                         <p className="text-sm text-slate-200 font-title">{recruiter.total_talents || 0}</p>
                                                     </div>
                                                 </div>
@@ -169,7 +176,7 @@ const RecruiterDashboard = () => {
                                                 <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                                                     <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
                                                     <div className="min-w-0">
-                                                        <p className="text-xs uppercase text-slate-500 font-semibold font-body">WALLET</p>
+                                                        <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.walletLabel')}</p>
                                                         <p className="text-sm text-slate-200 font-body truncate">
                                                             ••••{recruiter.wallet_address.slice(-4)}
                                                         </p>
@@ -183,7 +190,7 @@ const RecruiterDashboard = () => {
                                                         className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 font-body"
                                                     >
                                                         <LogOut className="h-4 w-4 mr-2" />
-                                                        Logout
+                                                        {t('recruiterDashboard.logout')}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -225,12 +232,12 @@ const RecruiterDashboard = () => {
                                         {talent.field_of_study}
                                     </span>
                                     <span className="bg-indigo-500/20 text-indigo-200 text-xs px-3 py-1 rounded-full font-medium font-body">
-                                        {talent.total_certificates} {talent.total_certificates === 1 ? 'Certificate' : 'Certificates'}
+                                        {t('recruiterDashboard.certificate', { count: talent.total_certificates })}
                                     </span>
                                 </div>
 
                                 {/* Footer */}
-                                <p className="text-slate-400 text-xs mt-1 font-body">Registered: {new Date(talent.created_at).toLocaleDateString()}</p>
+                                <p className="text-slate-400 text-xs mt-1 font-body">{t('recruiterDashboard.registered')} {new Date(talent.created_at).toLocaleDateString()}</p>
                             </motion.div>
                         ))}
                     </div>

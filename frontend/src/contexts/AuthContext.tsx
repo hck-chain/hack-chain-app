@@ -38,11 +38,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Rehydrate from localStorage on mount
+  // Rehydrate from sessionStorage on mount.
+  // sessionStorage is scoped to the tab — cleared automatically on close.
   useEffect(() => {
     try {
-      const storedToken = localStorage.getItem('authToken');
-      const storedUser = localStorage.getItem('user');
+      const storedToken = sessionStorage.getItem('authToken');
+      const storedUser = sessionStorage.getItem('user');
 
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -50,23 +51,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch {
       // Corrupted data — clean up
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('user');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {
-    localStorage.setItem('authToken', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    sessionStorage.setItem('authToken', newToken);
+    sessionStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('user');
     setToken(null);
     setUser(null);
   }, []);

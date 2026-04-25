@@ -16,14 +16,15 @@ export class ApiServiceError extends Error {
 // ---------------------------------------------------------------------------
 
 function getAuthHeaders(): Record<string, string> {
-  // CAMBIO: Usamos 'token' para coincidir con useLogin
-  const token = localStorage.getItem('authToken');
+  const token = sessionStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function handle401() {
-  // Limpieza total para no dejar basura de ninguna wallet
-  localStorage.clear();
+  // Clear session data only — AppKit state lives in localStorage and is
+  // handled separately by the Login page on mount.
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('user');
 
   if (!window.location.pathname.startsWith('/login')) {
     window.location.href = '/login';
@@ -90,6 +91,18 @@ async function postPublic<T>(path: string, body: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
+async function patch<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return handleResponse<T>(response);
+}
+
 async function upload<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
@@ -112,6 +125,7 @@ async function uploadPublic<T>(path: string, formData: FormData): Promise<T> {
 export const api = {
   get,
   post,
+  patch,
   postPublic,
   upload,
   uploadPublic,

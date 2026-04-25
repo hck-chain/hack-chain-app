@@ -775,7 +775,7 @@ export const web3Service = {
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
-            const token = localStorage.getItem('authToken');
+            const token = sessionStorage.getItem('authToken');
             if (!token) return false;
 
             await api.post('/api/issuers/increment-certificates', {

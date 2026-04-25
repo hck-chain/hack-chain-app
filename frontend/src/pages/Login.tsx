@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import anime from 'animejs';
@@ -8,11 +8,25 @@ import BackgroundAnimation from "@/components/BackgroundAnimation";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import Footer from "@/components/Footer";
 import hackChainLogo from "/images/logoHackchain.png";
+import { useAuth } from "@/contexts/AuthContext";
+import { appKit } from "@/config/walletConfig";
 
 export default function Login() {
   const { t } = useTranslation();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // If the wallet was previously connected but there is no valid session,
+  // disconnect AppKit so the user sees a clean "Connect Wallet" modal.
+  // The IIFE is required because useEffect callbacks cannot be async directly.
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      (async () => {
+        try { await appKit.disconnect(); } catch (_) {}
+      })();
+    }
+  }, [isLoading, isAuthenticated]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,14 +47,12 @@ export default function Login() {
   useEffect(() => {
     const card = document.getElementById('login-card');
     const welcome = document.getElementById('welcome-message');
-    
+
     if (!card || !welcome) return;
 
-    // Set initial state
     anime.set([card, welcome], { opacity: 0, translateY: 20 });
     anime.set(card, { scale: 0.95 });
 
-    // Animate in
     anime.timeline({ easing: 'easeOutExpo' })
       .add({
         targets: card,
@@ -57,6 +69,14 @@ export default function Login() {
         duration: 600,
       }, '-=400');
   }, []);
+
+  // Redirect already-authenticated users directly to their dashboard.
+  // All hooks are declared above — safe to return early here.
+  if (!isLoading && isAuthenticated && user) {
+    if (user.role === 'student')   return <Navigate to="/dashboard/talent" replace />;
+    if (user.role === 'issuer')    return <Navigate to="/educator/dashboard" replace />;
+    if (user.role === 'recruiter') return <Navigate to="/dashboard/recruiter" replace />;
+  }
 
   return (
     <div className="min-h-screen relative flex flex-col font-lato overflow-x-hidden">
