@@ -2,12 +2,15 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
 
 const userService = require("../services/userService");
 const { signToken, authenticate, getUserFromToken } = require("../middleware/auth");
+const { UserSession } = require("../models");
 require("dotenv").config();
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
@@ -79,14 +82,24 @@ router.post(
       const payload = {
         sub: user.id,
         role: modelName,
-        wallet: wallet_address
-      }; const token = signToken(payload);
+        wallet: wallet_address,
+      };
+      const token = signToken(payload);
 
+      // Derive expiry from the signed token and upsert a single active session per wallet
+      const decoded = jwt.decode(token);
+      const expiresAt = new Date(decoded.exp * 1000);
 
-      // // sanitize user
+      await UserSession.destroy({ where: { wallet_address: wallet_address.toLowerCase() } });
+      await UserSession.create({
+        id: crypto.randomUUID(),
+        wallet_address: wallet_address.toLowerCase(),
+        expires_at: expiresAt,
+      });
+
       const out = user.toJSON ? user.toJSON() : { ...user };
-      delete out.passwordHash;//////////////////////////////////////////
-      delete out.privateKey;//////////////////////////////////
+      delete out.passwordHash;
+      delete out.privateKey;
 
       return res.json({
         message: "Authenticated",
@@ -96,8 +109,8 @@ router.post(
           email: out.email || null,
           role: modelName,
           wallet_address: wallet_address,
-        }
-      })
+        },
+      });
     } catch (err) {
       console.error("Login error:", err);
       return res.status(500).json({ error: "Internal server error" });
@@ -162,6 +175,20 @@ router.get("/me", authenticate, async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Internal error" });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Destroys the active DB session, invalidating the JWT immediately.
+ */
+router.post("/logout", authenticate, async (req, res) => {
+  try {
+    await UserSession.destroy({ where: { wallet_address: req.auth.wallet.toLowerCase() } });
+    return res.json({ message: "Logged out" });
+  } catch (err) {
+    console.error("logout error:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -1,6 +1,7 @@
 // backend/middleware/auth.js
 const jwt = require("jsonwebtoken");
-const { User, Issuer, Student, Recruiter } = require("../models");
+const { User, Issuer, Student, Recruiter, UserSession, Sequelize } = require("../models");
+const { Op } = Sequelize;
 require("dotenv").config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "please_set_a_real_secret";
@@ -32,7 +33,19 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    req.auth = payload; // payload debe tener { wallet }
+    // Verify an active DB session exists for this wallet
+    const session = await UserSession.findOne({
+      where: {
+        wallet_address: payload.wallet.toLowerCase(),
+        expires_at: { [Op.gt]: new Date() },
+      },
+    });
+
+    if (!session) {
+      return res.status(401).json({ error: "Session not found or expired" });
+    }
+
+    req.auth = payload;
     return next();
   } catch (err) {
     console.error("authenticate error:", err);

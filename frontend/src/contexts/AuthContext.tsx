@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { api } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
@@ -66,6 +67,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const logout = useCallback(() => {
+    // Fire-and-forget — destroy server session before clearing local state
+    // getAuthHeaders() inside api.post reads sessionStorage synchronously before we clear it
+    api.post('/api/auth/logout').catch(() => {});
     sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('user');
     setToken(null);

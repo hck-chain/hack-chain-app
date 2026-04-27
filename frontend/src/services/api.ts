@@ -122,10 +122,22 @@ async function uploadPublic<T>(path: string, formData: FormData): Promise<T> {
   return handleResponse<T>(response);
 }
 
+async function del<T>(path: string): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+  });
+  return handleResponse<T>(response);
+}
+
 export const api = {
   get,
   post,
   patch,
+  del,
   postPublic,
   upload,
   uploadPublic,
