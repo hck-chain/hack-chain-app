@@ -4,8 +4,8 @@
  * Pilar 1: API Service Layer
  * Tests cover:
  * - GET / POST / postPublic method signatures
- * - Auth header injection from localStorage
- * - 401 handling (clears localStorage)
+ * - Auth header injection from sessionStorage
+ * - 401 handling (clears sessionStorage)
  * - Error extraction from backend response shape
  * - ApiServiceError type
  */
@@ -25,7 +25,7 @@ function mockFetch(status: number, body: unknown) {
 // ─── Setup / Teardown ────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  localStorage.clear();
+  sessionStorage.clear();
   vi.restoreAllMocks();
   // Reset location so 401 redirect tests work
   Object.defineProperty(window, 'location', {
@@ -59,8 +59,8 @@ describe('api.get', () => {
     expect(result.user.id).toBe(1);
   });
 
-  it('injects Authorization header when authToken is in localStorage', async () => {
-    localStorage.setItem('authToken', 'test-token-123');
+  it('injects Authorization header when authToken is in sessionStorage', async () => {
+    sessionStorage.setItem('authToken', 'test-token-123');
     mockFetch(200, {});
     await api.get('/api/auth/me');
 
@@ -92,15 +92,15 @@ describe('api.get', () => {
     });
   });
 
-  it('clears localStorage and redirects on 401', async () => {
-    localStorage.setItem('authToken', 'expired-token');
-    localStorage.setItem('user', '{"id":1}');
+  it('clears sessionStorage auth keys and redirects on 401', async () => {
+    sessionStorage.setItem('authToken', 'expired-token');
+    sessionStorage.setItem('user', '{"id":1}');
     mockFetch(401, {});
 
     await expect(api.get('/api/auth/me')).rejects.toMatchObject({ status: 401 });
 
-    expect(localStorage.getItem('authToken')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
+    expect(sessionStorage.getItem('authToken')).toBeNull();
+    expect(sessionStorage.getItem('user')).toBeNull();
     expect(window.location.href).toBe('/login');
   });
 });
@@ -119,7 +119,7 @@ describe('api.post', () => {
   });
 
   it('injects auth header on authenticated post', async () => {
-    localStorage.setItem('authToken', 'my-jwt');
+    sessionStorage.setItem('authToken', 'my-jwt');
     mockFetch(200, {});
     await api.post('/api/certificates/database', { title: 'Test' });
 
@@ -132,7 +132,7 @@ describe('api.post', () => {
 
 describe('api.postPublic', () => {
   it('does NOT include Authorization header even if token exists', async () => {
-    localStorage.setItem('authToken', 'secret');
+    sessionStorage.setItem('authToken', 'secret');
     mockFetch(200, { token: 'new-jwt' });
 
     await api.postPublic('/api/auth/login', { email: 'a@b.com', password: '123' });

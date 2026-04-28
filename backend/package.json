@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node --max-old-space-size=1536 index.js",
     "dev": "nodemon index.js",
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "jest --runInBand --detectOpenHandles",
+    "migrate:issuer-profile": "node scripts/migrate-issuer-profile.js"
   },
   "keywords": [],
   "author": "",
@@ -25,8 +26,10 @@
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
+    "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "pinata": "^2.4.9",

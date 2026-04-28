@@ -2,17 +2,19 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const pg = require("pg");
 const PgSession = require("connect-pg-simple")(session);
-const db = require("./models"); // Sequelize models (db.sequelize)
+const cron = require("node-cron");
+const db = require("./models");
 const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 // ---------- Trust proxy (Render, Vercel, etc.) ----------
-app.set('trust proxy', 1); // 🔑 Esto resuelve express-rate-limit en proxies
+app.set('trust proxy', 1); // Esto resuelve express-rate-limit en proxies
 
 // ---------- CORS ----------
 const allowedOrigins = [
@@ -62,6 +64,21 @@ app.use(cors({
 // ---------- Middleware ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ---------- Global rate limiter ----------
+// Covers all /api/ routes. Specific limiters (login: 8/min, upload: 10/hr)
+// apply on top of this for their own endpoints.
+// Note: uses in-memory store per process — with PM2 cluster the effective
+// limit scales with worker count. Add a Redis store if stricter cross-process
+// enforcement is required.
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.GLOBAL_RATE_LIMIT_MAX || "100", 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
+app.use("/api/", globalLimiter);
 
 // ---------- Rutas ----------
 const authRouter = require("./routes/auth");
@@ -123,12 +140,27 @@ let server;
     await db.sequelize.authenticate();
     console.log("✅ Database connection authenticated.");
 
-    await db.sequelize.sync();
-    console.log("✅ Database synchronized.");
+    if (process.env.NODE_ENV !== "production") {
+      await db.sequelizeAdmin.sync();
+      console.log("✅ Database synchronized.");
+    }
 
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
       console.log(`🔗 Frontend origin: https://hackchain.app`);
+    });
+
+    // Purge expired sessions every hour to keep UserSession table lean.
+    cron.schedule("0 * * * *", async () => {
+      try {
+        const { Op } = db.Sequelize;
+        const deleted = await db.UserSession.destroy({
+          where: { expires_at: { [Op.lt]: new Date() } },
+        });
+        if (deleted > 0) console.log(`🧹 Purged ${deleted} expired session(s)`);
+      } catch (err) {
+        console.error("Session purge error:", err.message);
+      }
     });
   } catch (err) {
     console.error("Failed to start server:", err);

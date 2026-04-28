@@ -1,47 +1,65 @@
 // backend/models/index.js
 const { Sequelize, DataTypes } = require("sequelize");
-require("dotenv").config(); // por seguridad, aunque index.js ya lo carga
+require("dotenv").config();
 
-// Use DATABASE_URL if available (Vercel/Neon), otherwise fall back to individual vars
-const databaseUrl = process.env.DB_DATABASE_URL || process.env.DB_POSTGRES_URL;
+// DATABASE_URL       → Neon pooled endpoint (PgBouncer). Used for all app queries.
+//                      Add this to Render once taken from the Neon dashboard.
+// DATABASE_URL_UNPOOLED → Neon direct endpoint. Used for DDL (sequelize.sync) only,
+//                      because PgBouncer in transaction mode doesn't support DDL well.
+const pooledUrl   = process.env.DATABASE_URL;
+// DATABASE_URL_UNPOOLED → Neon's name in Render
+// DB_DATABASE_URL       → legacy name used in local .env
+const directUrl   = process.env.DATABASE_URL_UNPOOLED || process.env.DB_DATABASE_URL;
 
-let sequelize;
-if (databaseUrl) {
-  // Use connection string from Vercel/Neon
-  sequelize = new Sequelize(databaseUrl, {
-    dialect: "postgres",
-    logging: false,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    }
-  });
-} else {
-  // Fallback to individual environment variables
-  const dbName = process.env.DB_PGDATABASE || process.env.DB_NAME || "hackchain";
-  const dbUser = process.env.DB_PGUSER || process.env.DB_USER || "postgres";
-  const dbPassword = process.env.DB_PGPASSWORD || process.env.DB_PASSWORD;
-  const dbHost = process.env.DB_PGHOST || process.env.DB_HOST;
-  const dbPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432;
+// Fallback chain for individual vars (local dev without Neon URLs).
+function buildIndividualConfig() {
+  return {
+    database: process.env.DB_PGDATABASE || process.env.DB_NAME || "hackchain",
+    username: process.env.DB_PGUSER    || process.env.DB_USER  || "postgres",
+    password: process.env.DB_PGPASSWORD || process.env.DB_PASSWORD,
+    host:     process.env.DB_PGHOST    || process.env.DB_HOST,
+    port:     process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
+  };
+}
 
-  sequelize = new Sequelize(
-    dbName,
-    dbUser,
-    dbPassword,
-    {
-      host: dbHost,
-      port: dbPort,
+const sslOptions = { require: true, rejectUnauthorized: false };
+
+// Pool for regular queries — generous size for concurrent requests.
+const queryPoolConfig = { max: 20, min: 2, acquire: 30000, idle: 10000 };
+// DDL connection doesn't need a pool; a single connection is enough.
+const ddlPoolConfig   = { max: 1,  min: 0, acquire: 30000, idle: 10000 };
+
+function makeSequelize(url, pool) {
+  if (url) {
+    return new Sequelize(url, {
       dialect: "postgres",
       logging: false,
-    }
-  );
+      pool,
+      dialectOptions: { ssl: sslOptions },
+    });
+  }
+  const { database, username, password, host, port } = buildIndividualConfig();
+  return new Sequelize(database, username, password, {
+    host, port,
+    dialect: "postgres",
+    logging: false,
+    pool,
+  });
 }
+
+// Main instance — pooled when DATABASE_URL is set, direct otherwise.
+const sequelize = makeSequelize(pooledUrl || directUrl, queryPoolConfig);
+
+// Admin instance — always direct to avoid PgBouncer DDL restrictions.
+// If URLs are the same (DATABASE_URL not set yet), reuse the main instance.
+const sequelizeAdmin = (directUrl && directUrl !== (pooledUrl || directUrl))
+  ? makeSequelize(directUrl, ddlPoolConfig)
+  : sequelize;
 
 const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
+db.sequelizeAdmin = sequelizeAdmin;
 
 db.User = require("./users")(sequelize, DataTypes);
 db.Student = require("./students")(sequelize, DataTypes);

@@ -39,7 +39,7 @@ router.post("/certificates/", async (req, res) => {
     certificates.sort((a, b) => {
       const dateA = new Date(a.created_at || a.mint_date || 0);
       const dateB = new Date(b.created_at || b.mint_date || 0);
-      return dateB - dateA; // descendente
+      return dateB - dateA;
     });
 
     res.status(200).json(certificates);

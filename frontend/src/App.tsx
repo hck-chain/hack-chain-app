@@ -34,6 +34,7 @@ const CookiePolicy = lazy(() => import("./pages/legal/CookiePolicy"));
 const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
 const BlockchainDisclaimer = lazy(() => import("./pages/legal/BlockchainDisclaimer"));
+const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,9 @@ const App = () => {
                     <MintCertificate />
                   </ProtectedRoute>
                 } />
+
+                {/* Educator public profile */}
+                <Route path="/educator/:wallet" element={<EducatorProfile />} />
 
                 {/* Legal routes */}
                 <Route path="/legal/cookies" element={<CookiePolicy />} />
