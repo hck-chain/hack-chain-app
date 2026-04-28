@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { api } from '@/services/api';
-import { useNavigate } from 'react-router-dom';
+
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,8 +39,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Rehydrate from sessionStorage on mount.
-  // sessionStorage is scoped to the tab — cleared automatically on close.
+  // 1. Rehidratar desde localStorage al montar el componente
+  // Usamos localStorage para que la sesión sea persistente entre pestañas y recargas
   useEffect(() => {
     try {
       const storedToken = sessionStorage.getItem('authToken');
@@ -50,15 +50,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       }
-    } catch {
-      // Corrupted data — clean up
-      sessionStorage.removeItem('authToken');
-      sessionStorage.removeItem('user');
+    } catch (error) {
+      console.error("Error rehidratando sesión:", error);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // 2. Función de Login
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     sessionStorage.setItem('authToken', newToken);
     sessionStorage.setItem('user', JSON.stringify(newUser));
@@ -66,14 +67,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(newUser);
   }, []);
 
+  // 3. Función de Logout
   const logout = useCallback(() => {
-    // Fire-and-forget — destroy server session before clearing local state
-    // getAuthHeaders() inside api.post reads sessionStorage synchronously before we clear it
-    api.post('/api/auth/logout').catch(() => {});
+    // Intentamos avisar al backend (fire-and-forget)
+    api.post('/api/auth/logout').catch(() => { });
+
+    // Limpiamos el almacenamiento local
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
     sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('user');
+
+    // Limpiamos el estado de React
     setToken(null);
     setUser(null);
+
+    // Opcional: Forzar recarga para limpiar cualquier estado residual
+    // window.location.href = '/login'; 
   }, []);
 
   const value: AuthContextValue = {

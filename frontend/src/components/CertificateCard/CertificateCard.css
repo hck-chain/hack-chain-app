@@ -201,7 +201,6 @@
   margin: 0px 16px;
 }
 
-/* Title gradient now rendered with SVG; keep layout-only rules */
 .pc-details h3 {
   margin-top: 0px;
   height: 48px;
@@ -212,7 +211,6 @@
   border-radius: 0px;
 }
 
-/* Default labels use plain color, gradient text is handled by SVG component */
 .pc-details p {
   font-weight: 600;
   position: relative;
@@ -220,7 +218,6 @@
   font-size: 14px;
   width: fit-content;
   color: #9ca3af;
-  /* Tailwind gray-400 approximation for safety in export */
   border-radius: 0px;
 }
 
@@ -307,28 +304,18 @@
   transform: none !important;
   animation: none !important;
   transition: none !important;
-  --card-opacity: 0.3 !important;
-  /* Bajamos la opacidad del brillo */
+  background-blend-mode: normal !important;
+  background-image:
+    radial-gradient(35% 52% at 55% 20%, #00ffaac4 0%, #073aff00 100%),
+    radial-gradient(100% 100% at 50% 50%, #00c1ffff 1%, #073aff00 76%),
+    conic-gradient(from 124deg at 50% 50%, #c137ffff 0%, #07c6ffff 40%, #07c6ffff 60%, #c137ffff 100%) !important;
 }
 
-/* Forzamos el brillo a 1 (normal) y quitamos el modo 'color-dodge' que quema la imagen */
 .pc-card.is-capturing .pc-shine,
-.pc-card.is-capturing .pc-shine::before,
-.pc-card.is-capturing .pc-shine::after {
-  filter: brightness(1) contrast(1) saturate(1) !important;
-  mix-blend-mode: normal !important;
-  /* 'normal' o 'screen' para evitar el quemado */
-  opacity: 0.4 !important;
-}
-
-/* Suavizamos el resplandor */
 .pc-card.is-capturing .pc-glare {
-  mix-blend-mode: normal !important;
-  opacity: 0.1 !important;
-  filter: brightness(1) !important;
+  display: none !important;
 }
 
-/* Quitamos el resplandor de fondo que causa bordes brillantes */
 .pc-card-wrapper.is-capturing::before {
   display: none !important;
 }

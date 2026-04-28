@@ -16,13 +16,16 @@ export class ApiServiceError extends Error {
 // ---------------------------------------------------------------------------
 
 function getAuthHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem('authToken');
+  const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function handle401() {
-  // Clear session data only — AppKit state lives in localStorage and is
-  // handled separately by the Login page on mount.
+  // Limpiamos localStorage que es donde ahora guardaremos el token
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('user');
+
+  // Por seguridad, si tenías algo en sessionStorage, lo limpiamos también
   sessionStorage.removeItem('authToken');
   sessionStorage.removeItem('user');
 

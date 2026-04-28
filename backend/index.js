@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const helmet = require("helmet");
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
@@ -18,7 +18,7 @@ app.set('trust proxy', 1); // Esto resuelve express-rate-limit en proxies
 
 // ---------- CORS ----------
 const allowedOrigins = [
-  "https://hackchain.app",
+  // "https://hackchain.app",
   "https://www.hackchain.app",
   ...(process.env.NODE_ENV !== "production" ? ["http://localhost:8080", "http://localhost:5173"] : []),
 ];
@@ -32,34 +32,6 @@ app.use(cors({
   },
   credentials: true
 }));
-
-// ---------- CORS (ACTUALIZADO PARA VERCEL DINÁMICO) ----------
-// const allowedOrigins = [
-//   "https://hackchain.app",
-//   "https://www.hackchain.app",
-//   ...(process.env.NODE_ENV != "production" ? ["http://localhost:8080"] : []),
-// ];
-
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     // 1. Permitir peticiones sin origen (como Postman o Server-to-Server)
-//     if (!origin) return callback(null, true);
-
-//     // 2. Verificar si el origen es un despliegue de Vercel o está en la lista fija
-//     const isVercel = origin.endsWith(".vercel.app");
-//     const isAllowed = allowedOrigins.includes(origin);
-
-//     if (isAllowed || isVercel) {
-//       return callback(null, true);
-//     } else {
-//       console.warn(`🚫 Bloqueado CORS desde origin: ${origin}`);
-//       return callback(new Error("Not allowed by CORS"));
-//     }
-//   },
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
 
 // ---------- Middleware ----------
 app.use(express.json());
@@ -79,6 +51,38 @@ const globalLimiter = rateLimit({
   message: { error: "Too many requests, please try again later" },
 });
 app.use("/api/", globalLimiter);
+
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-eval'", "https://*.reown.com"], // Permite a AppKit funcionar
+      "connect-src": ["'self'", "https://*.reown.com", "wss://*.walletconnect.com"],
+      "frame-src": ["'self'", "https://*.reown.com"],
+    },
+  },
+}));
+
+// CONFIGURACIÓN DE SESIÓN (Evita que te mande al login)
+app.use(session({
+  store: new PgSession({
+    pool: new pg.Pool({ connectionString: process.env.DATABASE_URL }),
+    tableName: 'user_sessions',
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET || 'hackchain_secret_2026',
+  resave: false,
+  saveUninitialized: false,
+  proxy: true, // Vital para Render
+  cookie: {
+    secure: true, // Solo HTTPS
+    httpOnly: true,
+    sameSite: 'none', // Crucial para el conflicto www vs no-www
+    maxAge: 30 * 24 * 60 * 60 * 1000
+  }
+}));
+
 
 // ---------- Rutas ----------
 const authRouter = require("./routes/auth");
@@ -147,7 +151,7 @@ let server;
 
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
-      console.log(`🔗 Frontend origin: https://hackchain.app`);
+      console.log(`🔗 Frontend origin: https://www.hackchain.app`);
     });
 
     // Purge expired sessions every hour to keep UserSession table lean.
@@ -162,6 +166,8 @@ let server;
         console.error("Session purge error:", err.message);
       }
     });
+
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

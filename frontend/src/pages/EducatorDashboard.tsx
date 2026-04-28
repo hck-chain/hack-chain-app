@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CertificateCard from '@/components/CertificateCard/CertificateCard';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
@@ -25,8 +25,7 @@ import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
-const HackChainLogo = '/images/logoHackchain2.png'; // HackChain Logo
-
+const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Talent {
   id: number;
@@ -51,7 +50,7 @@ const EducatorDashboard = () => {
     issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     logo: '',
-    imageUri: '', // To store the image URI if we uploaded one, though currently we handle local preview mostly
+    imageUri: '',
   });
 
   const [wallet, setWallet] = useState<string>("");
@@ -63,39 +62,28 @@ const EducatorDashboard = () => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
 
-
-  // Hook to create certificate
   const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
 
-  // Verificar autenticación y obtener datos del usuario
   useEffect(() => {
-
     const loadProfile = async () => {
       try {
         const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
-
-        // data.user comes from ISSUERS
-        // data.modelName === "issuer"
         setUserData({
           organization_name: data.user.organization_name,
           walletAddress: data.user.wallet_address,
           email: data.user.email ?? "No email registered",
           role: "Educator",
         });
-
-
-        // Here we don't use userData, we directly use the wallet
         const certCount = await getCertificatesByEducator(data.user.wallet_address);
-        setCertificatesIssued(certCount); // <-- directo, es un número
-
+        setCertificatesIssued(certCount);
       } catch (err) {
         console.error("Dashboard load error:", err);
       }
     };
 
     loadProfile();
-    // Fetch Talents
+
     const fetchTalents = async () => {
       try {
         const data = await api.get<{ students: any[] }>('/api/students');
@@ -117,7 +105,6 @@ const EducatorDashboard = () => {
     };
 
     fetchTalents();
-
   }, [navigate, toast]);
 
   const queryClient = useQueryClient();
@@ -125,7 +112,7 @@ const EducatorDashboard = () => {
   const handleLogout = async () => {
     logout();
     queryClient.clear();
-    try { await appKit.disconnect(); } catch (_) {}
+    try { await appKit.disconnect(); } catch (_) { }
     toast({
       title: t('dashboard.logoutTitle'),
       description: t('dashboard.logoutDesc'),
@@ -139,8 +126,6 @@ const EducatorDashboard = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
-        // Ideally upload image here to get a URI, or assume backend handles it. 
-        // For now keeping local preview logic.
       };
       reader.readAsDataURL(file);
       setForm({ ...form, logo: URL.createObjectURL(file) });
@@ -163,7 +148,6 @@ const EducatorDashboard = () => {
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    // 1. Validaciones iniciales
     if (!userData?.walletAddress) {
       toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
       navigate('/login');
@@ -176,12 +160,16 @@ const EducatorDashboard = () => {
     }
 
     try {
-      // 2. Captura del Certificado (Capa Visual)
       const container = cardRef.current;
       if (!container) return;
 
-      // Temporary effect cleanup for capturing
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+
+      // ✅ Ocultamos shine y glare antes de capturar para evitar colores quemados
+      const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+      const glare = card.querySelector('.pc-glare') as HTMLElement | null;
+      if (shine) shine.style.display = 'none';
+      if (glare) glare.style.display = 'none';
       card.classList.add('is-capturing');
 
       toast({
@@ -189,7 +177,7 @@ const EducatorDashboard = () => {
         description: t('educatorDashboard.processingDesc'),
       });
 
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 150));
 
       const canvas = await html2canvas(card, {
         backgroundColor: '#0b0b0b',
@@ -198,9 +186,11 @@ const EducatorDashboard = () => {
         logging: false,
       });
 
+      // ✅ Restauramos shine y glare después de capturar
+      if (shine) shine.style.display = '';
+      if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
 
-      // 3. Conversión de Canvas a Blob (para Multer)
       const imageBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
@@ -208,25 +198,22 @@ const EducatorDashboard = () => {
         }, 'image/png');
       });
 
-      // 4. Subida al backend (upload.js -> /api/upload/image)
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
 
-      const uploadResult = await api.uploadPublic<{ cid: string }>('/api/upload/image', formData);
+      const uploadResult = await api.upload<{ cid: string }>('/api/upload/image', formData);
       const realImageCID = uploadResult.cid;
       console.log("Image successfully pinned:", realImageCID);
 
-      // 5. Preparar datos finales para el Hook (Metadata JSON)
       const certificateData = {
         talentName: form.talentName,
         talentWallet: form.talentWallet,
         courseName: form.certificateTitle,
-        professorName: form.issuer,  // Enviamos el nombre del profesor/organización
-        issueDate: form.issueDate,    // Enviamos la fecha seleccionada
-        imageUri: realImageCID,       // ✅ Pasamos el CID real de la imagen
+        professorName: form.issuer,
+        issueDate: form.issueDate,
+        imageUri: realImageCID,
       };
 
-      // 6. Ejecutar proceso de Minteo y creación de JSON Metadata
       const success = await createCertificate(certificateData, userData.walletAddress);
 
       if (success) {
@@ -234,8 +221,6 @@ const EducatorDashboard = () => {
           title: t('educatorDashboard.mintSuccess'),
           description: t('educatorDashboard.mintSuccessDesc'),
         });
-
-        // Limpiar formulario
         setForm({
           certificateType: '',
           certificateTitle: '',
@@ -252,8 +237,14 @@ const EducatorDashboard = () => {
     } catch (error: any) {
       const container = cardRef.current;
       if (container) {
-        const card = container.querySelector('.pc-card');
-        card?.classList.remove('is-capturing');
+        const card = container.querySelector('.pc-card') as HTMLElement | null;
+        if (card) {
+          const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+          const glare = card.querySelector('.pc-glare') as HTMLElement | null;
+          if (shine) shine.style.display = '';
+          if (glare) glare.style.display = '';
+          card.classList.remove('is-capturing');
+        }
       }
       console.error('Full creation process error:', error);
       toast({
@@ -273,23 +264,24 @@ const EducatorDashboard = () => {
     const shine = card.querySelector('.pc-shine') as HTMLElement | null;
     const glare = card.querySelector('.pc-glare') as HTMLElement | null;
 
-    const prevShineDisplay = shine?.style.display;
-    const prevGlareDisplay = glare?.style.display;
+    // ✅ Ocultamos shine y glare antes de capturar
     if (shine) shine.style.display = 'none';
     if (glare) glare.style.display = 'none';
-    card.classList.remove('active');
+    card.classList.add('is-capturing');
 
     try {
+      await new Promise(r => setTimeout(r, 150));
+
       const canvas = await html2canvas(card, {
-        backgroundColor: '#0b0b0b', // Forza el color de fondo oscuro de tu app
+        backgroundColor: '#0b0b0b',
         scale: 2,
         useCORS: true,
         logging: false,
         allowTaint: true,
-        imageTimeout: 0, // Evita que se capture antes de cargar recursos
+        imageTimeout: 0,
       });
-      const dataUrl = canvas.toDataURL('image/png');
 
+      const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       const title = (typeof form.certificateTitle === 'string' && form.certificateTitle) || 'certificate';
       link.download = `${title}.png`;
@@ -308,8 +300,10 @@ const EducatorDashboard = () => {
         variant: "destructive",
       });
     } finally {
-      if (shine) shine.style.display = prevShineDisplay ?? '';
-      if (glare) glare.style.display = prevGlareDisplay ?? '';
+      // ✅ Siempre restauramos shine y glare al terminar
+      if (shine) shine.style.display = '';
+      if (glare) glare.style.display = '';
+      card.classList.remove('is-capturing');
     }
   };
 
