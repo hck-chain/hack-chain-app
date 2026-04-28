@@ -14,8 +14,8 @@ export const appKit = createAppKit({
   metadata: {
     name: 'HackChain',
     description: 'Blockchain-based NFT certification platform for cybersecurity education',
-    url: 'https://hackchain.app',
-    icons: ['https://hackchain.app/favicon.ico'],
+    url: 'https://www.hackchain.app',
+    icons: ['https://www.hackchain.app/favicon.ico'],
   },
   features: {
     analytics: true,

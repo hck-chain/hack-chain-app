@@ -31,6 +31,9 @@
     "url": "https://github.com/RicardoMuchacho/hack-chain"
   },
   "dependencies": {
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-ethers5": "^1.8.19",
+    "ethers": "^5.7.2",
     "react-icons": "^5.5.0",
     "solc": "^0.8.30"
   }
