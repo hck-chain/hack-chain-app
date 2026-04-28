@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CertificateCard from '@/components/CertificateCard/CertificateCard';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
@@ -125,7 +125,7 @@ const EducatorDashboard = () => {
   const handleLogout = async () => {
     logout();
     queryClient.clear();
-    try { await appKit.disconnect(); } catch (_) {}
+    try { await appKit.disconnect(); } catch (_) { }
     toast({
       title: t('dashboard.logoutTitle'),
       description: t('dashboard.logoutDesc'),
@@ -163,7 +163,6 @@ const EducatorDashboard = () => {
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    // 1. Validaciones iniciales
     if (!userData?.walletAddress) {
       toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
       navigate('/login');
@@ -176,11 +175,9 @@ const EducatorDashboard = () => {
     }
 
     try {
-      // 2. Captura del Certificado (Capa Visual)
       const container = cardRef.current;
       if (!container) return;
 
-      // Temporary effect cleanup for capturing
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
       card.classList.add('is-capturing');
 
@@ -191,24 +188,19 @@ const EducatorDashboard = () => {
 
       await new Promise(r => setTimeout(r, 100));
 
-      const canvas = await html2canvas(card, {
-        backgroundColor: '#0b0b0b',
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      // ✅ dom-to-image-more respeta blend-modes y gradientes
+      const imageBlob = await domtoimage.toBlob(card, {
+        bgcolor: '#0b0b0b',
+        width: card.offsetWidth * 2,
+        height: card.offsetHeight * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+        },
       });
 
       card.classList.remove('is-capturing');
 
-      // 3. Conversión de Canvas a Blob (para Multer)
-      const imageBlob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Canvas to Blob conversion failed"));
-        }, 'image/png');
-      });
-
-      // 4. Subida al backend (upload.js -> /api/upload/image)
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
 
@@ -216,17 +208,15 @@ const EducatorDashboard = () => {
       const realImageCID = uploadResult.cid;
       console.log("Image successfully pinned:", realImageCID);
 
-      // 5. Preparar datos finales para el Hook (Metadata JSON)
       const certificateData = {
         talentName: form.talentName,
         talentWallet: form.talentWallet,
         courseName: form.certificateTitle,
-        professorName: form.issuer,  // Enviamos el nombre del profesor/organización
-        issueDate: form.issueDate,    // Enviamos la fecha seleccionada
-        imageUri: realImageCID,       // ✅ Pasamos el CID real de la imagen
+        professorName: form.issuer,
+        issueDate: form.issueDate,
+        imageUri: realImageCID,
       };
 
-      // 6. Ejecutar proceso de Minteo y creación de JSON Metadata
       const success = await createCertificate(certificateData, userData.walletAddress);
 
       if (success) {
@@ -234,8 +224,6 @@ const EducatorDashboard = () => {
           title: t('educatorDashboard.mintSuccess'),
           description: t('educatorDashboard.mintSuccessDesc'),
         });
-
-        // Limpiar formulario
         setForm({
           certificateType: '',
           certificateTitle: '',
@@ -270,25 +258,18 @@ const EducatorDashboard = () => {
     if (!container) return;
 
     const card = (container.querySelector('.pc-card') as HTMLElement) || container;
-    const shine = card.querySelector('.pc-shine') as HTMLElement | null;
-    const glare = card.querySelector('.pc-glare') as HTMLElement | null;
-
-    const prevShineDisplay = shine?.style.display;
-    const prevGlareDisplay = glare?.style.display;
-    if (shine) shine.style.display = 'none';
-    if (glare) glare.style.display = 'none';
-    card.classList.remove('active');
 
     try {
-      const canvas = await html2canvas(card, {
-        backgroundColor: '#0b0b0b', // Forza el color de fondo oscuro de tu app
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        allowTaint: true,
-        imageTimeout: 0, // Evita que se capture antes de cargar recursos
+      // ✅ dom-to-image-more también para el download
+      const dataUrl = await domtoimage.toPng(card, {
+        bgcolor: '#0b0b0b',
+        width: card.offsetWidth * 2,
+        height: card.offsetHeight * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+        },
       });
-      const dataUrl = canvas.toDataURL('image/png');
 
       const link = document.createElement('a');
       const title = (typeof form.certificateTitle === 'string' && form.certificateTitle) || 'certificate';
@@ -307,9 +288,6 @@ const EducatorDashboard = () => {
         description: t('educatorDashboard.downloadError'),
         variant: "destructive",
       });
-    } finally {
-      if (shine) shine.style.display = prevShineDisplay ?? '';
-      if (glare) glare.style.display = prevGlareDisplay ?? '';
     }
   };
 
