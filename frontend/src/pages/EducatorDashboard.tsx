@@ -212,7 +212,7 @@ const EducatorDashboard = () => {
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
 
-      const uploadResult = await api.uploadPublic<{ cid: string }>('/api/upload/image', formData);
+      const uploadResult = await api.upload<{ cid: string }>('/api/upload/image', formData);
       const realImageCID = uploadResult.cid;
       console.log("Image successfully pinned:", realImageCID);
 
