@@ -48,6 +48,7 @@ export const useWalletLogin = () => {
             const notFound = err instanceof ApiServiceError && err.status === 404;
             setIsWalletNotFound(notFound);
             setError(err.message);
+            appKit.disconnect().catch(() => {});
         }
     });
 

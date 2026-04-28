@@ -11,6 +11,7 @@ const axios = require("axios");
 const userService = require("../services/userService");
 const { signToken, authenticate, getUserFromToken } = require("../middleware/auth");
 const { UserSession } = require("../models");
+const { cacheSession, deleteSession } = require("../services/redis");
 require("dotenv").config();
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
@@ -96,6 +97,9 @@ router.post(
         wallet_address: wallet_address.toLowerCase(),
         expires_at: expiresAt,
       });
+
+      const ttl = Math.floor((expiresAt - Date.now()) / 1000);
+      await cacheSession(wallet_address.toLowerCase(), ttl);
 
       const out = user.toJSON ? user.toJSON() : { ...user };
       delete out.passwordHash;
@@ -184,7 +188,11 @@ router.get("/me", authenticate, async (req, res) => {
  */
 router.post("/logout", authenticate, async (req, res) => {
   try {
-    await UserSession.destroy({ where: { wallet_address: req.auth.wallet.toLowerCase() } });
+    const wallet = req.auth.wallet.toLowerCase();
+    await Promise.all([
+      UserSession.destroy({ where: { wallet_address: wallet } }),
+      deleteSession(wallet),
+    ]);
     return res.json({ message: "Logged out" });
   } catch (err) {
     console.error("logout error:", err);

@@ -4,7 +4,11 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWalletLogin } from "@/hooks/useWalletLogin";
 
-export const LoginForm = () => {
+interface LoginFormProps {
+  disabled?: boolean;
+}
+
+export const LoginForm = ({ disabled = false }: LoginFormProps) => {
   const { t } = useTranslation();
   const [errorMessage, setErrorMessage] = useState<string>("");
   const { connectAndLogin, isLoading: isWalletLoading, error: walletError, isWalletNotFound } = useWalletLogin();
@@ -90,7 +94,7 @@ export const LoginForm = () => {
       <button
         type="button"
         onClick={handleWalletLogin}
-        disabled={isWalletLoading}
+        disabled={isWalletLoading || disabled}
         className="group relative w-full py-4 px-6 rounded-xl transition-all duration-300 overflow-hidden"
         style={{
           background: 'rgba(15, 15, 25, 0.9)',

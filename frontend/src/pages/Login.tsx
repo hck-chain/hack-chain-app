@@ -16,15 +16,20 @@ export default function Login() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  // Block the connect button until AppKit finishes disconnecting so the modal
+  // opens clean instead of showing the previously connected wallet.
+  const [isDisconnecting, setIsDisconnecting] = useState(true);
 
-  // If the wallet was previously connected but there is no valid session,
-  // disconnect AppKit so the user sees a clean "Connect Wallet" modal.
-  // The IIFE is required because useEffect callbacks cannot be async directly.
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
       (async () => {
         try { await appKit.disconnect(); } catch (_) {}
+        finally { setIsDisconnecting(false); }
       })();
+    } else {
+      setIsDisconnecting(false);
     }
   }, [isLoading, isAuthenticated]);
 
@@ -167,7 +172,7 @@ export default function Login() {
             </div>
 
             {/* Form */}
-            <LoginForm />
+            <LoginForm disabled={isDisconnecting} />
           </div>
 
           {/* Bottom accent */}
