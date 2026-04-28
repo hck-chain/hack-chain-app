@@ -775,9 +775,6 @@ export const web3Service = {
             const receipt = await tx.wait();
             console.log("Transaction confirmed:", tx.hash);
 
-            const token = sessionStorage.getItem('authToken');
-            if (!token) return false;
-
             await api.post('/api/issuers/increment-certificates', {
                 issuerWallet: issuerWallet.toLowerCase()
             });
@@ -790,7 +787,7 @@ export const web3Service = {
                 }
             })
                 .find(event => event?.name === "Transfer");
-            const tokenId = transferEvent.args.tokenId.toString();
+            const tokenId = transferEvent.args.tokenId.toString() ?? '0';
 
 
             // Guardar en la base de datos
