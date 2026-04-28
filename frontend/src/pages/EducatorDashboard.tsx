@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CertificateCard from '@/components/CertificateCard/CertificateCard';
-import domtoimage from 'dom-to-image-more';
+import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
@@ -25,8 +25,7 @@ import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
-const HackChainLogo = '/images/logoHackchain2.png'; // HackChain Logo
-
+const HackChainLogo = '/images/logoHackchain2.png';
 
 interface Talent {
   id: number;
@@ -51,7 +50,7 @@ const EducatorDashboard = () => {
     issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     logo: '',
-    imageUri: '', // To store the image URI if we uploaded one, though currently we handle local preview mostly
+    imageUri: '',
   });
 
   const [wallet, setWallet] = useState<string>("");
@@ -63,39 +62,28 @@ const EducatorDashboard = () => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
 
-
-  // Hook to create certificate
   const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
 
-  // Verificar autenticación y obtener datos del usuario
   useEffect(() => {
-
     const loadProfile = async () => {
       try {
         const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
-
-        // data.user comes from ISSUERS
-        // data.modelName === "issuer"
         setUserData({
           organization_name: data.user.organization_name,
           walletAddress: data.user.wallet_address,
           email: data.user.email ?? "No email registered",
           role: "Educator",
         });
-
-
-        // Here we don't use userData, we directly use the wallet
         const certCount = await getCertificatesByEducator(data.user.wallet_address);
-        setCertificatesIssued(certCount); // <-- directo, es un número
-
+        setCertificatesIssued(certCount);
       } catch (err) {
         console.error("Dashboard load error:", err);
       }
     };
 
     loadProfile();
-    // Fetch Talents
+
     const fetchTalents = async () => {
       try {
         const data = await api.get<{ students: any[] }>('/api/students');
@@ -117,11 +105,11 @@ const EducatorDashboard = () => {
     };
 
     fetchTalents();
-
   }, [navigate, toast]);
 
   const queryClient = useQueryClient();
   const { logout } = useAuth();
+
   const handleLogout = async () => {
     logout();
     queryClient.clear();
@@ -139,8 +127,6 @@ const EducatorDashboard = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
-        // Ideally upload image here to get a URI, or assume backend handles it. 
-        // For now keeping local preview logic.
       };
       reader.readAsDataURL(file);
       setForm({ ...form, logo: URL.createObjectURL(file) });
@@ -179,6 +165,12 @@ const EducatorDashboard = () => {
       if (!container) return;
 
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+
+      // ✅ Ocultamos shine y glare antes de capturar para evitar colores quemados
+      const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+      const glare = card.querySelector('.pc-glare') as HTMLElement | null;
+      if (shine) shine.style.display = 'none';
+      if (glare) glare.style.display = 'none';
       card.classList.add('is-capturing');
 
       toast({
@@ -186,20 +178,26 @@ const EducatorDashboard = () => {
         description: t('educatorDashboard.processingDesc'),
       });
 
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 150));
 
-      // ✅ dom-to-image-more respeta blend-modes y gradientes
-      const imageBlob = await domtoimage.toBlob(card, {
-        bgcolor: '#0b0b0b',
-        width: card.offsetWidth * 2,
-        height: card.offsetHeight * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left',
-        },
+      const canvas = await html2canvas(card, {
+        backgroundColor: '#0b0b0b',
+        scale: 2,
+        useCORS: true,
+        logging: false,
       });
 
+      // ✅ Restauramos shine y glare después de capturar
+      if (shine) shine.style.display = '';
+      if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
+
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Canvas to Blob conversion failed"));
+        }, 'image/png');
+      });
 
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
@@ -240,8 +238,14 @@ const EducatorDashboard = () => {
     } catch (error: any) {
       const container = cardRef.current;
       if (container) {
-        const card = container.querySelector('.pc-card');
-        card?.classList.remove('is-capturing');
+        const card = container.querySelector('.pc-card') as HTMLElement | null;
+        if (card) {
+          const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+          const glare = card.querySelector('.pc-glare') as HTMLElement | null;
+          if (shine) shine.style.display = '';
+          if (glare) glare.style.display = '';
+          card.classList.remove('is-capturing');
+        }
       }
       console.error('Full creation process error:', error);
       toast({
@@ -258,19 +262,27 @@ const EducatorDashboard = () => {
     if (!container) return;
 
     const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+    const shine = card.querySelector('.pc-shine') as HTMLElement | null;
+    const glare = card.querySelector('.pc-glare') as HTMLElement | null;
+
+    // ✅ Ocultamos shine y glare antes de capturar
+    if (shine) shine.style.display = 'none';
+    if (glare) glare.style.display = 'none';
+    card.classList.add('is-capturing');
 
     try {
-      // ✅ dom-to-image-more también para el download
-      const dataUrl = await domtoimage.toPng(card, {
-        bgcolor: '#0b0b0b',
-        width: card.offsetWidth * 2,
-        height: card.offsetHeight * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left',
-        },
+      await new Promise(r => setTimeout(r, 150));
+
+      const canvas = await html2canvas(card, {
+        backgroundColor: '#0b0b0b',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        imageTimeout: 0,
       });
 
+      const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       const title = (typeof form.certificateTitle === 'string' && form.certificateTitle) || 'certificate';
       link.download = `${title}.png`;
@@ -288,6 +300,11 @@ const EducatorDashboard = () => {
         description: t('educatorDashboard.downloadError'),
         variant: "destructive",
       });
+    } finally {
+      // ✅ Siempre restauramos shine y glare al terminar
+      if (shine) shine.style.display = '';
+      if (glare) glare.style.display = '';
+      card.classList.remove('is-capturing');
     }
   };
 
