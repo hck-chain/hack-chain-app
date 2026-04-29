@@ -22,8 +22,6 @@ export const useEducatorRegistration = () => {
             const requestData = transformEducatorFormDataToRequest(formData);
             const walletAddress = await getConnectedWallet();
 
-            await api.postPublic('/api/issuers/authorize', { issuer: walletAddress });
-
             return registerEducator({
                 ...requestData,
                 wallet_address: walletAddress,

@@ -22,12 +22,17 @@ import { useUserRegistration } from "../../hooks/userUserRegistration";
 import type { UserRegistrationFormData } from "../../lib/validations/auth";
 import "./autofill-fix.css";
 
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 export function UserRegistrationForm() {
   const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const mutation = useUserRegistration();
-  const { mutate: register, isPending: isLoading, isSuccess, isError, error } = mutation;
+  const { mutate: register, isPending: isLoading, isError, error } = mutation;
 
   const form = useForm<UserRegistrationFormData>({
     resolver: zodResolver(userRegistrationSchema),
@@ -50,32 +55,22 @@ export function UserRegistrationForm() {
   };
 
   const onSubmit = (data: UserRegistrationFormData) => {
-    register(data);
+    register(data, {
+      onSuccess: (response) => {
+        if (response.token && response.user) {
+          login(response.token, {
+            id: response.user.id || 0,
+            email: response.user.email,
+            role: response.user.role || 'student',
+            name: response.user.name,
+            lastName: response.user.lastName || (response.user as any).lastname || null,
+            walletAddress: response.user.walletAddress || response.user.wallet_address || null,
+          });
+          navigate('/talent-dashboard');
+        }
+      }
+    });
   };
-
-  const handleReset = () => {
-    form.reset();
-    mutation.reset();
-    setTouchedFields({});
-  };
-
-  if (isSuccess) {
-    return (
-      <div className="space-y-6">
-        <Alert className="border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-          <CheckCircle className="h-4 w-4 text-purple-400" />
-          <AlertDescription className="text-purple-200">
-            {t('registrationForm.success')}
-          </AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button onClick={handleReset} variant="outline" className="w-full max-w-sm border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
-            {t('registrationForm.registerAnother')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

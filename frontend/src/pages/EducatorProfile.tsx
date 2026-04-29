@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEducatorProfile } from '@/hooks/useEducatorProfile';
 import type { EducatorProfile as EducatorProfileType } from '@/types/dashboard';
+import { AnimeParticles } from '@/components/animations/AnimeComponents';
 
 const HackChainLogo = '/images/logoHackchain2.png';
 
 function resolveIpfs(url: string | null): string {
   if (!url) return '';
   return url.startsWith('ipfs://')
-    ? url.replace('ipfs://', 'https://ipfs.io/ipfs/')
+    ? `https://gateway.pinata.cloud/ipfs/${url.slice('ipfs://'.length)}`
     : url;
 }
 
@@ -44,7 +45,7 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-6 rounded-3xl bg-white/5 border border-white/10">
-        <Skeleton className="h-24 w-24 rounded-full bg-white/5 shrink-0" />
+        <Skeleton className="h-24 w-24 rounded-2xl bg-white/5 shrink-0" />
         <div className="flex-1 space-y-3 w-full">
           <Skeleton className="h-5 w-48 bg-white/5" />
           <Skeleton className="h-4 w-32 bg-white/5" />
@@ -73,10 +74,14 @@ function StatCard({
   value: number;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1 p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-      <Icon className="h-5 w-5 text-blue-400 mb-1" />
-      <span className="text-2xl font-bold text-white">{value}</span>
-      <span className="text-xs text-slate-500 uppercase tracking-wide">{label}</span>
+    <div className="relative overflow-hidden flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.03] border-2 border-white/30 shadow-lg text-center">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none" />
+      <AnimeParticles />
+      <div className="relative z-10 flex flex-col items-center justify-center gap-1">
+        <Icon className="h-5 w-5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mb-1" />
+        <span className="text-2xl font-bold text-white drop-shadow-sm">{value}</span>
+        <span className="text-xs text-white uppercase tracking-wider font-bold drop-shadow-md">{label}</span>
+      </div>
     </div>
   );
 }
@@ -147,44 +152,51 @@ const EducatorProfile = () => {
               className="space-y-6"
             >
               {/* Profile card */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-6 rounded-3xl bg-white/5 border border-white/10">
-                <Avatar className="h-24 w-24 shrink-0 ring-2 ring-white/10 text-2xl">
-                  <AvatarImage
-                    src={resolveIpfs(educator.photo_url)}
-                    alt={displayName}
-                  />
-                  <AvatarFallback className="bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-bold text-2xl">
-                    {initials(educator.name, educator.lastname, educator.organization_name)}
-                  </AvatarFallback>
-                </Avatar>
+              <div className="relative overflow-hidden p-6 rounded-3xl bg-white/[0.03] border-2 border-white/30 shadow-lg">
+                <div className="absolute top-0 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
+                <AnimeParticles />
 
-                <div className="flex-1 text-center sm:text-left min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
-                    {displayName}
-                  </h1>
+                <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                  <Avatar className="h-24 w-24 shrink-0 rounded-2xl ring-2 ring-white/10 text-2xl">
+                    <AvatarImage
+                      src={resolveIpfs(educator.photo_url)}
+                      alt={displayName}
+                      className="rounded-2xl object-cover"
+                    />
+                    <AvatarFallback className="bg-gradient-to-tr from-purple-500 to-indigo-600 text-white font-bold text-2xl rounded-2xl">
+                      {initials(educator.name, educator.lastname, educator.organization_name)}
+                    </AvatarFallback>
+                  </Avatar>
 
-                  {educator.organization_name !== displayName && (
-                    <p className="text-sm text-slate-400 mt-0.5">{educator.organization_name}</p>
-                  )}
+                  <div className="flex-1 text-center sm:text-left min-w-0">
+                    <h1 className="text-xl sm:text-2xl font-bold text-white truncate drop-shadow-md">
+                      {displayName}
+                    </h1>
 
-                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-1 mt-3">
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <Wallet className="h-3.5 w-3.5" />
-                      <span className="font-mono">
-                        ••••{educator.wallet_address.slice(-4)}
+                    {educator.organization_name !== displayName && (
+                      <p className="text-sm font-semibold text-slate-200 drop-shadow-sm mt-0.5">{educator.organization_name}</p>
+                    )}
+
+                    <div className="flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-1 mt-3">
+                      <span className="flex items-center gap-1.5 text-xs text-white drop-shadow-md font-bold">
+                        <Wallet className="h-3.5 w-3.5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                        <span className="font-mono">
+                          {educator.wallet_address ? `${educator.wallet_address.slice(0, 6)}…${educator.wallet_address.slice(-4)}` : "—"}
+                        </span>
                       </span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      Desde {formatDate(educator.joined_at)}
-                    </span>
-                  </div>
+                      <span className="flex items-center gap-1.5 text-xs text-white drop-shadow-md font-bold">
+                        <CalendarDays className="h-3.5 w-3.5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                        Desde {formatDate(educator.joined_at)}
+                      </span>
+                    </div>
 
-                  {educator.bio && (
-                    <p className="text-sm text-slate-300 mt-4 leading-relaxed">
-                      {educator.bio}
-                    </p>
-                  )}
+                    {educator.bio && (
+                      <p className="text-sm text-slate-100 font-medium mt-4 leading-relaxed drop-shadow-sm">
+                        {educator.bio}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -204,29 +216,37 @@ const EducatorProfile = () => {
 
               {/* Knowledge areas */}
               {educator.knowledge_areas.length > 0 && (
-                <div className="p-5 rounded-3xl bg-white/5 border border-white/10">
-                  <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Áreas de conocimiento
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {educator.knowledge_areas.map((area) => (
-                      <Badge
-                        key={area}
-                        variant="secondary"
-                        className="bg-blue-500/10 text-blue-300 border-blue-500/20 rounded-full px-3 py-1 text-sm"
-                      >
-                        {area}
-                      </Badge>
-                    ))}
+                <div className="relative overflow-hidden p-5 rounded-3xl bg-white/[0.03] border-2 border-white/30 shadow-lg">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-[60px] pointer-events-none" />
+                  <AnimeParticles />
+                  <div className="relative z-10">
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-white drop-shadow-md mb-3 flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                      Áreas de conocimiento
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {educator.knowledge_areas.map((area) => (
+                        <Badge
+                          key={area}
+                          variant="secondary"
+                          className="bg-purple-500/10 text-purple-300 border-purple-500/20 rounded-full px-3 py-1 text-sm shadow-[0_0_10px_rgba(168,85,247,0.15)]"
+                        >
+                          {area}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Placeholder: courses / content */}
-              <div className="flex flex-col items-center justify-center py-12 rounded-3xl border border-dashed border-white/10 text-slate-500">
-                <GraduationCap className="h-8 w-8 mb-2 opacity-30" />
-                <p className="text-sm">Cursos y contenido — próximamente.</p>
+              <div className="relative overflow-hidden flex flex-col items-center justify-center py-12 rounded-3xl border-2 border-dashed border-white/30 bg-white/[0.03] shadow-lg">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-purple-500/5 rounded-full blur-[60px] pointer-events-none" />
+                <AnimeParticles />
+                <div className="relative z-10 flex flex-col items-center justify-center text-slate-300">
+                  <GraduationCap className="h-8 w-8 mb-2 opacity-80 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                  <p className="text-sm font-bold drop-shadow-md text-white">Cursos y contenido — próximamente.</p>
+                </div>
               </div>
             </motion.div>
           )}

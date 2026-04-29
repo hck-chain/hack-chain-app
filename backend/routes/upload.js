@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
+const sharp = require("sharp");
 const { PinataSDK } = require("pinata");
 const { authenticate } = require("../middleware/auth");
 const { validateImageBuffer } = require("../utils/validateImageBuffer");
@@ -45,8 +46,13 @@ router.post(
         return res.status(415).json({ error: validation.reason });
       }
 
+      const optimized = await sharp(req.file.buffer)
+        .resize(400, 400, { fit: "cover", position: "centre" })
+        .jpeg({ quality: 85, progressive: true })
+        .toBuffer();
+
       const result = await pinata.upload.public.file(
-        new Blob([req.file.buffer], { type: validation.mime }),
+        new Blob([optimized], { type: "image/jpeg" }),
         {
           pinataMetadata: { name: req.file.originalname },
         }

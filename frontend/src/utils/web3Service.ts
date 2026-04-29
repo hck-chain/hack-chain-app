@@ -818,4 +818,18 @@ export async function getCertificatesByEducator(wallet: string) {
     return data.total;
 }
 
+export async function signDeletionMessage(wallet: string): Promise<{ signature: string; message: string }> {
+    const walletProvider = appKit.getWalletProvider();
+    if (!walletProvider) throw new Error('Wallet not connected');
+
+    const provider = new ethers.providers.Web3Provider(walletProvider as any);
+    const signer = provider.getSigner();
+
+    const timestamp = new Date().toISOString();
+    const message = `HackChain Account Deletion\nWallet: ${wallet}\nTimestamp: ${timestamp}`;
+    const signature = await signer.signMessage(message);
+
+    return { signature, message };
+}
+
 

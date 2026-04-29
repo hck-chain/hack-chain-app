@@ -18,22 +18,37 @@ export interface RecruiterRegistrationRequest{
 //this is the user registration response
 export interface UserRegistrationResponse{
     message: string;
+    token?: string;
     user:{
+        id?: number;
+        role?: string;
         name: string;
         lastName: string;
-        age: string;
+        age?: string;
         email: string;
-        walletAddress: string;
+        walletAddress?: string;
+        wallet_address?: string;
     };
 }
 
 //this is the recruiter registration response
 export interface RecruiterRegistrationResponse{
     message: string;
+    token?: string;
     recruiter:{
         name: string;
         lastName: string;
         email: string;
+    };
+    user?: {
+        id?: number;
+        role?: string;
+        name?: string;
+        lastName?: string;
+        lastname?: string;
+        email?: string;
+        walletAddress?: string;
+        wallet_address?: string;
     };
 }
 
@@ -47,10 +62,21 @@ export interface EducatorRegistrationRequest{
 //this is the educator registration response
 export interface EducatorRegistrationResponse{
     message: string;
+    token?: string;
     issuer:{
         name: string;
         email: string;
         walletAddress: string;
+    };
+    user?: {
+        id?: number;
+        role?: string;
+        name?: string;
+        lastName?: string;
+        lastname?: string;
+        email?: string;
+        walletAddress?: string;
+        wallet_address?: string;
     };
 }
 

@@ -18,7 +18,10 @@ module.exports = (sequelize, DataTypes) => {
     lastname: { type: DataTypes.STRING(50), allowNull: true },
     email: { type: DataTypes.STRING(255), allowNull: true },
     nonce: { type: DataTypes.STRING(32), allowNull: false },
-    is_active: { type: DataTypes.BOOLEAN, defaultValue: true }
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    email_verified: { type: DataTypes.BOOLEAN, defaultValue: false, allowNull: false },
+    verification_token: { type: DataTypes.STRING(128), allowNull: true },
+    verification_token_expires_at: { type: DataTypes.DATE, allowNull: true }
   }, {
     tableName: 'users',
     underscored: true,

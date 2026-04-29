@@ -3,7 +3,40 @@ const express = require("express");
 const router = express.Router();
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
+const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { authenticate } = require("../middleware/auth");
+
+// GET /api/issuers/me — own full profile (authenticated)
+router.get("/me", authenticate, async (req, res) => {
+  try {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
+    }
+
+    const wallet = req.auth.wallet.toLowerCase();
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: wallet },
+      include: [{ model: User, attributes: ["name", "lastname", "email", "email_verified"] }],
+    });
+
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
+
+    return res.json({
+      organization_name: issuer.organization_name,
+      bio: issuer.bio,
+      photo_url: issuer.photo_url,
+      knowledge_areas: issuer.knowledge_areas ?? [],
+      wallet_address: issuer.wallet_address,
+      email: issuer.User?.email ?? null,
+      name: issuer.User?.name ?? null,
+      lastname: issuer.User?.lastname ?? null,
+      email_verified: issuer.User?.email_verified ?? false,
+    });
+  } catch (err) {
+    console.error("GET /api/issuers/me error:", err);
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
 
 // GET /api/issuers  — public, paginated educator discovery
 // Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
@@ -56,18 +89,106 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /api/issuers/authorize
-router.post("/authorize", async (req, res) => {
+// PATCH /api/issuers/me — update own profile (bio, knowledge_areas, organization_name)
+router.patch("/me", authenticate, async (req, res) => {
   try {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only educator accounts can update this profile" });
+    }
+
+    const wallet = req.auth.wallet.toLowerCase();
+    const { bio, knowledge_areas, organization_name } = req.body;
+
+    if (bio !== undefined && typeof bio !== "string") {
+      return res.status(400).json({ error: "bio must be a string" });
+    }
+    if (bio !== undefined && bio.length > 500) {
+      return res.status(400).json({ error: "bio must be 500 characters or less" });
+    }
+    if (knowledge_areas !== undefined) {
+      if (!Array.isArray(knowledge_areas)) {
+        return res.status(400).json({ error: "knowledge_areas must be an array" });
+      }
+      if (knowledge_areas.length > 5) {
+        return res.status(400).json({ error: "Maximum 5 knowledge areas allowed" });
+      }
+      if (knowledge_areas.some((a) => typeof a !== "string" || a.length > 100)) {
+        return res.status(400).json({ error: "Each knowledge area must be a string of max 100 characters" });
+      }
+    }
+    if (organization_name !== undefined && (typeof organization_name !== "string" || organization_name.trim().length === 0)) {
+      return res.status(400).json({ error: "organization_name must be a non-empty string" });
+    }
+
+    const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
+
+    const updates = {};
+    if (bio !== undefined) updates.bio = bio.trim();
+    if (knowledge_areas !== undefined) updates.knowledge_areas = knowledge_areas;
+    if (organization_name !== undefined) updates.organization_name = organization_name.trim();
+
+    await issuer.update(updates);
+
+    return res.json({
+      message: "Profile updated",
+      issuer: {
+        organization_name: issuer.organization_name,
+        bio: issuer.bio,
+        knowledge_areas: issuer.knowledge_areas,
+        photo_url: issuer.photo_url,
+      },
+    });
+  } catch (err) {
+    console.error("patch issuer error:", err);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// DELETE /api/issuers/me — hard delete own account
+router.delete("/me", authenticate, async (req, res) => {
+  try {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only educator accounts can be deleted via this endpoint" });
+    }
+
+    const { signature, message } = req.body;
+    if (!signature || !message) {
+      return res.status(400).json({ error: "signature and message are required" });
+    }
+
+    const wallet = req.auth.wallet.toLowerCase();
+    const validation = validateDeletionMessage(message, signature, wallet);
+    if (!validation.ok) {
+      return res.status(401).json({ error: validation.error });
+    }
+
+    await deleteIssuerAccount(wallet);
+
+    return res.status(204).send();
+  } catch (err) {
+    console.error("delete issuer error:", err);
+    return res.status(500).json({ error: "Failed to delete account" });
+  }
+});
+
+// POST /api/issuers/authorize — admin only (ADMIN_WALLET env var)
+router.post("/authorize", authenticate, async (req, res) => {
+  try {
+    const callerWallet = req.auth.wallet.toLowerCase();
+    const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
+    if (!adminWallet || callerWallet !== adminWallet) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
     const { issuer } = req.body;
     if (!issuer) return res.status(400).json({ error: "Issuer address required" });
 
     const txHash = await authorizeIssuer(issuer);
-    res.json({ succes: true, txHash });
-
+    res.json({ success: true, txHash });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Authorization failed" });
   }
 });
 //|| !certificate_hash || !token_id)
@@ -82,6 +203,10 @@ router.post("/mint", authenticate, async (req, res) => {
 
     if (!studentWalletAddress || !professor || !tokenUri) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (req.auth.wallet.toLowerCase() !== professor.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot mint from another issuer's account" });
     }
 
     const student = await Student.findOne({
@@ -230,6 +355,10 @@ router.post("/increment-certificates", authenticate, async (req, res) => {
   try {
     const { issuerWallet } = req.body;
     if (!issuerWallet) return res.status(400).json({ error: "issuerWallet required" });
+
+    if (req.auth.wallet.toLowerCase() !== issuerWallet.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot increment certificates for another issuer" });
+    }
 
     await Issuer.increment(
       { certificates_issued: 1 },

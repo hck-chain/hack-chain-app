@@ -319,3 +319,22 @@
 .pc-card-wrapper.is-capturing::before {
   display: none !important;
 }
+
+/* Responsiveness for mobile screens */
+@media (max-width: 1024px) {
+  .pc-card-wrapper {
+    zoom: 0.85;
+  }
+}
+
+@media (max-width: 768px) {
+  .pc-card-wrapper {
+    zoom: 0.7;
+  }
+}
+
+@media (max-width: 480px) {
+  .pc-card-wrapper {
+    zoom: 0.45;
+  }
+}

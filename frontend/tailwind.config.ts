@@ -19,8 +19,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				title: ['Exo', 'sans-serif'],
-				body: ['Lato', 'sans-serif'],
+				title: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+				body: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

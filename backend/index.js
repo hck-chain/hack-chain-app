@@ -149,6 +149,15 @@ let server;
       console.log("✅ Database synchronized.");
     }
 
+    // Add email verification columns to users if they don't exist yet
+    await db.sequelizeAdmin.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS verification_token VARCHAR(128),
+        ADD COLUMN IF NOT EXISTS verification_token_expires_at TIMESTAMPTZ;
+    `);
+    console.log("Email verification columns ensured.");
+
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
       console.log(`🔗 Frontend origin: https://www.hackchain.app`);

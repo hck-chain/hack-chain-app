@@ -10,8 +10,9 @@ const axios = require("axios");
 
 const userService = require("../services/userService");
 const { signToken, authenticate, getUserFromToken } = require("../middleware/auth");
-const { UserSession } = require("../models");
+const { User, UserSession } = require("../models");
 const { cacheSession, deleteSession } = require("../services/redis");
+const { sendVerificationEmail } = require("../services/emailService");
 require("dotenv").config();
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
@@ -196,6 +197,89 @@ router.post("/logout", authenticate, async (req, res) => {
     return res.json({ message: "Logged out" });
   } catch (err) {
     console.error("logout error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /api/auth/verify-email?token=xxx
+ * Marks the user as email_verified and clears the token.
+ */
+router.get("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ error: "Token requerido" });
+    }
+
+    const user = await User.findOne({ where: { verification_token: token } });
+    if (!user) {
+      return res.status(400).json({ error: "Token inválido o ya utilizado" });
+    }
+
+    if (user.verification_token_expires_at < new Date()) {
+      return res.status(400).json({ error: "El token expiró. Solicitá uno nuevo." });
+    }
+
+    await user.update({
+      email_verified: true,
+      verification_token: null,
+      verification_token_expires_at: null,
+    });
+
+    return res.json({ message: "Email verificado correctamente" });
+  } catch (err) {
+    console.error("verify-email error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /api/auth/resend-verification
+ * Resends the verification email (rate-limited).
+ */
+const resendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { error: "Demasiados intentos, esperá un rato" },
+});
+
+router.post("/resend-verification", authenticate, resendLimiter, async (req, res) => {
+  try {
+    const wallet = req.auth.wallet.toLowerCase();
+    const user = await User.findOne({ where: { wallet_address: wallet } });
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    if (user.email_verified) {
+      return res.status(400).json({ error: "El email ya está verificado" });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ error: "No hay email registrado" });
+    }
+
+    const newToken = require("crypto").randomBytes(48).toString("hex");
+    const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await user.update({
+      verification_token: newToken,
+      verification_token_expires_at: newExpiry,
+    });
+
+    try {
+      await sendVerificationEmail({
+        to: user.email,
+        name: user.name || null,
+        token: newToken,
+      });
+    } catch (emailErr) {
+      console.error("Resend API error:", emailErr?.message || emailErr);
+      return res.status(502).json({ error: `Error al enviar el email: ${emailErr?.message || 'provider error'}` });
+    }
+
+    return res.json({ message: "Email de verificación reenviado" });
+  } catch (err) {
+    console.error("resend-verification error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -1,5 +1,33 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { api } from '@/services/api';
+import { appKit } from '@/config/walletConfig';
+
+// WalletConnect/AppKit guardan la sesión en localStorage y se rehidrata sola
+// al recargar. Si no la limpiamos en el logout, el modal vuelve a abrir con
+// la wallet ya conectada y se hace auto-login.
+const WALLET_STORAGE_PREFIXES = [
+  'wc@2:',
+  '@appkit',
+  '@w3m',
+  'wagmi.',
+  'WALLETCONNECT_',
+  'WCM_',
+];
+
+function clearWalletStorage(): void {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && WALLET_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch (err) {
+    console.error('Error clearing wallet storage:', err);
+  }
+}
 
 
 // ---------------------------------------------------------------------------
@@ -43,8 +71,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Usamos localStorage para que la sesión sea persistente entre pestañas y recargas
   useEffect(() => {
     try {
-      const storedToken = sessionStorage.getItem('authToken');
-      const storedUser = sessionStorage.getItem('user');
+      const storedToken = localStorage.getItem('authToken');
+      const storedUser = localStorage.getItem('user');
 
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -61,8 +89,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 2. Función de Login
   const login = useCallback((newToken: string, newUser: AuthUser) => {
-    sessionStorage.setItem('authToken', newToken);
-    sessionStorage.setItem('user', JSON.stringify(newUser));
+    localStorage.setItem('authToken', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   }, []);
@@ -71,6 +99,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(() => {
     // Intentamos avisar al backend (fire-and-forget)
     api.post('/api/auth/logout').catch(() => { });
+
+    // Desconectamos AppKit y limpiamos el storage de WalletConnect
+    // para que el modal no rehidrate la sesión y haga auto-login.
+    appKit.disconnect().catch(() => {});
+    clearWalletStorage();
 
     // Limpiamos el almacenamiento local
     localStorage.removeItem('authToken');
@@ -81,9 +114,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Limpiamos el estado de React
     setToken(null);
     setUser(null);
-
-    // Opcional: Forzar recarga para limpiar cualquier estado residual
-    // window.location.href = '/login'; 
   }, []);
 
   const value: AuthContextValue = {

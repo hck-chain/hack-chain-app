@@ -35,6 +35,8 @@ const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
 const BlockchainDisclaimer = lazy(() => import("./pages/legal/BlockchainDisclaimer"));
 const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
+const EditEducatorProfile = lazy(() => import("./pages/EditEducatorProfile"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 
 const queryClient = new QueryClient();
 
@@ -98,6 +100,16 @@ const App = () => {
                     <MintCertificate />
                   </ProtectedRoute>
                 } />
+
+                {/* Educator edit profile */}
+                <Route path="/educator/profile/edit" element={
+                  <ProtectedRoute roles={['issuer']}>
+                    <EditEducatorProfile />
+                  </ProtectedRoute>
+                } />
+
+                {/* Email verification */}
+                <Route path="/verify-email" element={<VerifyEmail />} />
 
                 {/* Educator public profile */}
                 <Route path="/educator/:wallet" element={<EducatorProfile />} />

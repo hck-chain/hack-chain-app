@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Award, Briefcase, Wallet, LogOut, ChevronDown, ExternalLink, GraduationCap, Users } from 'lucide-react';
+import { Award, Briefcase, Wallet, LogOut, ChevronDown, ExternalLink, GraduationCap, Users, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 import { LanguageToggle } from '@/components/LanguageToggle';
@@ -312,6 +312,20 @@ const TalentDashboard = () => {
                           </p>
                         </div>
                       </div>
+                      {talent.email && (
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                          <Mail className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs uppercase text-slate-500 font-semibold">{t('talentDashboard.emailLabel', 'Correo')}</p>
+                            <p className="text-sm text-slate-200 font-mono">
+                              {(() => {
+                                const [name, domain] = talent.email.split('@');
+                                return name && domain ? `${name.slice(0, 2)}***@${domain}` : talent.email;
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-white/10">
