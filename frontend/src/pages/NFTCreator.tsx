@@ -59,6 +59,7 @@ const NFTCreator = () => {
         useCORS: true,
         logging: false,
         allowTaint: true,
+        windowWidth: 1920,
       });
       const dataUrl = canvas.toDataURL('image/png');
 

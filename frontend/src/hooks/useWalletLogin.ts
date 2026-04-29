@@ -59,9 +59,17 @@ export const useWalletLogin = () => {
         try {
             setIsConnecting(true);
 
-            await appKit.open();
+            // Si AppKit todavía tiene una conexión activa (puede quedar residual
+            // tras un logout), forzamos disconnect antes de abrir para que el
+            // modal muestre la pantalla de connect y no la de cuenta ya conectada.
+            if (appKit.getAddress()) {
+                await appKit.disconnect().catch(() => {});
+            }
 
-            // Wait for a connected address from the modal
+            // Forzamos el view 'Connect' para evitar que AppKit abra la vista
+            // de cuenta (Account) si quedó algún residuo de sesión.
+            await appKit.open({ view: 'Connect' });
+
             const walletAddress = await new Promise<string | null>((resolve) => {
                 const unsubscribeAccount = appKit.subscribeAccount((account) => {
                     if (account.address) {
@@ -70,9 +78,10 @@ export const useWalletLogin = () => {
                     }
                 });
 
-                appKit.subscribeEvents((event) => {
+                const unsubscribeEvents = appKit.subscribeEvents((event) => {
                     if (event.data.event === 'MODAL_CLOSE') {
                         unsubscribeAccount();
+                        unsubscribeEvents();
                         resolve(null);
                     }
                 });
@@ -84,8 +93,8 @@ export const useWalletLogin = () => {
             }
 
             mutation.mutate(walletAddress);
-        } catch (err: any) {
-            setError(err.message || "Failed to connect to wallet");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to connect to wallet");
         } finally {
             setIsConnecting(false);
         }

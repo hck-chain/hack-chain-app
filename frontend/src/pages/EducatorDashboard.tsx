@@ -18,14 +18,45 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet } from 'lucide-react';
+import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
+import { useDeleteAccount } from '@/hooks/useDeleteAccount';
+import { DeleteAccountModal } from '@/components/DeleteAccountModal/DeleteAccountModal';
 const HackChainLogo = '/images/logoHackchain2.png';
+
+function resolveIpfs(url: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('ipfs://')) {
+    return `https://gateway.pinata.cloud/ipfs/${url.slice(7)}`;
+  }
+  return url;
+}
+
+function EducatorAvatar({ photoUrl, size = 'md' }: { photoUrl: string | null; size?: 'sm' | 'md' }) {
+  const resolved = resolveIpfs(photoUrl);
+  const sizeClass = size === 'sm' ? 'h-10 w-10' : 'h-14 w-14';
+  const iconSize = size === 'sm' ? 'h-5 w-5' : 'h-7 w-7';
+
+  if (resolved) {
+    return (
+      <img
+        src={resolved}
+        alt="Profile"
+        className={`${sizeClass} rounded-full object-cover shrink-0 border border-white/10`}
+      />
+    );
+  }
+  return (
+    <div className={`${sizeClass} shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20`}>
+      <Award className={`${iconSize} text-white`} />
+    </div>
+  );
+}
 
 interface Talent {
   id: number;
@@ -61,24 +92,46 @@ const EducatorDashboard = () => {
   const [talents, setTalents] = useState<Talent[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
 
   useEffect(() => {
+    // If wallet disconnected (window closed and reopened), force re-authentication
+    if (!appKit.getAddress()) {
+      logout();
+      navigate('/login');
+      return;
+    }
+
     const loadProfile = async () => {
       try {
-        const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
+        const profile = await api.get<{
+          organization_name: string;
+          wallet_address: string;
+          email: string | null;
+          email_verified: boolean;
+          photo_url: string | null;
+        }>('/api/issuers/me');
+
+        if (!profile.email_verified) {
+          navigate('/verify-email');
+          return;
+        }
+
         setUserData({
-          organization_name: data.user.organization_name,
-          walletAddress: data.user.wallet_address,
-          email: data.user.email ?? "No email registered",
+          organization_name: profile.organization_name,
+          walletAddress: profile.wallet_address,
+          email: profile.email ?? "No email registered",
           role: "Educator",
+          photo_url: profile.photo_url ?? null,
         });
-        const certCount = await getCertificatesByEducator(data.user.wallet_address);
+        const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
       } catch (err) {
         console.error("Dashboard load error:", err);
+        navigate('/verify-email');
       }
     };
 
@@ -109,6 +162,24 @@ const EducatorDashboard = () => {
 
   const queryClient = useQueryClient();
   const { logout } = useAuth();
+  const deleteAccount = useDeleteAccount();
+
+  const handleDeleteAccount = () => {
+    if (!userData?.walletAddress) return;
+    deleteAccount.mutate(userData.walletAddress, {
+      onSuccess: () => {
+        logout();
+        queryClient.clear();
+        try { appKit.disconnect(); } catch (_) { }
+        toast({ title: "Account deleted", description: "Your educator account has been permanently deleted." });
+        navigate('/');
+      },
+      onError: (error) => {
+        setShowDeleteModal(false);
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      },
+    });
+  };
 
   const handleLogout = async () => {
     logout();
@@ -185,6 +256,7 @@ const EducatorDashboard = () => {
         scale: 2,
         useCORS: true,
         logging: false,
+        windowWidth: 1920, // Forces desktop layout inside the capture iframe to avoid mobile zoom issues
       });
 
       // ✅ Restauramos shine y glare después de capturar
@@ -313,6 +385,14 @@ const EducatorDashboard = () => {
   }
 
   return (
+    <>
+    <DeleteAccountModal
+      open={showDeleteModal}
+      organizationName={userData.organization_name ?? ""}
+      onConfirm={handleDeleteAccount}
+      onCancel={() => setShowDeleteModal(false)}
+      isPending={deleteAccount.isPending}
+    />
     <Layout>
       {/* Container principal transparente para dejar ver el fondo global */}
       <div className="min-h-screen relative font-sans text-slate-200">
@@ -359,23 +439,20 @@ const EducatorDashboard = () => {
                         {userData.organization_name || t('educatorDashboard.roleName')}
                       </span>
                     </div>
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                      <Award className="h-5 w-5 text-white" />
-                    </div>
+                    <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="sm" />
                     <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
                   </Button>
                 </PopoverTrigger>
 
                 <PopoverContent
-                  className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
+                  className="w-80 p-0 bg-slate-900/80 backdrop-blur-2xl border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl overflow-hidden relative"
                   align="end"
                   sideOffset={8}
                 >
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-center gap-4 pb-4 border-b border-white/10">
-                      <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                        <Award className="h-7 w-7 text-white" />
-                      </div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none" />
+                  <div className="p-6 space-y-4 relative z-10">
+                    <div className="flex items-center gap-4 pb-4 border-b border-purple-500/20">
+                      <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="md" />
                       <div className="flex-1 overflow-hidden">
                         <h3 className="text-base font-bold text-white truncate">
                           {userData.organization_name || "My Organization"}
@@ -385,34 +462,57 @@ const EducatorDashboard = () => {
                     </div>
 
                     <div className="space-y-3">
-                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                        <Mail className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                        <FileText className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.certificatesIssued')}</p>
                           <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : t('educatorDashboard.noneYet')}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                        <Briefcase className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                        <Briefcase className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
                           <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.roleLabel')}</p>
                           <p className="text-sm text-slate-200">{t('educatorDashboard.roleName')}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                        <Wallet className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                        <Wallet className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.walletLabel')}</p>
                           <p className="text-sm text-slate-200 font-mono">
-                            ••••{userData.walletAddress?.slice(-4) || "••••"}
+                            {userData.walletAddress ? `${userData.walletAddress.slice(0, 6)}…${userData.walletAddress.slice(-4)}` : "—"}
                           </p>
                         </div>
                       </div>
+
+                      {userData.email && (
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                          <Mail className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.emailLabel', 'Correo')}</p>
+                            <p className="text-sm text-slate-200 font-mono">
+                              {(() => {
+                                const [name, domain] = userData.email.split('@');
+                                return name && domain ? `${name.slice(0, 2)}***@${domain}` : userData.email;
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="pt-4 border-t border-white/10">
+                    <div className="pt-4 border-t border-purple-500/20 space-y-2">
+                      <Button
+                        onClick={() => navigate('/educator/profile/edit')}
+                        variant="outline"
+                        className="w-full border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30"
+                      >
+                        <UserPen className="h-4 w-4 mr-2" />
+                        Edit profile
+                      </Button>
                       <Button
                         onClick={handleLogout}
                         variant="outline"
@@ -420,6 +520,14 @@ const EducatorDashboard = () => {
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         {t('educatorDashboard.logout')}
+                      </Button>
+                      <Button
+                        onClick={() => setShowDeleteModal(true)}
+                        variant="ghost"
+                        className="w-full text-slate-500 hover:text-red-400 hover:bg-red-500/5 text-xs"
+                      >
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Delete account
                       </Button>
                     </div>
                   </div>
@@ -595,6 +703,7 @@ const EducatorDashboard = () => {
         </motion.main>
       </div>
     </Layout>
+    </>
   );
 };
 

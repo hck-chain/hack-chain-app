@@ -736,6 +736,22 @@ async function authorizeIssuer(issuerAddress) {
     return tx.hash;
 }
 
+async function revokeIssuer(issuerAddress) {
+    const provider = new ethers.JsonRpcProvider(process.env.POLYGON_RPC_URL);
+    const ownerWallet = new ethers.Wallet(process.env.POLYGON_OWNER_PRIVATE_KEY, provider);
+
+    const contract = new ethers.Contract(
+        process.env.VITE_CONTRACT_ADDRESS,
+        CONTRACT_ABI,
+        ownerWallet
+    );
+
+    const tx = await contract.revokeIssuer(issuerAddress);
+    await tx.wait();
+    return tx.hash;
+}
+
 module.exports = {
-    authorizeIssuer
+    authorizeIssuer,
+    revokeIssuer,
 };

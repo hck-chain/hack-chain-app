@@ -1,79 +1,113 @@
 const express = require("express");
 const router = express.Router();
-const { ethers } = require("ethers");
 const crypto = require("crypto");
-const { User, Student, Issuer, Recruiter } = require("../models");
+const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
+
+const { User, Student, Issuer, Recruiter, UserSession, sequelize } = require("../models");
+const { signToken, authenticate } = require("../middleware/auth");
+const { cacheSession } = require("../services/redis");
+const { authorizeIssuer } = require("../services/authorizeIssuer");
+
+const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many registration attempts, try later" },
+});
 
 // POST /api/users/register
-router.post("/register", async (req, res) => {
+router.post("/register", registerLimiter, async (req, res) => {
   try {
     const { wallet_address, role, name, lastname, email, organization_name, field_of_study, company_name } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { wallet_address } });
+    if (!wallet_address || !isValidEthAddress(wallet_address)) {
+      return res.status(400).json({ error: "Valid Ethereum wallet address required" });
+    }
+
+    const normalizedWallet = wallet_address.toLowerCase();
+
+    const existingUser = await User.findOne({ where: { wallet_address: normalizedWallet } });
     if (existingUser) {
       return res.status(409).json({ error: "User already registered" });
     }
 
     switch (role) {
-      case 'student':
-        if (!wallet_address || !name || !lastname || !email) {
+      case "student":
+        if (!name || !lastname || !email) {
           return res.status(400).json({ error: "Missing student data" });
         }
         break;
-
-      case 'issuer':
-        if (!wallet_address || !organization_name || !email) {
+      case "issuer":
+        if (!organization_name || !email) {
           return res.status(400).json({ error: "Missing issuer data" });
         }
         break;
-
-      case 'recruiter':
-        if (!wallet_address || !name || !lastname || !email || !company_name) {
+      case "recruiter":
+        if (!name || !lastname || !email || !company_name) {
           return res.status(400).json({ error: "Missing recruiter data" });
         }
         break;
-
       default:
         return res.status(400).json({ error: "Invalid role" });
     }
 
-    // Generate nonce for wallet verification
-    const nonce = crypto.randomBytes(16).toString('hex');
+    const nonce = crypto.randomBytes(16).toString("hex");
+    const verificationToken = crypto.randomBytes(48).toString("hex");
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    let newUser;
+    let roleSpecificData;
 
-    // Create user
-    const newUser = await User.create({
-      wallet_address: wallet_address.toLowerCase(),
-      role,
-      name,
-      lastname,
-      email,
-      nonce,
-      is_active: true
+    await sequelize.transaction(async (t) => {
+      newUser = await User.create(
+        {
+          wallet_address: normalizedWallet, role, name, lastname, email, nonce, is_active: true,
+          email_verified: false,
+          verification_token: verificationToken,
+          verification_token_expires_at: verificationTokenExpiresAt,
+        },
+        { transaction: t }
+      );
+
+      if (role === "student") {
+        roleSpecificData = await Student.create(
+          { wallet_address: normalizedWallet, field_of_study: field_of_study || null },
+          { transaction: t }
+        );
+      } else if (role === "issuer") {
+        roleSpecificData = await Issuer.create(
+          { wallet_address: normalizedWallet, organization_name },
+          { transaction: t }
+        );
+        // Authorize on-chain — if this throws, the transaction rolls back and the user is NOT created
+        await authorizeIssuer(normalizedWallet);
+      } else if (role === "recruiter") {
+        roleSpecificData = await Recruiter.create(
+          { wallet_address: normalizedWallet, company_name },
+          { transaction: t }
+        );
+      }
     });
 
-    // Create role-specific entry
-    let roleSpecificData = null;
+    const payload = { sub: newUser.id, role: newUser.role, wallet: newUser.wallet_address };
+    const token = signToken(payload);
+    const decoded = jwt.decode(token);
+    const expiresAt = new Date(decoded.exp * 1000);
 
-    if (role === 'student') {
-      roleSpecificData = await Student.create({
-        wallet_address: wallet_address.toLowerCase(),
-        field_of_study: "Test participant"
-      });
-    } else if (role === 'issuer') {
-      roleSpecificData = await Issuer.create({
-        wallet_address: wallet_address.toLowerCase(),
-        organization_name
-      });
-    } else if (role === 'recruiter') {
-      roleSpecificData = await Recruiter.create({
-        wallet_address: wallet_address.toLowerCase(),
-        company_name
-      });
-    }
+    await UserSession.destroy({ where: { wallet_address: normalizedWallet } });
+    await UserSession.create({
+      id: crypto.randomUUID(),
+      wallet_address: normalizedWallet,
+      expires_at: expiresAt,
+    });
 
-    res.status(201).json({
+    const ttl = Math.floor((expiresAt - Date.now()) / 1000);
+    await cacheSession(normalizedWallet, ttl);
+
+    return res.status(201).json({
       message: "User registered successfully",
+      token,
       user: {
         id: newUser.id,
         wallet_address: newUser.wallet_address,
@@ -81,17 +115,14 @@ router.post("/register", async (req, res) => {
         name: newUser.name,
         lastname: newUser.lastname,
         email: newUser.email,
-        nonce: newUser.nonce,
-        is_active: newUser.is_active
+        is_active: newUser.is_active,
+        email_verified: false,
       },
-      roleData: roleSpecificData
+      roleData: roleSpecificData,
     });
-
-    // wallet_address = "";
-
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to register user: ", err });
+    console.error("register error:", err);
+    return res.status(500).json({ error: "Failed to register user" });
   }
 });
 
@@ -105,8 +136,8 @@ router.get("/:wallet_address", async (req, res) => {
       include: [
         { model: Student, required: false },
         { model: Issuer, required: false },
-        { model: Recruiter, required: false }
-      ]
+        { model: Recruiter, required: false },
+      ],
     });
 
     if (!user) {
@@ -122,11 +153,10 @@ router.get("/:wallet_address", async (req, res) => {
         lastname: user.lastname,
         email: user.email,
         is_active: user.is_active,
-        created_at: user.created_at
+        created_at: user.created_at,
       },
-      roleData: user.Student || user.Issuer || user.Recruiter || null
+      roleData: user.Student || user.Issuer || user.Recruiter || null,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch user" });
@@ -134,43 +164,35 @@ router.get("/:wallet_address", async (req, res) => {
 });
 
 // PUT /api/users/:wallet_address
-router.put("/:wallet_address", async (req, res) => {
+router.put("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
     const { name, lastname, email, field_of_study, organization_name, company_name } = req.body;
+
+    if (req.auth.wallet.toLowerCase() !== wallet_address.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot modify another user's profile" });
+    }
 
     const user = await User.findOne({ where: { wallet_address } });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Update user data
     await user.update({
       name: name || user.name,
       lastname: lastname || user.lastname,
-      email: email || user.email
+      email: email || user.email,
     });
 
-    // Update role-specific data
-    if (user.role === 'student' && field_of_study !== undefined) {
-      await Student.update(
-        { field_of_study },
-        { where: { wallet_address } }
-      );
-    } else if (user.role === 'issuer' && organization_name !== undefined) {
-      await Issuer.update(
-        { organization_name },
-        { where: { wallet_address } }
-      );
-    } else if (user.role === 'recruiter' && company_name !== undefined) {
-      await Recruiter.update(
-        { company_name },
-        { where: { wallet_address } }
-      );
+    if (user.role === "student" && field_of_study !== undefined) {
+      await Student.update({ field_of_study }, { where: { wallet_address } });
+    } else if (user.role === "issuer" && organization_name !== undefined) {
+      await Issuer.update({ organization_name }, { where: { wallet_address } });
+    } else if (user.role === "recruiter" && company_name !== undefined) {
+      await Recruiter.update({ company_name }, { where: { wallet_address } });
     }
 
     res.json({ message: "User updated successfully" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update user" });
@@ -187,11 +209,10 @@ router.post("/:wallet_address/nonce", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const newNonce = crypto.randomBytes(16).toString('hex');
+    const newNonce = crypto.randomBytes(16).toString("hex");
     await user.update({ nonce: newNonce });
 
     res.json({ nonce: newNonce });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to generate nonce" });

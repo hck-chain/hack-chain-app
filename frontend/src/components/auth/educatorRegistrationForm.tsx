@@ -23,12 +23,17 @@ import { useEducatorRegistration } from "../../hooks/useEducatorRegistration";
 import type { EducatorRegistrationFormData } from "../../lib/validations/auth";
 import "./autofill-fix.css";
 
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 export function EducatorRegistrationForm() {
   const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const mutation = useEducatorRegistration();
-  const { mutate: register, isPending: isLoading, isSuccess, isError, error } = mutation;
+  const { mutate: register, isPending: isLoading, isError, error } = mutation;
 
   const form = useForm<EducatorRegistrationFormData>({
     resolver: zodResolver(educatorRegistrationSchema),
@@ -50,32 +55,31 @@ export function EducatorRegistrationForm() {
   };
 
   const onSubmit = (data: EducatorRegistrationFormData) => {
-    register(data);
+    register(data, {
+      onSuccess: (response) => {
+        if (response.token && (response.issuer || response.user)) {
+          // If the backend returns 'user' object use it, else fallback to issuer mapping
+          const userObj = response.user || {
+            id: 0,
+            role: 'issuer',
+            name: response.issuer.name,
+            lastName: null,
+            email: response.issuer.email,
+            walletAddress: response.issuer.walletAddress,
+          };
+          login(response.token, {
+            id: userObj.id || 0,
+            email: userObj.email || response.issuer?.email,
+            role: userObj.role || 'issuer',
+            name: userObj.name || response.issuer?.name,
+            lastName: userObj.lastName || userObj.lastname || null,
+            walletAddress: userObj.walletAddress || userObj.wallet_address || response.issuer?.walletAddress || null,
+          });
+          navigate('/educator/profile/edit');
+        }
+      }
+    });
   };
-
-  const handleReset = () => {
-    form.reset();
-    mutation.reset();
-    setTouchedFields({});
-  };
-
-  if (isSuccess) {
-    return (
-      <div className="space-y-6">
-        <Alert className="border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
-          <CheckCircle className="h-4 w-4 text-blue-400" />
-          <AlertDescription className="text-blue-200">
-            {t('educatorForm.success')}
-          </AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button onClick={handleReset} variant="outline" className="w-full max-w-sm border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
-            {t('educatorForm.registerAnother')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

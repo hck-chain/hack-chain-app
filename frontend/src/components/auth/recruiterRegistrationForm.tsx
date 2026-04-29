@@ -22,12 +22,17 @@ import { useRecruiterRegistration } from "../../hooks/useRecruiterRegistration";
 import type { RecruiterRegistrationFormData } from "../../lib/validations/auth";
 import "./autofill-fix.css";
 
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 export function RecruiterRegistrationForm() {
   const { t } = useTranslation();
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const mutation = useRecruiterRegistration();
-  const { mutate: register, isPending: isLoading, isSuccess, isError, error } = mutation;
+  const { mutate: register, isPending: isLoading, isError, error } = mutation;
 
   const form = useForm<RecruiterRegistrationFormData>({
     resolver: zodResolver(recruiterRegistrationSchema),
@@ -51,32 +56,31 @@ export function RecruiterRegistrationForm() {
   };
 
   const onSubmit = (data: RecruiterRegistrationFormData) => {
-    register(data);
+    register(data, {
+      onSuccess: (response) => {
+        if (response.token && (response.recruiter || response.user)) {
+          // If the backend returns 'user' object use it, else fallback to recruiter mapping
+          const userObj = response.user || {
+            id: 0,
+            role: 'recruiter',
+            name: response.recruiter.name,
+            lastName: response.recruiter.lastName,
+            email: response.recruiter.email,
+            walletAddress: null,
+          };
+          login(response.token, {
+            id: userObj.id || 0,
+            email: userObj.email || response.recruiter?.email,
+            role: userObj.role || 'recruiter',
+            name: userObj.name || response.recruiter?.name,
+            lastName: userObj.lastName || userObj.lastname || response.recruiter?.lastName || null,
+            walletAddress: userObj.walletAddress || userObj.wallet_address || null,
+          });
+          navigate('/recruiter-dashboard');
+        }
+      }
+    });
   };
-
-  const handleReset = () => {
-    form.reset();
-    mutation.reset();
-    setTouchedFields({});
-  };
-
-  if (isSuccess) {
-    return (
-      <div className="space-y-6">
-        <Alert className="border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-          <CheckCircle className="h-4 w-4 text-green-400" />
-          <AlertDescription className="text-green-200">
-            {t('recruiterForm.success')}
-          </AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button onClick={handleReset} variant="outline" className="w-full max-w-sm border-green-500/30 text-green-400 hover:bg-green-500/10">
-            {t('recruiterForm.registerAnother')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

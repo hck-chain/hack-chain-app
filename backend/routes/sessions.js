@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 const { UserSession, User } = require("../models");
+const { authenticate } = require("../middleware/auth");
 
 // POST /api/sessions - Create new session
-router.post("/", async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
   try {
     const { wallet_address, expires_in_hours = 24 } = req.body;
 
@@ -12,7 +13,10 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Wallet address required" });
     }
 
-    // Check if user exists
+    if (req.auth.wallet.toLowerCase() !== wallet_address.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot create session for another wallet" });
+    }
+
     const user = await User.findOne({ where: { wallet_address } });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -93,13 +97,17 @@ router.get("/:session_id", async (req, res) => {
 });
 
 // DELETE /api/sessions/:session_id - Delete session (logout)
-router.delete("/:session_id", async (req, res) => {
+router.delete("/:session_id", authenticate, async (req, res) => {
   try {
     const { session_id } = req.params;
 
     const session = await UserSession.findByPk(session_id);
     if (!session) {
       return res.status(404).json({ error: "Session not found" });
+    }
+
+    if (session.wallet_address.toLowerCase() !== req.auth.wallet.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot delete another user's session" });
     }
 
     await session.destroy();
@@ -113,9 +121,13 @@ router.delete("/:session_id", async (req, res) => {
 });
 
 // DELETE /api/sessions/user/:wallet_address - Delete all sessions for user
-router.delete("/user/:wallet_address", async (req, res) => {
+router.delete("/user/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
+
+    if (req.auth.wallet.toLowerCase() !== wallet_address.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot delete another user's sessions" });
+    }
 
     const deletedCount = await UserSession.destroy({
       where: { wallet_address }
@@ -131,8 +143,12 @@ router.delete("/user/:wallet_address", async (req, res) => {
   }
 });
 
-// DELETE /api/sessions/cleanup/expired - Clean up expired sessions
-router.delete("/cleanup/expired", async (req, res) => {
+// DELETE /api/sessions/cleanup/expired - Clean up expired sessions (admin only)
+router.delete("/cleanup/expired", authenticate, async (req, res) => {
+  const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
+  if (!adminWallet || req.auth.wallet.toLowerCase() !== adminWallet) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
   try {
     const now = new Date();
 
