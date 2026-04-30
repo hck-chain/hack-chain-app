@@ -54,12 +54,36 @@ app.use("/api/", globalLimiter);
 
 
 app.use(helmet({
+  // CrossOriginEmbedderPolicy rompe el modal de AppKit (carga iframes de reown.com)
+  crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-eval'", "https://*.reown.com"], // Permite a AppKit funcionar
-      "connect-src": ["'self'", "https://*.reown.com", "wss://*.walletconnect.com"],
-      "frame-src": ["'self'", "https://*.reown.com"],
+      defaultSrc:     ["'self'"],
+      // unsafe-eval requerido por WalletConnect/AppKit internamente
+      scriptSrc:      ["'self'", "'unsafe-eval'", "https://*.reown.com", "https://*.walletconnect.com"],
+      styleSrc:       ["'self'", "'unsafe-inline'"],
+      imgSrc:         ["'self'", "data:", "blob:", "https://gateway.pinata.cloud", "https://*.reown.com", "https://*.walletconnect.com"],
+      fontSrc:        ["'self'", "data:"],
+      connectSrc:     [
+        "'self'",
+        "https://*.reown.com",
+        "https://verify.walletconnect.com",
+        "wss://*.walletconnect.com",
+        "wss://*.walletconnect.org",
+        "https://gateway.pinata.cloud",
+        "https://api.pinata.cloud",
+        "https://polygon-rpc.com",
+        "https://rpc.ankr.com",
+        "https://www.hackchain.app",
+        ...(process.env.NODE_ENV !== "production" ? ["http://localhost:8080", "http://localhost:3001"] : []),
+      ],
+      frameSrc:       ["'self'", "https://*.reown.com", "https://*.walletconnect.com"],
+      workerSrc:      ["'self'", "blob:"],
+      objectSrc:      ["'none'"],
+      baseUri:        ["'self'"],
+      formAction:     ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: [],
     },
   },
 }));

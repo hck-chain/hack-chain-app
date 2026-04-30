@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Award, Briefcase, Wallet, LogOut, ChevronDown, ExternalLink, GraduationCap, Users, Mail } from 'lucide-react';
+import { Award, Briefcase, Wallet, LogOut, ChevronDown, ExternalLink, GraduationCap, Users, Mail, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 import { LanguageToggle } from '@/components/LanguageToggle';
@@ -179,6 +179,7 @@ const TalentDashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [talent, setTalent] = useState<TalentInfo | null>(null);
+  const [copiedWallet, setCopiedWallet] = useState(false);
 
   const { logout } = useAuth();
 
@@ -305,11 +306,27 @@ const TalentDashboard = () => {
                       </div>
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
                         <Wallet className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-xs uppercase text-slate-500 font-semibold">{t('talentDashboard.walletLabel')}</p>
-                          <p className="text-sm text-slate-200 font-mono">
-                            ••••{talent.wallet_address.slice(-4)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-slate-200 font-mono">
+                              {talent.wallet_address.slice(0, 6)}…{talent.wallet_address.slice(-4)}
+                            </p>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(talent.wallet_address);
+                                setCopiedWallet(true);
+                                setTimeout(() => setCopiedWallet(false), 2000);
+                              }}
+                              className="shrink-0 text-slate-500 hover:text-blue-400 transition-colors"
+                              title="Copiar wallet"
+                            >
+                              {copiedWallet
+                                ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                : <Copy className="h-3.5 w-3.5" />
+                              }
+                            </button>
+                          </div>
                         </div>
                       </div>
                       {talent.email && (

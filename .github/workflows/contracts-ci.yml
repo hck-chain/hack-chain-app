@@ -1,0 +1,48 @@
+name: Contracts CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'contracts/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'contracts/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+
+    - name: Build contracts
+      run: forge build
+
+    - name: Run tests (Unit & Fuzzing)
+      run: forge test -vvv
+
+  security-analysis:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Run Slither Security Analyzer
+        uses: crytic/slither-action@v0.4.0
+        with:
+          target: './contracts'
+          slither-args: '--exclude-dependencies'
