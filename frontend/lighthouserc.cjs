@@ -7,7 +7,7 @@ module.exports = {
         'http://localhost:4173/register',
       ],
       numberOfRuns: 1,
-      chromeFlags: '--no-sandbox --disable-gpu --headless',
+      chromeFlags: '--no-sandbox --disable-gpu --headless=new --disable-dev-shm-usage',
     },
     assert: {
       assertions: {
