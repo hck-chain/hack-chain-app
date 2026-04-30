@@ -35,6 +35,9 @@ const Index = () => {
               <img 
                 src="/images/TGC.webp" 
                 alt="Token Consulting Group" 
+                loading="lazy"
+                width={400}
+                height={150}
                 className="h-20 sm:h-24 object-contain drop-shadow-lg opacity-80 hover:opacity-100 transition-opacity" 
               />
             </a>

@@ -65,6 +65,7 @@ const HeroSection = () => {
                     <img
                       src={item.src}
                       alt={item.alt}
+                      loading="lazy"
                       className="h-14 sm:h-20 md:h-28 transition-transform duration-300 hover:scale-105"
                     />
                     <span className="font-body text-xs sm:text-sm text-white/80">

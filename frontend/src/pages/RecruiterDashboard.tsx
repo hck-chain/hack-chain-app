@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle } from 'lucide-react';
+import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,6 +36,7 @@ const RecruiterDashboard = () => {
     const { t } = useTranslation();
     const { toast } = useToast();
     const [recruiter, setRecruiter] = useState<Recruiter | null>(null);
+    const [copiedWallet, setCopiedWallet] = useState(false);
     const [talents, setTalents] = useState<TalentSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -174,12 +175,28 @@ const RecruiterDashboard = () => {
                                                 </div>
 
                                                 <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-                                                    <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
-                                                    <div className="min-w-0">
+                                                    <Wallet className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
                                                         <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.walletLabel')}</p>
-                                                        <p className="text-sm text-slate-200 font-body truncate">
-                                                            ••••{recruiter.wallet_address.slice(-4)}
-                                                        </p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-sm text-slate-200 font-body font-mono truncate">
+                                                                {recruiter.wallet_address.slice(0, 6)}…{recruiter.wallet_address.slice(-4)}
+                                                            </p>
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(recruiter.wallet_address);
+                                                                    setCopiedWallet(true);
+                                                                    setTimeout(() => setCopiedWallet(false), 2000);
+                                                                }}
+                                                                className="shrink-0 text-slate-500 hover:text-blue-400 transition-colors"
+                                                                title="Copiar wallet"
+                                                            >
+                                                                {copiedWallet
+                                                                    ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                                                    : <Copy className="h-3.5 w-3.5" />
+                                                                }
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
 

@@ -18,7 +18,7 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen } from 'lucide-react';
+import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
@@ -86,6 +86,7 @@ const EducatorDashboard = () => {
 
   const [wallet, setWallet] = useState<string>("");
   const [organizationName, setOrganizationName] = useState<string>("");
+  const [copiedWallet, setCopiedWallet] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
@@ -482,9 +483,27 @@ const EducatorDashboard = () => {
                         <Wallet className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.walletLabel')}</p>
-                          <p className="text-sm text-slate-200 font-mono">
-                            {userData.walletAddress ? `${userData.walletAddress.slice(0, 6)}…${userData.walletAddress.slice(-4)}` : "—"}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-slate-200 font-mono truncate">
+                              {userData.walletAddress ? `${userData.walletAddress.slice(0, 6)}…${userData.walletAddress.slice(-4)}` : "—"}
+                            </p>
+                            {userData.walletAddress && (
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(userData.walletAddress);
+                                  setCopiedWallet(true);
+                                  setTimeout(() => setCopiedWallet(false), 2000);
+                                }}
+                                className="shrink-0 text-slate-500 hover:text-purple-400 transition-colors"
+                                title="Copiar wallet"
+                              >
+                                {copiedWallet
+                                  ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                  : <Copy className="h-3.5 w-3.5" />
+                                }
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 

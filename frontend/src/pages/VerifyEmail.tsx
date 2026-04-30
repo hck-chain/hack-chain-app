@@ -142,8 +142,13 @@ export default function VerifyEmail() {
                   )}
 
                   {resendDone && (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400">
-                      {t('verifyEmail.sent')}
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400 text-left">
+                      <p>{t('verifyEmail.sent')}</p>
+                      {user?.email && (
+                        <p className="mt-1 text-xs text-emerald-300/70 font-mono break-all">
+                          {user.email}
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -252,8 +257,13 @@ export default function VerifyEmail() {
                   )}
 
                   {resendDone && (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400">
-                      {t('verifyEmail.sent')}
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400 text-left">
+                      <p>{t('verifyEmail.sent')}</p>
+                      {user?.email && (
+                        <p className="mt-1 text-xs text-emerald-300/70 font-mono break-all">
+                          {user.email}
+                        </p>
+                      )}
                     </div>
                   )}
 
