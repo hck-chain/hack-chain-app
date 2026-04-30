@@ -10,11 +10,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '24'
-      - name: Install dependencies
+      - name: Install dependencies (workspaces)
         run: npm ci
-        working-directory: ./frontend
-      - name: Run Lighthouse CI
-        run: npm run lhci
-        working-directory: ./frontend
+      - name: Run Lighthouse CI (frontend workspace)
+        run: npm run lhci --workspace=frontend
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
