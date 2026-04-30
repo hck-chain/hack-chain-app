@@ -31,6 +31,7 @@
     "url": "https://github.com/RicardoMuchacho/hack-chain"
   },
   "dependencies": {
+    "@google/design.md": "^0.1.1",
     "@reown/appkit": "^1.8.19",
     "@reown/appkit-adapter-ethers5": "^1.8.19",
     "dom-to-image-more": "^3.7.2",
