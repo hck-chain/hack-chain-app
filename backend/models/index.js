@@ -6,10 +6,17 @@ require("dotenv").config();
 //                      Add this to Render once taken from the Neon dashboard.
 // DATABASE_URL_UNPOOLED → Neon direct endpoint. Used for DDL (sequelize.sync) only,
 //                      because PgBouncer in transaction mode doesn't support DDL well.
-const pooledUrl   = process.env.DATABASE_URL;
+// pg-connection-string v3 deprecates 'sslmode=require' — replace with 'sslmode=verify-full'
+// to keep current behavior and silence the security warning.
+function normalizeSslMode(url) {
+  if (!url) return url;
+  return url.replace(/sslmode=require/g, 'sslmode=verify-full');
+}
+
+const pooledUrl   = normalizeSslMode(process.env.DATABASE_URL);
 // DATABASE_URL_UNPOOLED → Neon's name in Render
 // DB_DATABASE_URL       → legacy name used in local .env
-const directUrl   = process.env.DATABASE_URL_UNPOOLED || process.env.DB_DATABASE_URL;
+const directUrl   = normalizeSslMode(process.env.DATABASE_URL_UNPOOLED || process.env.DB_DATABASE_URL);
 
 // Fallback chain for individual vars (local dev without Neon URLs).
 function buildIndividualConfig() {
@@ -22,7 +29,7 @@ function buildIndividualConfig() {
   };
 }
 
-const sslOptions = { require: true, rejectUnauthorized: false };
+const sslOptions = { rejectUnauthorized: false };
 
 // Pool for regular queries — generous size for concurrent requests.
 const queryPoolConfig = { max: 20, min: 2, acquire: 30000, idle: 10000 };
