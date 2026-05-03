@@ -27,7 +27,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { DeleteAccountModal } from '@/components/DeleteAccountModal/DeleteAccountModal';
-const HackChainLogo = '/images/logoHackchain2.png';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+const HackChainLogo = '/images/logoHackchain2.webp';
 
 function resolveIpfs(url: string | null): string {
   if (!url) return '';
@@ -98,14 +99,17 @@ const EducatorDashboard = () => {
   const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // If wallet disconnected (window closed and reopened), force re-authentication
-    if (!appKit.getAddress()) {
-      logout();
-      navigate('/login');
-      return;
-    }
+  useSessionTimeout({
+    onExpired: () => {
+      toast({
+        title: t('talentDashboard.sessionExpiredTitle'),
+        description: t('talentDashboard.sessionExpiredDesc'),
+        variant: 'destructive',
+      });
+    },
+  });
 
+  useEffect(() => {
     const loadProfile = async () => {
       try {
         const profile = await api.get<{
@@ -132,7 +136,6 @@ const EducatorDashboard = () => {
         setCertificatesIssued(certCount);
       } catch (err) {
         console.error("Dashboard load error:", err);
-        navigate('/verify-email');
       }
     };
 
@@ -260,7 +263,7 @@ const EducatorDashboard = () => {
         windowWidth: 1920, // Forces desktop layout inside the capture iframe to avoid mobile zoom issues
       });
 
-      // ✅ Restauramos shine y glare después de capturar
+      // Restauramos shine y glare después de capturar
       if (shine) shine.style.display = '';
       if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
@@ -338,7 +341,7 @@ const EducatorDashboard = () => {
     const shine = card.querySelector('.pc-shine') as HTMLElement | null;
     const glare = card.querySelector('.pc-glare') as HTMLElement | null;
 
-    // ✅ Ocultamos shine y glare antes de capturar
+    // Ocultamos shine y glare antes de capturar
     if (shine) shine.style.display = 'none';
     if (glare) glare.style.display = 'none';
     card.classList.add('is-capturing');
@@ -374,7 +377,7 @@ const EducatorDashboard = () => {
         variant: "destructive",
       });
     } finally {
-      // ✅ Siempre restauramos shine y glare al terminar
+      // Siempre restauramos shine y glare al terminar
       if (shine) shine.style.display = '';
       if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
@@ -382,346 +385,352 @@ const EducatorDashboard = () => {
   };
 
   if (!userData) {
-    return null;
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+        </div>
+      </Layout>
+    );
   }
 
   return (
     <>
-    <DeleteAccountModal
-      open={showDeleteModal}
-      organizationName={userData.organization_name ?? ""}
-      onConfirm={handleDeleteAccount}
-      onCancel={() => setShowDeleteModal(false)}
-      isPending={deleteAccount.isPending}
-    />
-    <Layout>
-      {/* Container principal transparente para dejar ver el fondo global */}
-      <div className="min-h-screen relative font-sans text-slate-200">
+      <DeleteAccountModal
+        open={showDeleteModal}
+        organizationName={userData.organization_name ?? ""}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
+        isPending={deleteAccount.isPending}
+      />
+      <Layout>
+        {/* Container principal transparente para dejar ver el fondo global */}
+        <div className="min-h-screen relative font-sans text-slate-200">
 
-        <motion.main
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
-        >
+          <motion.main
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
+          >
 
-          {/* Header Section */}
-          <header className="mb-8 sm:mb-16 md:mb-28 grid grid-cols-1 md:grid-cols-3 items-start md:items-center gap-6">
+            {/* Header Section */}
+            <header className="mb-8 sm:mb-16 md:mb-28 grid grid-cols-1 md:grid-cols-3 items-start md:items-center gap-6">
 
-            {/* Columna Izquierda: Títulos */}
-            <div className="flex flex-col">
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                  {t('educatorDashboard.title')}
-                </span>
-              </h1>
-              <p className="text-lg text-slate-400 font-light">
-                {t('educatorDashboard.subtitle')}
-              </p>
-            </div>
+              {/* Columna Izquierda: Títulos */}
+              <div className="flex flex-col">
+                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                    {t('educatorDashboard.title')}
+                  </span>
+                </h1>
+                <p className="text-lg text-slate-400 font-light">
+                  {t('educatorDashboard.subtitle')}
+                </p>
+              </div>
 
-            {/* Columna Central: Logo (Centrado real y seguro) */}
-            <div className="hidden md:flex justify-center">
-              <img src={HackChainLogo} alt="Logo" className="h-16 md:h-24 object-contain" />
-            </div>
+              {/* Columna Central: Logo (Centrado real y seguro) */}
+              <div className="hidden md:flex justify-center">
+                <img src={HackChainLogo} alt="Logo" className="h-16 md:h-24 object-contain" />
+              </div>
 
-            {/* Columna Derecha: Popover de Usuario */}
-            <div className="flex justify-end items-center gap-2">
-              <LanguageToggle />
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
+              {/* Columna Derecha: Popover de Usuario */}
+              <div className="flex justify-end items-center gap-2">
+                <LanguageToggle />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
+                    >
+                      <div className="flex flex-row items-baseline gap-1 overflow-hidden">
+                        <span className="text-sm text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
+                        <span className="text-sm font-bold text-white truncate max-w-[120px] lg:max-w-[180px]">
+                          {userData.organization_name || t('educatorDashboard.roleName')}
+                        </span>
+                      </div>
+                      <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="sm" />
+                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent
+                    className="w-80 p-0 bg-slate-900/80 backdrop-blur-2xl border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl overflow-hidden relative"
+                    align="end"
+                    sideOffset={8}
                   >
-                    <div className="flex flex-row items-baseline gap-1 overflow-hidden">
-                      <span className="text-sm text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
-                      <span className="text-sm font-bold text-white truncate max-w-[120px] lg:max-w-[180px]">
-                        {userData.organization_name || t('educatorDashboard.roleName')}
-                      </span>
-                    </div>
-                    <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="sm" />
-                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-                  </Button>
-                </PopoverTrigger>
-
-                <PopoverContent
-                  className="w-80 p-0 bg-slate-900/80 backdrop-blur-2xl border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl overflow-hidden relative"
-                  align="end"
-                  sideOffset={8}
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none" />
-                  <div className="p-6 space-y-4 relative z-10">
-                    <div className="flex items-center gap-4 pb-4 border-b border-purple-500/20">
-                      <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="md" />
-                      <div className="flex-1 overflow-hidden">
-                        <h3 className="text-base font-bold text-white truncate">
-                          {userData.organization_name || "My Organization"}
-                        </h3>
-                        <p className="text-xs text-purple-400 font-medium">{userData.role || t('educatorDashboard.roleName')}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                        <FileText className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.certificatesIssued')}</p>
-                          <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : t('educatorDashboard.noneYet')}</p>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none" />
+                    <div className="p-6 space-y-4 relative z-10">
+                      <div className="flex items-center gap-4 pb-4 border-b border-purple-500/20">
+                        <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="md" />
+                        <div className="flex-1 overflow-hidden">
+                          <h3 className="text-base font-bold text-white truncate">
+                            {userData.organization_name || "My Organization"}
+                          </h3>
+                          <p className="text-xs text-purple-400 font-medium">{userData.role || t('educatorDashboard.roleName')}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                        <Briefcase className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.roleLabel')}</p>
-                          <p className="text-sm text-slate-200">{t('educatorDashboard.roleName')}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                        <Wallet className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.walletLabel')}</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-slate-200 font-mono truncate">
-                              {userData.walletAddress ? `${userData.walletAddress.slice(0, 6)}…${userData.walletAddress.slice(-4)}` : "—"}
-                            </p>
-                            {userData.walletAddress && (
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(userData.walletAddress);
-                                  setCopiedWallet(true);
-                                  setTimeout(() => setCopiedWallet(false), 2000);
-                                }}
-                                className="shrink-0 text-slate-500 hover:text-purple-400 transition-colors"
-                                title="Copiar wallet"
-                              >
-                                {copiedWallet
-                                  ? <Check className="h-3.5 w-3.5 text-emerald-400" />
-                                  : <Copy className="h-3.5 w-3.5" />
-                                }
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {userData.email && (
+                      <div className="space-y-3">
                         <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                          <Mail className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <FileText className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.emailLabel', 'Correo')}</p>
-                            <p className="text-sm text-slate-200 font-mono">
-                              {(() => {
-                                const [name, domain] = userData.email.split('@');
-                                return name && domain ? `${name.slice(0, 2)}***@${domain}` : userData.email;
-                              })()}
-                            </p>
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.certificatesIssued')}</p>
+                            <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : t('educatorDashboard.noneYet')}</p>
                           </div>
                         </div>
-                      )}
-                    </div>
 
-                    <div className="pt-4 border-t border-purple-500/20 space-y-2">
-                      <Button
-                        onClick={() => navigate('/educator/profile/edit')}
-                        variant="outline"
-                        className="w-full border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30"
-                      >
-                        <UserPen className="h-4 w-4 mr-2" />
-                        Edit profile
-                      </Button>
-                      <Button
-                        onClick={handleLogout}
-                        variant="outline"
-                        className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        {t('educatorDashboard.logout')}
-                      </Button>
-                      <Button
-                        onClick={() => setShowDeleteModal(true)}
-                        variant="ghost"
-                        className="w-full text-slate-500 hover:text-red-400 hover:bg-red-500/5 text-xs"
-                      >
-                        <Trash2 className="h-3 w-3 mr-2" />
-                        Delete account
-                      </Button>
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                          <Briefcase className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.roleLabel')}</p>
+                            <p className="text-sm text-slate-200">{t('educatorDashboard.roleName')}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                          <Wallet className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.walletLabel')}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-slate-200 font-mono truncate">
+                                {userData.walletAddress ? `${userData.walletAddress.slice(0, 6)}…${userData.walletAddress.slice(-4)}` : "—"}
+                              </p>
+                              {userData.walletAddress && (
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(userData.walletAddress);
+                                    setCopiedWallet(true);
+                                    setTimeout(() => setCopiedWallet(false), 2000);
+                                  }}
+                                  className="shrink-0 text-slate-500 hover:text-purple-400 transition-colors"
+                                  title="Copiar wallet"
+                                >
+                                  {copiedWallet
+                                    ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                    : <Copy className="h-3.5 w-3.5" />
+                                  }
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {userData.email && (
+                          <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                            <Mail className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.emailLabel', 'Correo')}</p>
+                              <p className="text-sm text-slate-200 font-mono">
+                                {(() => {
+                                  const [name, domain] = userData.email.split('@');
+                                  return name && domain ? `${name.slice(0, 2)}***@${domain}` : userData.email;
+                                })()}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-4 border-t border-purple-500/20 space-y-2">
+                        <Button
+                          onClick={() => navigate('/educator/profile/edit')}
+                          variant="outline"
+                          className="w-full border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30"
+                        >
+                          <UserPen className="h-4 w-4 mr-2" />
+                          Edit profile
+                        </Button>
+                        <Button
+                          onClick={handleLogout}
+                          variant="outline"
+                          className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          {t('educatorDashboard.logout')}
+                        </Button>
+                        <Button
+                          onClick={() => setShowDeleteModal(true)}
+                          variant="ghost"
+                          className="w-full text-slate-500 hover:text-red-400 hover:bg-red-500/5 text-xs"
+                        >
+                          <Trash2 className="h-3 w-3 mr-2" />
+                          Delete account
+                        </Button>
+                      </div>
                     </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </header>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+
+              {/* Left Column: Form (Create) */}
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="lg:col-span-5 order-2 lg:order-1"
+              >
+                <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+                  {/* Internal decorative gradient */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-white mb-2">{t('educatorDashboard.formTitle')}</h2>
+                    <p className="text-slate-400 text-sm">{t('educatorDashboard.formSubtitle')}</p>
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </header>
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-
-            {/* Left Column: Form (Create) */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="lg:col-span-5 order-2 lg:order-1"
-            >
-              <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
-                {/* Internal decorative gradient */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
-
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-white mb-2">{t('educatorDashboard.formTitle')}</h2>
-                  <p className="text-slate-400 text-sm">{t('educatorDashboard.formSubtitle')}</p>
-                </div>
-
-                <form className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="group/input">
-                      <Label htmlFor="certificateTitle" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldCertTitle')}</Label>
-                      <Input
-                        id="certificateTitle"
-                        name="certificateTitle"
-                        value={form.certificateTitle}
-                        onChange={handleChange}
-                        placeholder={t('educatorDashboard.fieldCertTitlePlaceholder')}
-                        className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
-                      />
-                    </div>
-
-                    <div className="group/input">
-                      <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldTalentName')}</Label>
-                      <Select onValueChange={handleTalentChange} value={form.talentWallet}>
-                        <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-12">
-                          <SelectValue placeholder={t('educatorDashboard.selectTalent')} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10 text-white">
-                          {talents.map((talent) => (
-                            <SelectItem key={talent.id} value={talent.user.wallet_address}>
-                              {talent.user.name} ({talent.user.wallet_address.slice(0, 6)}...{talent.user.wallet_address.slice(-4)})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] text-slate-500 mt-1 pl-1">
-                        {t('educatorDashboard.selectedWallet')} {form.talentWallet || t('educatorDashboard.selectedWalletNone')}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                  <form className="space-y-6">
+                    <div className="space-y-4">
                       <div className="group/input">
-                        <Label htmlFor="issuer" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldIssuer')}</Label>
+                        <Label htmlFor="certificateTitle" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldCertTitle')}</Label>
                         <Input
-                          id="issuer"
-                          name="issuer"
-                          value={form.issuer}
+                          id="certificateTitle"
+                          name="certificateTitle"
+                          value={form.certificateTitle}
                           onChange={handleChange}
-                          placeholder={t('educatorDashboard.fieldIssuerPlaceholder')}
+                          placeholder={t('educatorDashboard.fieldCertTitlePlaceholder')}
                           className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
                         />
                       </div>
+
                       <div className="group/input">
-                        <Label htmlFor="issueDate" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldDate')}</Label>
+                        <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldTalentName')}</Label>
+                        <Select onValueChange={handleTalentChange} value={form.talentWallet}>
+                          <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-12">
+                            <SelectValue placeholder={t('educatorDashboard.selectTalent')} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            {talents.map((talent) => (
+                              <SelectItem key={talent.id} value={talent.user.wallet_address}>
+                                {talent.user.name} ({talent.user.wallet_address.slice(0, 6)}...{talent.user.wallet_address.slice(-4)})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-slate-500 mt-1 pl-1">
+                          {t('educatorDashboard.selectedWallet')} {form.talentWallet || t('educatorDashboard.selectedWalletNone')}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="group/input">
+                          <Label htmlFor="issuer" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldIssuer')}</Label>
+                          <Input
+                            id="issuer"
+                            name="issuer"
+                            value={form.issuer}
+                            onChange={handleChange}
+                            placeholder={t('educatorDashboard.fieldIssuerPlaceholder')}
+                            className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
+                          />
+                        </div>
+                        <div className="group/input">
+                          <Label htmlFor="issueDate" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldDate')}</Label>
+                          <Input
+                            id="issueDate"
+                            name="issueDate"
+                            type="date"
+                            value={form.issueDate}
+                            onChange={handleChange}
+                            className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all [color-scheme:dark]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="group/input">
+                        <Label htmlFor="certificateType" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldType')}</Label>
                         <Input
-                          id="issueDate"
-                          name="issueDate"
-                          type="date"
-                          value={form.issueDate}
+                          id="certificateType"
+                          name="certificateType"
+                          value={form.certificateType}
                           onChange={handleChange}
-                          className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all [color-scheme:dark]"
+                          placeholder={t('educatorDashboard.fieldTypePlaceholder')}
+                          className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
                         />
+                      </div>
+
+                      <div className="group/input">
+                        <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldLogo')}</Label>
+                        <div className="relative">
+                          <Input
+                            id="logo"
+                            name="logo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleChange}
+                            className="bg-black/20 border-white/10 file:bg-white/10 file:text-white file:border-0 file:rounded-lg file:px-4 file:mr-4 hover:file:bg-white/20 text-slate-400 cursor-pointer rounded-xl pt-2 pb-2 h-auto transition-all"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="group/input">
-                      <Label htmlFor="certificateType" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldType')}</Label>
-                      <Input
-                        id="certificateType"
-                        name="certificateType"
-                        value={form.certificateType}
-                        onChange={handleChange}
-                        placeholder={t('educatorDashboard.fieldTypePlaceholder')}
-                        className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
-                      />
+                    <div className="pt-6 flex flex-col sm:flex-row gap-4">
+                      <Button
+                        type="button"
+                        onClick={handleCreateCertificate}
+                        disabled={isLoading}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {isLoading ? (
+                          <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('educatorDashboard.creating')}</span>
+                        ) : t('educatorDashboard.createCertificate')}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleDownload}
+                        variant="outline"
+                        className="px-6 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-[1.02]"
+                      >
+                        {t('educatorDashboard.preview')}
+                      </Button>
                     </div>
+                  </form>
+                </div>
+              </motion.div>
 
-                    <div className="group/input">
-                      <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldLogo')}</Label>
-                      <div className="relative">
-                        <Input
-                          id="logo"
-                          name="logo"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleChange}
-                          className="bg-black/20 border-white/10 file:bg-white/10 file:text-white file:border-0 file:rounded-lg file:px-4 file:mr-4 hover:file:bg-white/20 text-slate-400 cursor-pointer rounded-xl pt-2 pb-2 h-auto transition-all"
-                        />
-                      </div>
-                    </div>
+              {/* Right Column: Preview (Large) */}
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
+              >
+                <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
+                  {/* "Preview" Label */}
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                    <span className="text-xs font-medium tracking-widest uppercase text-slate-400">{t('educatorDashboard.livePreview')}</span>
                   </div>
 
-                  <div className="pt-6 flex flex-col sm:flex-row gap-4">
-                    <Button
-                      type="button"
-                      onClick={handleCreateCertificate}
-                      disabled={isLoading}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      {isLoading ? (
-                        <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('educatorDashboard.creating')}</span>
-                      ) : t('educatorDashboard.createCertificate')}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleDownload}
-                      variant="outline"
-                      className="px-6 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-[1.02]"
-                    >
-                      {t('educatorDashboard.preview')}
-                    </Button>
+                  <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
+                    <CertificateCard
+                      certificateType={form.certificateType || "Certificate of Completion"}
+                      name={form.talentName || 'Talent Name'}
+                      title={form.certificateTitle || 'Certificate Title'}
+                      issuer={form.issuer || 'Issuer Name'}
+                      issueDate={form.issueDate || 'Issue Date'}
+                      logoUrl={form.logo || ''}
+                      enableTilt={true}
+                      innerGradient={""}
+                    />
                   </div>
-                </form>
-              </div>
-            </motion.div>
 
-            {/* Right Column: Preview (Large) */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
-            >
-              <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
-                {/* "Preview" Label */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                  <span className="text-xs font-medium tracking-widest uppercase text-slate-400">{t('educatorDashboard.livePreview')}</span>
+                  <div className="mt-3 text-center max-w-md">
+                    <h3 className="text-white font-semibold text-lg mb-1">{t('educatorDashboard.reviewTitle')}</h3>
+                    <p className="text-slate-500 text-sm">
+                      {t('educatorDashboard.reviewDesc')}
+                    </p>
+                  </div>
                 </div>
+              </motion.div>
 
-                <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
-                  <CertificateCard
-                    certificateType={form.certificateType || "Certificate of Completion"}
-                    name={form.talentName || 'Talent Name'}
-                    title={form.certificateTitle || 'Certificate Title'}
-                    issuer={form.issuer || 'Issuer Name'}
-                    issueDate={form.issueDate || 'Issue Date'}
-                    logoUrl={form.logo || ''}
-                    enableTilt={true}
-                    innerGradient={""}
-                  />
-                </div>
-
-                <div className="mt-3 text-center max-w-md">
-                  <h3 className="text-white font-semibold text-lg mb-1">{t('educatorDashboard.reviewTitle')}</h3>
-                  <p className="text-slate-500 text-sm">
-                    {t('educatorDashboard.reviewDesc')}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-          </div>
-        </motion.main>
-      </div>
-    </Layout>
+            </div>
+          </motion.main>
+        </div>
+      </Layout>
     </>
   );
 };

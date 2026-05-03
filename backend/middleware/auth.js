@@ -5,15 +5,53 @@ const { Op } = Sequelize;
 const { cacheSession, sessionExists, deleteSession } = require("../services/redis");
 require("dotenv").config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "please_set_a_real_secret";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
 
-/**
- * Firma un token JWT con payload.
- * Payload esperado: { wallet }
- */
+if (!process.env.REFRESH_SECRET) {
+  throw new Error("REFRESH_SECRET environment variable is required");
+}
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
+const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || "7d";
+
+const _isProd = process.env.NODE_ENV === 'production';
+const _COOKIE_BASE = {
+  httpOnly: true,
+  secure: _isProd,
+  sameSite: _isProd ? 'none' : 'lax',
+};
+
+const ACCESS_COOKIE_OPTIONS = { ..._COOKIE_BASE, maxAge: 15 * 60 * 1000, path: '/' };
+const REFRESH_COOKIE_OPTIONS = { ..._COOKIE_BASE, maxAge: 7 * 24 * 60 * 60 * 1000, path: '/api/auth/refresh' };
+
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
+
+function signRefreshToken(payload) {
+  const { iat, exp, ...clean } = payload;
+  return jwt.sign({ ...clean, type: 'refresh' }, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN, algorithm: 'HS256' });
+}
+
+function verifyRefreshToken(token) {
+  return jwt.verify(token, REFRESH_SECRET, { algorithms: ['HS256'] });
+}
+
+function setAuthCookies(res, accessToken, refreshToken) {
+  res.cookie('access_token', accessToken, ACCESS_COOKIE_OPTIONS);
+  res.cookie('refresh_token', refreshToken, REFRESH_COOKIE_OPTIONS);
+}
+
+function setAccessCookie(res, accessToken) {
+  res.cookie('access_token', accessToken, ACCESS_COOKIE_OPTIONS);
+}
+
+function clearAuthCookies(res) {
+  res.clearCookie('access_token', { ..._COOKIE_BASE, path: '/' });
+  res.clearCookie('refresh_token', { ..._COOKIE_BASE, path: '/api/auth/refresh' });
 }
 
 /**
@@ -21,15 +59,19 @@ function signToken(payload) {
  */
 async function authenticate(req, res, next) {
   try {
-    const h = req.headers.authorization || "";
-    const [type, token] = h.split(" ");
-    if (type !== "Bearer" || !token) {
+    const token = req.cookies?.access_token || (() => {
+      const h = req.headers.authorization || "";
+      const [type, t] = h.split(" ");
+      return type === "Bearer" && t ? t : null;
+    })();
+
+    if (!token) {
       return res.status(401).json({ error: "Missing or invalid Authorization header" });
     }
 
     let payload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     } catch (err) {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
@@ -131,6 +173,11 @@ async function getUserFromToken(payload) {
 
 module.exports = {
   signToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  setAuthCookies,
+  setAccessCookie,
+  clearAuthCookies,
   authenticate,
   getUserFromToken,
 };

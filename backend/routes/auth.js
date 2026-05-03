@@ -8,15 +8,22 @@ const { body, validationResult } = require("express-validator");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
 
+const { ethers } = require("ethers");
 const userService = require("../services/userService");
-const { signToken, authenticate, getUserFromToken } = require("../middleware/auth");
+const { signToken, signRefreshToken, setAuthCookies, setAccessCookie, clearAuthCookies, verifyRefreshToken, authenticate, getUserFromToken } = require("../middleware/auth");
 const { User, UserSession } = require("../models");
+const { Op } = require('sequelize');
 const { cacheSession, deleteSession } = require("../services/redis");
 const { sendVerificationEmail } = require("../services/emailService");
 require("dotenv").config();
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+const buildSignMessage = (address, nonce) =>
+  `HackChain wants you to sign in with your Ethereum account:\n${address}\n\nSign in to HackChain\n\nNonce: ${nonce}`;
 
 // Rate limiter for login — small window + few requests to slow brute-force
 const loginLimiter = rateLimit({
@@ -60,47 +67,58 @@ router.post(
       .isString()
       .isLength({ min: 42, max: 42 })
       .withMessage("Valid wallet address required"),
+    body("signature")
+      .isString()
+      .isLength({ min: 132 })
+      .withMessage("Valid signature required"),
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-      const { wallet_address } = req.body;
+      const { wallet_address, signature } = req.body;
+      const normalizedWallet = wallet_address.toLowerCase();
 
-      // // captcha if env configured
-      // const captcha = await verifyCaptchaIfNeeded(cfToken); ///////////////////////
-      // if (!captcha.ok) return res.status(403).json({ error: captcha.error || "Captcha failed" }); ////////////
-
-      const found = await userService.findUserByWallet(wallet_address.toLowerCase());
-      if (!found) {
-        return res.status(404).json({
-          error: "No user associated with this wallet",
-        });
+      const baseUser = await User.findOne({ where: { wallet_address: normalizedWallet } });
+      if (!baseUser) {
+        return res.status(404).json({ error: "No user associated with this wallet" });
       }
 
+      const message = buildSignMessage(normalizedWallet, baseUser.nonce);
+
+      let recoveredAddress;
+      try {
+        recoveredAddress = ethers.verifyMessage(message, signature);
+      } catch {
+        return res.status(401).json({ error: "Invalid signature" });
+      }
+
+      if (recoveredAddress.toLowerCase() !== normalizedWallet) {
+        return res.status(401).json({ error: "Signature does not match wallet address" });
+      }
+
+      await baseUser.update({ nonce: crypto.randomBytes(16).toString('hex') });
+
+      const found = await userService.findUserByWallet(normalizedWallet);
       const { modelName, user } = found;
 
-      const payload = {
-        sub: user.id,
-        role: modelName,
-        wallet: wallet_address,
-      };
+      const payload = { sub: user.id, role: modelName, wallet: normalizedWallet };
       const token = signToken(payload);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-      // Derive expiry from the signed token and upsert a single active session per wallet
-      const decoded = jwt.decode(token);
-      const expiresAt = new Date(decoded.exp * 1000);
-
-      await UserSession.destroy({ where: { wallet_address: wallet_address.toLowerCase() } });
+      await UserSession.destroy({ where: { wallet_address: normalizedWallet } });
       await UserSession.create({
         id: crypto.randomUUID(),
-        wallet_address: wallet_address.toLowerCase(),
+        wallet_address: normalizedWallet,
         expires_at: expiresAt,
       });
 
-      const ttl = Math.floor((expiresAt - Date.now()) / 1000);
-      await cacheSession(wallet_address.toLowerCase(), ttl);
+      const accessTtl = Math.floor((new Date(jwt.decode(token).exp * 1000) - Date.now()) / 1000);
+      await cacheSession(normalizedWallet, accessTtl);
+
+      const refreshToken = signRefreshToken(payload);
+      setAuthCookies(res, token, refreshToken);
 
       const out = user.toJSON ? user.toJSON() : { ...user };
       delete out.passwordHash;
@@ -108,12 +126,11 @@ router.post(
 
       return res.json({
         message: "Authenticated",
-        token,
         user: {
           id: out.id,
           email: out.email || null,
           role: modelName,
-          wallet_address: wallet_address,
+          wallet_address: normalizedWallet,
         },
       });
     } catch (err) {
@@ -194,6 +211,7 @@ router.post("/logout", authenticate, async (req, res) => {
       UserSession.destroy({ where: { wallet_address: wallet } }),
       deleteSession(wallet),
     ]);
+    clearAuthCookies(res);
     return res.json({ message: "Logged out" });
   } catch (err) {
     console.error("logout error:", err);
@@ -212,7 +230,7 @@ router.get("/verify-email", async (req, res) => {
       return res.status(400).json({ error: "Token requerido" });
     }
 
-    const user = await User.findOne({ where: { verification_token: token } });
+    const user = await User.findOne({ where: { verification_token: hashToken(token) } });
     if (!user) {
       return res.status(400).json({ error: "Token inválido o ya utilizado" });
     }
@@ -258,11 +276,11 @@ router.post("/resend-verification", authenticate, resendLimiter, async (req, res
       return res.status(400).json({ error: "No hay email registrado" });
     }
 
-    const newToken = require("crypto").randomBytes(48).toString("hex");
+    const newToken = crypto.randomBytes(48).toString("hex");
     const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await user.update({
-      verification_token: newToken,
+      verification_token: hashToken(newToken),
       verification_token_expires_at: newExpiry,
     });
 
@@ -280,6 +298,56 @@ router.post("/resend-verification", authenticate, resendLimiter, async (req, res
     return res.json({ message: "Email de verificación reenviado" });
   } catch (err) {
     console.error("resend-verification error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /api/auth/refresh
+ * Issues a new access token cookie using the refresh token cookie.
+ */
+router.post("/refresh", async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+      return res.status(401).json({ error: "No refresh token" });
+    }
+
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch {
+      return res.status(401).json({ error: "Invalid or expired refresh token" });
+    }
+
+    if (payload.type !== 'refresh') {
+      return res.status(401).json({ error: "Invalid token type" });
+    }
+
+    const wallet = payload.wallet.toLowerCase();
+
+    const session = await UserSession.findOne({
+      where: {
+        wallet_address: wallet,
+        expires_at: { [Op.gt]: new Date() },
+      },
+    });
+
+    if (!session) {
+      clearAuthCookies(res);
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    const { type, iat, exp, ...tokenPayload } = payload;
+    const newAccessToken = signToken(tokenPayload);
+
+    const ttl = Math.floor((new Date(jwt.decode(newAccessToken).exp * 1000) - Date.now()) / 1000);
+    await cacheSession(wallet, ttl).catch(() => {});
+
+    setAccessCookie(res, newAccessToken);
+    return res.json({ message: "Token refreshed" });
+  } catch (err) {
+    console.error("refresh error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

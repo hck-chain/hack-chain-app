@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { ethers } from 'ethers';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiServiceError } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 
+const buildSignMessage = (address: string, nonce: string) =>
+  `HackChain wants you to sign in with your Ethereum account:\n${address}\n\nSign in to HackChain\n\nNonce: ${nonce}`;
+
 interface WalletLoginResponse {
     message: string;
-    token: string;
     user: {
         id: number;
         email: string;
@@ -24,13 +27,14 @@ export const useWalletLogin = () => {
     const [isConnecting, setIsConnecting] = useState(false);
 
     const mutation = useMutation({
-        mutationFn: async (walletAddress: string) => {
+        mutationFn: async ({ walletAddress, signature }: { walletAddress: string; signature: string }) => {
             return api.postPublic<WalletLoginResponse>('/api/auth/login', {
                 wallet_address: walletAddress,
+                signature,
             });
         },
         onSuccess: (data) => {
-            login(data.token, {
+            login({
                 id: data.user.id,
                 email: data.user.email ?? '',
                 role: data.user.role,
@@ -92,7 +96,19 @@ export const useWalletLogin = () => {
                 return;
             }
 
-            mutation.mutate(walletAddress);
+            const normalizedAddress = walletAddress.toLowerCase();
+
+            const { nonce } = await api.get<{ nonce: string }>(`/api/users/${normalizedAddress}/nonce`);
+
+            const message = buildSignMessage(normalizedAddress, nonce);
+
+            const walletProvider = appKit.getProvider('eip155');
+            if (!walletProvider) throw new Error("Wallet provider unavailable");
+
+            const signer = new ethers.providers.Web3Provider(walletProvider as ethers.providers.ExternalProvider).getSigner();
+            const signature = await signer.signMessage(message);
+
+            mutation.mutate({ walletAddress: normalizedAddress, signature });
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to connect to wallet");
         } finally {

@@ -8,54 +8,55 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
+    --background: 240 8% 2%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 3.9%;
+    --card: 240 8% 2%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 3.9%;
+    --popover: 240 8% 2%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 263 70% 50%;
+    --primary: 263 72% 55%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 5% 12%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 60%;
 
-    --accent: 240 3.7% 15.9%;
+    --accent: 240 5% 12%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 263 70% 50%;
+    --border: 240 5% 12%;
+    --input: 240 5% 12%;
+    --ring: 263 72% 55%;
 
     --radius: 0.75rem;
 
-    /* Web3 Theme Colors */
-    --neon-purple: 263 70% 50%;
-    --neon-blue: 217 91% 60%;
-    --cyber-green: 120 100% 50%;
-    --glass: 240 10% 3.9% / 0.1;
-    
+    /* Web3 Theme Colors — A+B palette */
+    --neon-purple: 263 72% 55%;
+    --neon-magenta: 320 80% 60%;
+    --cyber-green: 82 100% 55%;
+    --amber: 38 95% 60%;
+    --glass: 240 8% 2% / 0.1;
+
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--neon-purple)), hsl(var(--neon-blue)));
-    --gradient-glass: linear-gradient(135deg, hsl(240 10% 3.9% / 0.1), hsl(240 10% 3.9% / 0.05));
-    --gradient-hero: linear-gradient(135deg, hsl(240 10% 3.9%), hsl(263 70% 10%));
-    
+    --gradient-primary: linear-gradient(135deg, hsl(var(--neon-purple)), hsl(var(--neon-magenta)));
+    --gradient-glass: linear-gradient(135deg, hsl(240 8% 2% / 0.12), hsl(240 8% 2% / 0.06));
+    --gradient-hero: linear-gradient(135deg, hsl(240 8% 2%), hsl(263 70% 8%));
+
     /* Glassmorphism */
-    --glass-bg: hsl(240 10% 3.9% / 0.1);
-    --glass-border: hsl(0 0% 100% / 0.1);
-    
+    --glass-bg: hsl(240 8% 2% / 0.12);
+    --glass-border: hsl(0 0% 100% / 0.08);
+
     /* Shadows */
-    --shadow-neon: 0 0 20px hsl(var(--neon-purple) / 0.5);
-    --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.2);
+    --shadow-neon: 0 0 24px hsl(var(--neon-purple) / 0.55), 0 0 60px hsl(var(--neon-purple) / 0.2);
+    --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.35);
 
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
@@ -68,33 +69,33 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 240 8% 2%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 3.9%;
+    --card: 240 8% 2%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 3.9%;
+    --popover: 240 8% 2%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 263 70% 50%;
+    --primary: 263 72% 55%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 5% 12%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 60%;
 
-    --accent: 240 3.7% 15.9%;
+    --accent: 240 5% 12%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 263 70% 50%;
+    --border: 240 5% 12%;
+    --input: 240 5% 12%;
+    --ring: 263 72% 55%;
     
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
@@ -164,6 +165,48 @@ All colors MUST be HSL.
     filter: blur(0);
     transition: opacity 0.4s ease-in, filter 0.4s ease-in;
   }
+
+  .clay-icon {
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    isolation: isolate;
+  }
+
+  .clay-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(145deg, hsl(0 0% 100% / 0.18), hsl(0 0% 0% / 0.35));
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .clay-icon > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  .squircle {
+    border-radius: 28px;
+  }
+}
+
+@keyframes levitate {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-levitate {
+  animation: levitate 5s ease-in-out infinite;
+}
+
+.animate-levitate-slow {
+  animation: levitate 7s ease-in-out infinite;
 }
 
 @keyframes float {
@@ -191,4 +234,51 @@ All colors MUST be HSL.
 
 .animate-data-flow {
   animation: data-flow 10s linear infinite;
+}
+
+/* ── Marquee ──────────────────────────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes marquee-reverse {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.animate-marquee {
+  animation: marquee 35s linear infinite;
+}
+.animate-marquee-slow {
+  animation: marquee 55s linear infinite;
+}
+.animate-marquee-reverse {
+  animation: marquee-reverse 45s linear infinite;
+}
+
+/* ── Role icon color filters (black AVIF → colored) ─────────────────────── */
+/* Converts pure-black icons to the target color via CSS filter pipeline     */
+
+/* Always-colored variants (mobile) */
+.icon-filter-pink  { filter: brightness(0) saturate(100%) invert(63%) sepia(60%) saturate(700%) hue-rotate(293deg) brightness(105%); }
+.icon-filter-blue  { filter: brightness(0) saturate(100%) invert(65%) sepia(60%) saturate(500%) hue-rotate(200deg) brightness(108%); }
+.icon-filter-green { filter: brightness(0) saturate(100%) invert(78%) sepia(50%) saturate(450%) hue-rotate(95deg)  brightness(105%); }
+.icon-filter-gray  { filter: brightness(0) saturate(0%)   invert(68%); }
+
+/* Desktop: gray by default, colored on group-hover */
+@media (min-width: 768px) {
+  .group .icon-role-pink  { filter: brightness(0) saturate(0%) invert(68%); transition: filter 0.3s ease; }
+  .group:hover .icon-role-pink  { filter: brightness(0) saturate(100%) invert(63%) sepia(60%) saturate(700%) hue-rotate(293deg) brightness(105%); }
+
+  .group .icon-role-blue  { filter: brightness(0) saturate(0%) invert(68%); transition: filter 0.3s ease; }
+  .group:hover .icon-role-blue  { filter: brightness(0) saturate(100%) invert(65%) sepia(60%) saturate(500%) hue-rotate(200deg) brightness(108%); }
+
+  .group .icon-role-green { filter: brightness(0) saturate(0%) invert(68%); transition: filter 0.3s ease; }
+  .group:hover .icon-role-green { filter: brightness(0) saturate(100%) invert(78%) sepia(50%) saturate(450%) hue-rotate(95deg)  brightness(105%); }
+}
+
+/* Mobile: always colored */
+@media (max-width: 767px) {
+  .icon-role-pink  { filter: brightness(0) saturate(100%) invert(63%) sepia(60%) saturate(700%) hue-rotate(293deg) brightness(105%); }
+  .icon-role-blue  { filter: brightness(0) saturate(100%) invert(65%) sepia(60%) saturate(500%) hue-rotate(200deg) brightness(108%); }
+  .icon-role-green { filter: brightness(0) saturate(100%) invert(78%) sepia(50%) saturate(450%) hue-rotate(95deg)  brightness(105%); }
 }

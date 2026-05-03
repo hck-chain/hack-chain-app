@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Wallet } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWalletLogin } from "@/hooks/useWalletLogin";
@@ -32,7 +32,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
               boxShadow: '0 0 40px rgba(139, 92, 246, 0.5), 0 0 80px rgba(139, 92, 246, 0.2)',
             }}
           >
-            <Wallet className="w-14 h-14 text-purple-400 animate-pulse" />
+            <img src="/icons/wallet.avif" alt="Wallet" className="w-14 h-14 animate-pulse object-contain" />
           </div>
         </div>
         
@@ -141,7 +141,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
 
         {/* Content - centered */}
         <div className="relative z-10 flex items-center justify-center gap-3">
-          <Wallet className="w-7 h-7 text-purple-400 transition-transform duration-300 group-hover:scale-110" />
+          <img src="/icons/wallet.avif" alt="Wallet" className="w-7 h-7 object-contain transition-transform duration-300 group-hover:scale-110" />
           <span className="text-base font-semibold text-slate-200 group-hover:text-white transition-colors tracking-wide">
             {t('loginForm.connectWallet')}
           </span>

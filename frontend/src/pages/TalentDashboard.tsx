@@ -21,7 +21,7 @@ import { useTalentEducators } from '@/hooks/useTalentEducators';
 import { api } from '@/services/api';
 import type { TalentInfo } from '@/types/dashboard';
 
-const HackChainLogo = '/images/logoHackchain2.png';
+const HackChainLogo = '/images/logoHackchain2.webp';
 
 function resolveImage(url?: string): string {
   if (!url) return '';
@@ -186,7 +186,7 @@ const TalentDashboard = () => {
   const handleLogout = async () => {
     logout();
     queryClient.clear();
-    try { await appKit.disconnect(); } catch (_) {}
+    try { await appKit.disconnect(); } catch (_) { }
     toast({ title: t('dashboard.logoutTitle'), description: t('dashboard.logoutDesc') });
     window.location.href = '/login';
   };
@@ -227,7 +227,7 @@ const TalentDashboard = () => {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
         </div>
       </Layout>
     );
@@ -246,11 +246,11 @@ const TalentDashboard = () => {
           <header className="mb-10 grid grid-cols-2 md:grid-cols-3 items-center gap-4">
             <div className="flex flex-col">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-title font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(168,85,247,0.4)]">
                   {t('talentDashboard.title')}
                 </span>
               </h1>
-              <p className="hidden sm:block text-sm md:text-base text-slate-400 mt-1">
+              <p className="hidden sm:block text-sm md:text-base text-white/50 mt-1">
                 {t('talentDashboard.subtitle')}
               </p>
             </div>
@@ -273,7 +273,7 @@ const TalentDashboard = () => {
                         {talent.name || t('talentDashboard.talentFallback')}
                       </span>
                     </div>
-                    <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center">
+                    <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-fuchsia-500 flex items-center justify-center">
                       <Award className="h-4 w-4 text-white" />
                     </div>
                     <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
@@ -287,12 +287,12 @@ const TalentDashboard = () => {
                 >
                   <div className="p-5 space-y-4">
                     <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-                      <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center">
+                      <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-purple-500 to-fuchsia-500 flex items-center justify-center">
                         <Award className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className="text-sm font-bold text-white truncate">{talent.name || t('talentDashboard.talentFallback')}</p>
-                        <p className="text-xs text-blue-400">{t('talentDashboard.talentFallback')}</p>
+                        <p className="text-xs text-fuchsia-400">{t('talentDashboard.talentFallback')}</p>
                       </div>
                     </div>
 
@@ -318,7 +318,7 @@ const TalentDashboard = () => {
                                 setCopiedWallet(true);
                                 setTimeout(() => setCopiedWallet(false), 2000);
                               }}
-                              className="shrink-0 text-slate-500 hover:text-blue-400 transition-colors"
+                              className="shrink-0 text-white/30 hover:text-fuchsia-400 transition-colors"
                               title="Copiar wallet"
                             >
                               {copiedWallet
@@ -367,14 +367,14 @@ const TalentDashboard = () => {
               <TabsList className="w-full bg-white/5 border border-white/10 rounded-2xl p-1 mb-6">
                 <TabsTrigger
                   value="trayectoria"
-                  className="flex-1 rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white text-slate-400 transition-all"
+                  className="flex-1 rounded-xl data-[state=active]:bg-purple-500/15 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-purple-500/30 text-white/40 transition-all"
                 >
                   <Award className="h-4 w-4 mr-1.5" />
                   {t('talentDashboard.tabTrayectoria')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="formacion"
-                  className="flex-1 rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white text-slate-400 transition-all"
+                  className="flex-1 rounded-xl data-[state=active]:bg-purple-500/15 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-purple-500/30 text-white/40 transition-all"
                 >
                   <GraduationCap className="h-4 w-4 mr-1.5" />
                   {t('talentDashboard.tabFormacion')}
@@ -394,7 +394,7 @@ const TalentDashboard = () => {
           <div className="hidden md:grid md:grid-cols-[minmax(260px,300px)_1fr] gap-6">
             {/* Left: Formación */}
             <aside>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4 flex items-center gap-2">
                 <GraduationCap className="h-4 w-4" />
                 {t('talentDashboard.sectionFormacion')}
               </h2>
@@ -403,7 +403,7 @@ const TalentDashboard = () => {
 
             {/* Right: Trayectoria */}
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4 flex items-center gap-2">
                 <Award className="h-4 w-4" />
                 {t('talentDashboard.sectionTrayectoria')}
               </h2>
@@ -413,7 +413,7 @@ const TalentDashboard = () => {
 
           {/* ---- Descubrir Educadores (full width, placeholder) ---- */}
           <div className="mt-12">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4 flex items-center gap-2">
               <Users className="h-4 w-4" />
               {t('talentDashboard.sectionDescubrir')}
             </h2>

@@ -57,16 +57,16 @@ export function UserRegistrationForm() {
   const onSubmit = (data: UserRegistrationFormData) => {
     register(data, {
       onSuccess: (response) => {
-        if (response.token && response.user) {
-          login(response.token, {
+        if (response.user) {
+          login({
             id: response.user.id || 0,
             email: response.user.email,
             role: response.user.role || 'student',
             name: response.user.name,
-            lastName: response.user.lastName || (response.user as any).lastname || null,
-            walletAddress: response.user.walletAddress || response.user.wallet_address || null,
+            lastName: (response.user as any).lastname || null,
+            walletAddress: (response.user as any).wallet_address || null,
           });
-          navigate('/talent-dashboard');
+          navigate('/dashboard/talent');
         }
       }
     });

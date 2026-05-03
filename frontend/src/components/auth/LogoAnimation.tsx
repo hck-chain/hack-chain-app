@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import anime from 'animejs';
-import hackChainLogo from '/images/logoHackchain.png';
+import hackChainLogo from '/images/logoHackchain.webp';
 
 export function LogoAnimation() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,41 +34,41 @@ export function LogoAnimation() {
       duration: 1500,
       easing: 'easeOutQuad',
     })
-    // Phase 2: Logo "explodes" outward with scale
-    .add({
-      targets: containerRef.current,
-      scale: [1, 1.05],
-      translateY: [-5, 5],
-      rotate: [0, 2],
-      duration: 1200,
-      easing: 'easeInOutCubic',
-    }, '-=500')
-    // Phase 3: Logo contracts back with slight overshoot
-    .add({
-      targets: containerRef.current,
-      scale: [1.05, 0.97],
-      translateY: [5, -3],
-      rotate: [2, -1],
-      duration: 1000,
-      easing: 'easeInOutBack',
-    })
-    // Phase 4: Settle with subtle rotation
-    .add({
-      targets: containerRef.current,
-      scale: [0.97, 1],
-      translateY: [-3, 0],
-      rotate: [-1, 0],
-      duration: 800,
-      easing: 'easeOutElastic(1, .5)',
-    })
-    // Phase 5: Glow contracts
-    .add({
-      targets: glowRef.current,
-      scale: [1.3, 1],
-      opacity: [0.6, 0.3],
-      duration: 1500,
-      easing: 'easeInQuad',
-    }, '-=800');
+      // Phase 2: Logo "explodes" outward with scale
+      .add({
+        targets: containerRef.current,
+        scale: [1, 1.05],
+        translateY: [-5, 5],
+        rotate: [0, 2],
+        duration: 1200,
+        easing: 'easeInOutCubic',
+      }, '-=500')
+      // Phase 3: Logo contracts back with slight overshoot
+      .add({
+        targets: containerRef.current,
+        scale: [1.05, 0.97],
+        translateY: [5, -3],
+        rotate: [2, -1],
+        duration: 1000,
+        easing: 'easeInOutBack',
+      })
+      // Phase 4: Settle with subtle rotation
+      .add({
+        targets: containerRef.current,
+        scale: [0.97, 1],
+        translateY: [-3, 0],
+        rotate: [-1, 0],
+        duration: 800,
+        easing: 'easeOutElastic(1, .5)',
+      })
+      // Phase 5: Glow contracts
+      .add({
+        targets: glowRef.current,
+        scale: [1.3, 1],
+        opacity: [0.6, 0.3],
+        duration: 1500,
+        easing: 'easeInQuad',
+      }, '-=800');
 
     // Animate particles with individual timelines
     particleData.forEach((data, i) => {
@@ -103,7 +103,7 @@ export function LogoAnimation() {
   return (
     <div className="relative flex items-center justify-center w-full h-full">
       {/* Multi-layered ambient glow */}
-      <div 
+      <div
         ref={glowRef}
         className="absolute inset-0 rounded-full"
         style={{
@@ -113,9 +113,9 @@ export function LogoAnimation() {
           filter: 'blur(40px)',
         }}
       />
-      
+
       {/* Secondary glow layer */}
-      <div 
+      <div
         className="absolute w-96 h-96 rounded-full"
         style={{
           background: 'radial-gradient(ellipse at center, rgba(236, 72, 153, 0.15) 0%, transparent 60%)',
@@ -125,7 +125,7 @@ export function LogoAnimation() {
       />
 
       {/* Floating particles */}
-      <div 
+      <div
         ref={particlesContainerRef}
         className="absolute inset-0 overflow-hidden rounded-full"
       >
@@ -138,10 +138,10 @@ export function LogoAnimation() {
               top: `${15 + (i * 7) % 70}%`,
               width: `${2 + (i % 3)}px`,
               height: `${2 + (i % 3)}px`,
-              background: i % 3 === 0 
-                ? 'rgba(168, 85, 247, 0.8)' 
-                : i % 3 === 1 
-                  ? 'rgba(139, 92, 246, 0.8)' 
+              background: i % 3 === 0
+                ? 'rgba(168, 85, 247, 0.8)'
+                : i % 3 === 1
+                  ? 'rgba(139, 92, 246, 0.8)'
                   : 'rgba(236, 72, 153, 0.8)',
               boxShadow: `0 0 ${4 + (i % 4)}px rgba(${168 + (i * 5)}, ${85 - (i * 3)}, ${247 - (i * 2)}, 0.6)`,
             }}
@@ -150,7 +150,7 @@ export function LogoAnimation() {
       </div>
 
       {/* Animated ring 1 */}
-      <div 
+      <div
         className="absolute w-80 h-80 rounded-full border border-purple-500/20"
         style={{
           animation: 'ring-rotate 12s linear infinite',
@@ -158,7 +158,7 @@ export function LogoAnimation() {
       />
 
       {/* Animated ring 2 */}
-      <div 
+      <div
         className="absolute w-96 h-96 rounded-full border border-pink-500/10"
         style={{
           animation: 'ring-rotate 18s linear infinite reverse',
@@ -166,7 +166,7 @@ export function LogoAnimation() {
       />
 
       {/* Logo container with sophisticated animation */}
-      <div 
+      <div
         ref={containerRef}
         className="relative z-10"
         style={{
@@ -178,9 +178,9 @@ export function LogoAnimation() {
           alt="HackChain"
           className="w-56 h-56 md:w-72 md:h-72 lg:w-80 lg:h-80 object-contain"
         />
-        
+
         {/* Inner glow effect */}
-        <div 
+        <div
           className="absolute inset-0 -m-8 rounded-full"
           style={{
             background: 'radial-gradient(ellipse at center, rgba(168, 85, 247, 0.15) 0%, transparent 70%)',
@@ -199,9 +199,9 @@ export function LogoAnimation() {
         <p className="text-sm md:text-base text-slate-400 mt-3 font-light tracking-[0.3em] uppercase">
           Decentralized Credentials
         </p>
-        
+
         {/* Decorative line under brand */}
-        <div 
+        <div
           className="mt-4 mx-auto h-px w-24"
           style={{
             background: 'linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.6), transparent)',

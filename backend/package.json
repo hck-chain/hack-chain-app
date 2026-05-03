@@ -17,6 +17,7 @@
     "@neondatabase/serverless": "^1.0.1",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "body-parser": "^2.2.0",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",

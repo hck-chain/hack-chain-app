@@ -10,7 +10,7 @@ import { useEducatorProfile } from '@/hooks/useEducatorProfile';
 import type { EducatorProfile as EducatorProfileType } from '@/types/dashboard';
 import { AnimeParticles } from '@/components/animations/AnimeComponents';
 
-const HackChainLogo = '/images/logoHackchain2.png';
+const HackChainLogo = '/images/logoHackchain2.webp';
 
 function resolveIpfs(url: string | null): string {
   if (!url) return '';

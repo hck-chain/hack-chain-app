@@ -1,91 +1,133 @@
-import { Vote, Shield, Zap, Globe } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ROLE_ICONS } from '@/config/roles';
-import { useHoverInteractions } from '@/hooks/useAnimeHooks';
 
 const FeatureBlocks = () => {
   const { t } = useTranslation();
-  const { handleIconHover, handleIconLeave } = useHoverInteractions();
 
   const features = [
     {
-      Icon: ROLE_ICONS.educator, // Emitir certificados
+      imgSrc: '/icons/libro.avif',
+      alt: 'NFT Certificates',
       title: t('features.items.nft.title'),
       description: t('features.items.nft.description'),
-      color: 'from-purple-500 to-pink-500',
+      claySrc: 'from-purple-500/80 via-fuchsia-500/65 to-purple-700/50',
+      shadow: 'shadow-clay-purple',
     },
     {
-      Icon: ROLE_ICONS.recruiter, // Reclutador
+      imgSrc: '/icons/maletin.avif',
+      alt: 'Recruiter',
       title: t('features.items.recruiter.title'),
       description: t('features.items.recruiter.description'),
-      color: 'from-blue-500 to-cyan-500',
+      claySrc: 'from-cyan-400/80 via-sky-500/65 to-blue-700/50',
+      shadow: 'shadow-clay-cyan',
     },
     {
-      Icon: Vote, // DAO
+      imgSrc: '/icons/check.avif',
+      alt: 'DAO',
       title: t('features.items.dao.title'),
       description: t('features.items.dao.description'),
-      color: 'from-green-500 to-emerald-500',
+      claySrc: 'from-emerald-400/80 via-green-500/65 to-emerald-700/50',
+      shadow: 'shadow-clay-emerald',
     },
     {
-      Icon: Shield, // Security
+      imgSrc: '/icons/escudo.avif',
+      alt: 'Security',
       title: t('features.items.security.title'),
       description: t('features.items.security.description'),
-      color: 'from-orange-500 to-red-500',
+      claySrc: 'from-pink-400/80 via-rose-500/65 to-pink-700/50',
+      shadow: 'shadow-clay-pink',
     },
     {
-      Icon: Zap, // Rapidez
+      imgSrc: '/icons/rayo.avif',
+      alt: 'Instant',
       title: t('features.items.instant.title'),
       description: t('features.items.instant.description'),
-      color: 'from-yellow-500 to-orange-500',
+      claySrc: 'from-amber-300/80 via-orange-500/65 to-orange-700/50',
+      shadow: 'shadow-clay-amber',
     },
     {
-      Icon: Globe, // Global
+      imgSrc: '/icons/mundo.avif',
+      alt: 'Global',
       title: t('features.items.global.title'),
       description: t('features.items.global.description'),
-      color: 'from-indigo-500 to-purple-500',
+      claySrc: 'from-indigo-400/80 via-violet-500/65 to-indigo-700/50',
+      shadow: 'shadow-clay-indigo',
     },
   ];
 
+  const containerVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.12 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.96 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: 'spring' as const, stiffness: 90, damping: 18 },
+    },
+  };
+
   return (
-    <section id="certificates" className="pt-4 sm:pt-8 pb-20 relative reveal-group">
+    <section id="certificates" className="pt-12 sm:pt-20 pb-32 md:pb-48 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Section Header */}
-        <div className="text-center mb-16 reveal-item opacity-0">
-          <h2 className="font-title text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-            {t('features.title1')}<span className="gradient-text">{t('features.title2')}</span>
+        <motion.div
+          className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-start text-left mb-10 md:mb-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+        >
+          <h2 className="font-title text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05]">
+            <span className="block">{t('features.title1')}</span>
+            <span className="block gradient-text whitespace-nowrap">{t('features.title2')}</span>
           </h2>
 
-          <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto">
-            {t('features.subTitle')}
-          </p>
-        </div>
+          <div className="flex justify-center lg:justify-end">
+            <p className="font-body text-lg md:text-xl text-white/55 w-full max-w-sm font-medium lg:translate-x-12">
+              {t('features.subTitle')}
+            </p>
+          </div>
+        </motion.div>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-20 md:gap-y-24"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+        >
           {features.map((feature, index) => (
-            <div
+            <motion.div
               key={index}
-              className="glass rounded-2xl p-5 sm:p-8 border border-white/10 hover:border-white/30 transition-colors duration-500 group reveal-item opacity-0"
+              variants={itemVariants}
+              className="flex flex-col items-center text-center md:items-start md:text-left"
             >
-              <div
-                className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 cursor-pointer breathing-icon`}
-                onMouseEnter={handleIconHover}
-                onMouseLeave={handleIconLeave}
+              <motion.div
+                className={`clay-icon w-20 h-20 mb-8 bg-gradient-to-br ${feature.claySrc} ${feature.shadow}`}
+                animate={{ y: [0, -8, 0] }}
+                transition={{
+                  duration: 4 + (index % 3),
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
               >
-                <feature.Icon className="w-8 h-8 text-white transition-colors duration-300" />
-              </div>
+                <img src={feature.imgSrc} alt={feature.alt} className="w-12 h-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
+              </motion.div>
 
-              <h3 className="font-title text-2xl font-bold mb-4 gradient-text">
+              <h3 className="font-title text-2xl md:text-3xl font-black mb-4 text-white tracking-tight">
                 {feature.title}
               </h3>
 
-              <p className="font-body text-muted-foreground leading-relaxed">
+              <p className="font-body text-base md:text-lg text-white/55 leading-relaxed font-medium max-w-sm">
                 {feature.description}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
       </div>
     </section>

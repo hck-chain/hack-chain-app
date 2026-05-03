@@ -12,7 +12,8 @@ import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
-const HackChainLogo = '/images/logoHackchain2.png';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+const HackChainLogo = '/images/logoHackchain2.webp';
 
 interface Recruiter {
     wallet_address: string;
@@ -39,6 +40,16 @@ const RecruiterDashboard = () => {
     const [copiedWallet, setCopiedWallet] = useState(false);
     const [talents, setTalents] = useState<TalentSummary[]>([]);
     const [loading, setLoading] = useState(true);
+
+    useSessionTimeout({
+        onExpired: () => {
+            toast({
+                title: t('talentDashboard.sessionExpiredTitle'),
+                description: t('talentDashboard.sessionExpiredDesc'),
+                variant: 'destructive',
+            });
+        },
+    });
 
     useEffect(() => {
         const loadData = async () => {
@@ -86,7 +97,7 @@ const RecruiterDashboard = () => {
     const handleLogout = async () => {
         logout();
         queryClient.clear();
-        try { await appKit.disconnect(); } catch (_) {}
+        try { await appKit.disconnect(); } catch (_) { }
         toast({
             title: t('dashboard.logoutTitle'),
             description: t('dashboard.logoutDesc'),

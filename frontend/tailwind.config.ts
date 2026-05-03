@@ -19,8 +19,23 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				title: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-				body: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+				title: ['Nunito', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+				body: ['Nunito', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+			},
+			borderRadius: {
+				lg: 'var(--radius)',
+				md: 'calc(var(--radius) - 2px)',
+				sm: 'calc(var(--radius) - 4px)',
+				squircle: '28px'
+			},
+			boxShadow: {
+				'clay-purple': 'inset 4px 4px 10px hsl(265 80% 60% / 0.45), inset -4px -4px 10px hsl(265 100% 8% / 0.6), 0 12px 32px hsl(265 100% 50% / 0.25)',
+				'clay-pink': 'inset 4px 4px 10px hsl(330 90% 65% / 0.45), inset -4px -4px 10px hsl(330 100% 10% / 0.6), 0 12px 32px hsl(330 100% 55% / 0.25)',
+				'clay-cyan': 'inset 4px 4px 10px hsl(190 90% 65% / 0.45), inset -4px -4px 10px hsl(210 100% 10% / 0.6), 0 12px 32px hsl(200 100% 55% / 0.25)',
+				'clay-emerald': 'inset 4px 4px 10px hsl(160 80% 60% / 0.45), inset -4px -4px 10px hsl(160 100% 8% / 0.6), 0 12px 32px hsl(150 100% 50% / 0.22)',
+				'clay-amber': 'inset 4px 4px 10px hsl(35 95% 65% / 0.5), inset -4px -4px 10px hsl(20 100% 10% / 0.6), 0 12px 32px hsl(28 100% 55% / 0.25)',
+				'clay-indigo': 'inset 4px 4px 10px hsl(245 80% 65% / 0.45), inset -4px -4px 10px hsl(245 100% 10% / 0.6), 0 12px 32px hsl(255 100% 55% / 0.25)',
+				'purple-glow': '0 0 40px hsl(265 100% 55% / 0.45), 0 0 90px hsl(265 100% 55% / 0.25)'
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -66,11 +81,6 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
-			},
-			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
 			},
 			keyframes: {
 				'accordion-down': {

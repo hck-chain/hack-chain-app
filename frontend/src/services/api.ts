@@ -11,36 +11,15 @@ export class ApiServiceError extends Error {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('authToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 function handle401() {
-  // Limpiamos localStorage que es donde ahora guardaremos el token
-  localStorage.removeItem('authToken');
   localStorage.removeItem('user');
-
-  // Por seguridad, si tenías algo en sessionStorage, lo limpiamos también
-  sessionStorage.removeItem('authToken');
   sessionStorage.removeItem('user');
-
   if (!window.location.pathname.startsWith('/login')) {
     window.location.href = '/login';
   }
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  if (response.status === 401) {
-    handle401();
-    throw new ApiServiceError('Unauthorized', 401);
-  }
-
-  // Si la respuesta es 204 (No Content), no intentamos parsear JSON
   if (response.status === 204) return {} as T;
 
   const data = await response.json();
@@ -56,69 +35,97 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+let _isRefreshing = false;
+let _refreshQueue: Array<(ok: boolean) => void> = [];
 
-async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-    },
-  });
+async function tryRefresh(): Promise<boolean> {
+  if (_isRefreshing) {
+    return new Promise(resolve => _refreshQueue.push(resolve));
+  }
+  _isRefreshing = true;
+  try {
+    const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const ok = res.ok;
+    _refreshQueue.forEach(cb => cb(ok));
+    _refreshQueue = [];
+    return ok;
+  } catch {
+    _refreshQueue.forEach(cb => cb(false));
+    _refreshQueue = [];
+    return false;
+  } finally {
+    _isRefreshing = false;
+  }
+}
+
+async function withAutoRefresh<T>(fn: () => Promise<Response>): Promise<T> {
+  let response = await fn();
+
+  if (response.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      response = await fn();
+    } else {
+      handle401();
+      throw new ApiServiceError('Unauthorized', 401);
+    }
+  }
+
   return handleResponse<T>(response);
 }
 
+const FETCH_OPTS: RequestInit = { credentials: 'include' };
+
+async function get<T>(path: string): Promise<T> {
+  return withAutoRefresh<T>(() => fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  }));
+}
+
 async function post<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  return withAutoRefresh<T>(() => fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
-  });
-  return handleResponse<T>(response);
+  }));
 }
 
 async function postPublic<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   return handleResponse<T>(response);
 }
 
 async function patch<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  return withAutoRefresh<T>(() => fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
-  });
-  return handleResponse<T>(response);
+  }));
 }
 
 async function upload<T>(path: string, formData: FormData): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  return withAutoRefresh<T>(() => fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
     method: 'POST',
-    headers: {
-      ...getAuthHeaders(),
-    },
     body: formData,
-  });
-  return handleResponse<T>(response);
+  }));
 }
 
 async function uploadPublic<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
     method: 'POST',
     body: formData,
   });
@@ -126,15 +133,12 @@ async function uploadPublic<T>(path: string, formData: FormData): Promise<T> {
 }
 
 async function del<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  return withAutoRefresh<T>(() => fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
-  });
-  return handleResponse<T>(response);
+  }));
 }
 
 export const api = {

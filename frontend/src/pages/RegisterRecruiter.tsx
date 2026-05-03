@@ -11,19 +11,19 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { FormCardParticles } from "@/components/animations/FormCardParticles";
 import { useScrollReveal } from "@/hooks/useAnimeHooks";
 import { useCardAnimation } from "@/hooks/useFormCardAnimation";
-import hackChainLogo from "/images/logoHackchain.png";
+import hackChainLogo from "/images/logoHackchain.webp";
 
 export function RegisterRecruiter() {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  
+
   // Animation refs
   const formCardRef = useRef<HTMLDivElement>(null);
-  
+
   // Apply scroll reveal for left side elements
   useScrollReveal();
-  
+
   // Apply card entrance animation
   useCardAnimation(formCardRef, { delay: 300 });
 
@@ -157,17 +157,17 @@ export function RegisterRecruiter() {
 
             {/* Right - Form */}
             <div className="flex flex-col items-center lg:items-end w-full animate-in slide-in-from-right duration-700 delay-500 mt-4 lg:mt-0">
-              <Card 
+              <Card
                 ref={formCardRef}
                 className="w-full max-w-md shadow-2xl hover:shadow-3xl transition-all duration-300 glass border-green-500/20 hover:border-green-500/40 rounded-2xl relative overflow-hidden"
               >
                 {/* Floating Particles - Green/Emerald theme */}
-                <FormCardParticles 
-                  color="rgba(34, 197, 94, 0.15)" 
+                <FormCardParticles
+                  color="rgba(34, 197, 94, 0.15)"
                   shadowColor="rgba(34, 197, 94, 0.3)"
                   count={25}
                 />
-                
+
                 <CardHeader className="space-y-1 text-center font-lato relative z-10">
                   <CardTitle className="text-[22px] font-exo font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                     {t('registerRecruiter.formTitle')}

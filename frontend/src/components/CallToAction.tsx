@@ -1,59 +1,76 @@
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { AnimeParticles } from '@/components/animations/AnimeComponents';
 
 const CallToAction = () => {
   const { t } = useTranslation();
 
+  const stats = [
+    { title: t('cta.stats.free.title'), subtitle: t('cta.stats.free.subtitle') },
+    { title: t('cta.stats.247.title'), subtitle: t('cta.stats.247.subtitle') },
+    { title: t('cta.stats.instant.title'), subtitle: t('cta.stats.instant.subtitle') },
+    { title: t('cta.stats.global.title'), subtitle: t('cta.stats.global.subtitle') },
+  ];
+
   return (
-    <section id="dao" className="pb-20 relative reveal-group">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div 
-          className="glass rounded-3xl p-6 sm:p-10 md:p-20 text-center relative overflow-hidden reveal-item opacity-0 border border-white/5"
+    <section id="dao" className="pb-32 md:pb-48 relative">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+        <motion.h2
+          className="font-title text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-10 leading-[1.02] tracking-tight"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ type: 'spring', stiffness: 80, damping: 18 }}
         >
-          <AnimeParticles />
-          <div className="max-w-4xl mx-auto relative z-10">
+          {t('cta.title1')}
+          <span className="gradient-text">{t('cta.title2')}</span>
+          {t('cta.title3')}
+        </motion.h2>
 
-            {/* Headline */}
-            <h2 
-              className="font-title text-3xl sm:text-4xl md:text-6xl font-bold mb-6 leading-tight reveal-item opacity-0"
+        <motion.p
+          className="font-body text-lg md:text-xl lg:text-2xl text-white/55 mb-24 md:mb-32 leading-relaxed font-medium max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.1 }}
+        >
+          {t('cta.description')}
+        </motion.p>
+
+        <motion.div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-y-16 gap-x-8 md:gap-x-12"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.12 } },
+          }}
+        >
+          {stats.map((stat, index) => (
+            <motion.div
+              key={index}
+              className="relative flex flex-col items-center"
+              variants={{
+                hidden: { opacity: 0, y: 24, scale: 0.96 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                  transition: { type: 'spring' as const, stiffness: 90, damping: 18 },
+                },
+              }}
             >
-              {t('cta.title1')}
-              <span className="gradient-text">{t('cta.title2')}</span>
-              {t('cta.title3')}
-            </h2>
-
-            {/* Description */}
-            <p 
-              className="font-body text-lg sm:text-xl md:text-2xl text-muted-foreground mb-12 sm:mb-16 leading-relaxed reveal-item opacity-0"
-            >
-              {t('cta.description')}
-            </p>
-
-            {/* Trust Highlights */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="glass rounded-xl p-6 reveal-item opacity-0 border border-white/10 hover:border-white/30 transition-colors duration-300">
-                <div className="font-title text-2xl font-bold gradient-text">{t('cta.stats.free.title')}</div>
-                <div className="font-body text-muted-foreground">{t('cta.stats.free.subtitle')}</div>
+              <div className="font-title text-5xl md:text-6xl lg:text-7xl font-black gradient-text mb-3 tracking-tight leading-none">
+                {stat.title}
               </div>
-
-              <div className="glass rounded-xl p-6 reveal-item opacity-0 border border-white/10 hover:border-white/30 transition-colors duration-300">
-                <div className="font-title text-2xl font-bold gradient-text">{t('cta.stats.247.title')}</div>
-                <div className="font-body text-muted-foreground">{t('cta.stats.247.subtitle')}</div>
+              <div className="font-body text-sm md:text-base text-white/50 font-semibold uppercase tracking-[0.18em]">
+                {stat.subtitle}
               </div>
+            </motion.div>
+          ))}
+        </motion.div>
 
-              <div className="glass rounded-xl p-6 reveal-item opacity-0 border border-white/10 hover:border-white/30 transition-colors duration-300">
-                <div className="font-title text-2xl font-bold gradient-text">{t('cta.stats.instant.title')}</div>
-                <div className="font-body text-muted-foreground">{t('cta.stats.instant.subtitle')}</div>
-              </div>
-
-              <div className="glass rounded-xl p-6 reveal-item opacity-0 border border-white/10 hover:border-white/30 transition-colors duration-300">
-                <div className="font-title text-2xl font-bold gradient-text">{t('cta.stats.global.title')}</div>
-                <div className="font-body text-muted-foreground">{t('cta.stats.global.subtitle')}</div>
-              </div>
-            </div>
-
-          </div>
-        </div>
       </div>
     </section>
   );
