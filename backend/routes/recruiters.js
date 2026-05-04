@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { Recruiter, User, Student } = require("../models");
 const { where } = require("sequelize");
+const { authenticate } = require("../middleware/auth");
 
 // GET /api/recruiters
 router.get("/", async (req, res) => {
@@ -31,10 +32,13 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/recruiters/dashboard
-router.post("/dashboard", async (req, res) => {
+router.post("/dashboard", authenticate, async (req, res) => {
+  if (req.auth.role !== 'recruiter') {
+    return res.status(403).json({ error: "Only recruiters can access the dashboard" });
+  }
+
   try {
-    const { wallet_address } = req.body;
-    const recruiter = await Recruiter.findOne({ where: { wallet_address: wallet_address.toLowerCase() } });
+    const recruiter = await Recruiter.findOne({ where: { wallet_address: req.auth.wallet.toLowerCase() } });
     if (!recruiter) {
       return res.status(404).json({ error: "Recruiter not found" });
     }
@@ -90,10 +94,14 @@ router.get("/:wallet_address", async (req, res) => {
 });
 
 // PUT /api/recruiters/:wallet_address
-router.put("/:wallet_address", async (req, res) => {
+router.put("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
     const { company_name } = req.body;
+
+    if (req.auth.wallet.toLowerCase() !== wallet_address.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot modify another recruiter's profile" });
+    }
 
     const recruiter = await Recruiter.findOne({ where: { wallet_address: wallet_address.toLowerCase() } });
     if (!recruiter) {

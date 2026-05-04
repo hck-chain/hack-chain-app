@@ -7,7 +7,9 @@ const { authenticate } = require("../middleware/auth");
 // POST /api/sessions - Create new session
 router.post("/", authenticate, async (req, res) => {
   try {
-    const { wallet_address, expires_in_hours = 24 } = req.body;
+    const MAX_SESSION_HOURS = 24;
+    const { wallet_address, expires_in_hours = MAX_SESSION_HOURS } = req.body;
+    const clampedHours = Math.min(Math.max(1, Number(expires_in_hours) || MAX_SESSION_HOURS), MAX_SESSION_HOURS);
 
     if (!wallet_address) {
       return res.status(400).json({ error: "Wallet address required" });
@@ -31,7 +33,7 @@ router.post("/", authenticate, async (req, res) => {
 
     // Calculate expiration time
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + expires_in_hours);
+    expiresAt.setHours(expiresAt.getHours() + clampedHours);
 
     // Create session
     const session = await UserSession.create({
@@ -57,7 +59,7 @@ router.post("/", authenticate, async (req, res) => {
 });
 
 // GET /api/sessions/:session_id - Get session info
-router.get("/:session_id", async (req, res) => {
+router.get("/:session_id", authenticate, async (req, res) => {
   try {
     const { session_id } = req.params;
 
@@ -72,10 +74,13 @@ router.get("/:session_id", async (req, res) => {
       return res.status(404).json({ error: "Session not found" });
     }
 
+    if (session.wallet_address.toLowerCase() !== req.auth.wallet.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot access another user's session" });
+    }
+
     // Check if session is expired
     const now = new Date();
     if (session.expires_at < now) {
-      // Delete expired session
       await session.destroy();
       return res.status(401).json({ error: "Session expired" });
     }

@@ -160,6 +160,10 @@ router.put("/:wallet_address", authenticate, async (req, res) => {
     const { wallet_address } = req.params;
     const { field_of_study } = req.body;
 
+    if (req.auth.wallet.toLowerCase() !== wallet_address.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot modify another student's profile" });
+    }
+
     const student = await Student.findOne({ where: { wallet_address } });
     if (!student) {
       return res.status(404).json({ error: "Student not found" });

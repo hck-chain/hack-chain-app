@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { appKit } from '@/config/walletConfig';
 
-const TIMEOUT_MS = 5 * 60 * 1000;
+const TIMEOUT_MS = 14 * 60 * 1000;
 const EVENTS: string[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
 
 interface UseSessionTimeoutOptions {
@@ -14,13 +14,19 @@ export const useSessionTimeout = ({ onExpired }: UseSessionTimeoutOptions = {}) 
   const queryClient = useQueryClient();
 
   const logout = useCallback(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      keepalive: true,
+    }).catch(() => {});
+
     try {
       appKit.disconnect();
     } catch (_) {
       // appKit throws if no wallet is connected — safe to ignore
     }
 
-    sessionStorage.removeItem('authToken');
+    localStorage.removeItem('user');
     sessionStorage.removeItem('user');
     queryClient.clear();
     onExpired?.();

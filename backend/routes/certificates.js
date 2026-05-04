@@ -7,12 +7,14 @@ const pinata = new PinataSDK({
   pinataGateway: process.env.GATEWAY_URL,
 });
 
-// Importamos los modelos Y también 'sequelize' (la instancia conectada)
 const { Certificate, Student, Issuer, User, sequelize } = require("../models");
-const { GEOGRAPHY } = require("sequelize");
+const { authenticate } = require("../middleware/auth");
 
 // POST /api/certificates: Upload certificate metadata to Pinata
-router.post("/", async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
+  if (req.auth.role !== 'issuer') {
+    return res.status(403).json({ error: "Only issuers can upload certificate metadata" });
+  }
   try {
     const { name, course, professor, date, imageCID } = req.body;
 
@@ -101,21 +103,12 @@ router.post("/verify", async (req, res) => {
   }
 })
 
-// GET /api/certificates/:cid: Fetch certificate metadata from Pinata
-router.get("/:cid", async (req, res) => {
-  try {
-    const { cid } = req.params;
-    if (!cid) return res.status(400).json({ error: "CID is required" });
-    const file = await pinata.gateways.public.get(cid);
-    res.json(file.data);
-  } catch (error) {
-    console.error(error);
-    res.status(404).json({ error: "Metadata not found" });
-  }
-});
-
 // POST /api/certificates/database optimizado
-router.post("/database", async (req, res) => {
+router.post("/database", authenticate, async (req, res) => {
+  if (req.auth.role !== 'issuer') {
+    return res.status(403).json({ error: "Only issuers can create certificates" });
+  }
+
   try {
     const {
       student_wallet_address, issuer_wallet_address, title,
@@ -123,8 +116,6 @@ router.post("/database", async (req, res) => {
       token_id, issue_date
     } = req.body;
 
-
-    console.log("VALOR RECIBIDO COMO ISSUER:", issuer_wallet_address);
     if (!issuer_wallet_address || !issuer_wallet_address.startsWith("0x")) {
       return res.status(400).json({
         error: "Dato inválido",
@@ -140,6 +131,10 @@ router.post("/database", async (req, res) => {
     // 2. Normalización inmediata
     const cleanIssuerWallet = issuer_wallet_address.toLowerCase().trim();
     const cleanStudentWallet = student_wallet_address.toLowerCase().trim();
+
+    if (req.auth.wallet.toLowerCase() !== cleanIssuerWallet) {
+      return res.status(403).json({ error: "Issuer wallet must match authenticated wallet" });
+    }
 
     // 3. Búsqueda optimizada (asumiendo que los datos en DB ya están en minúsculas)
     const issuer = await Issuer.findOne({
@@ -178,7 +173,7 @@ router.post("/database", async (req, res) => {
 });
 
 // GET /api/certificates/database
-router.get("/database", async (req, res) => {
+router.get("/database", authenticate, async (req, res) => {
   try {
     const certificates = await Certificate.findAll({
       include: [{
@@ -253,14 +248,35 @@ router.get("/database/:id", async (req, res) => {
   }
 });
 
+// GET /api/certificates/:cid: Fetch certificate metadata from Pinata
+router.get("/:cid", async (req, res) => {
+  try {
+    const { cid } = req.params;
+    if (!cid) return res.status(400).json({ error: "CID is required" });
+    const file = await pinata.gateways.public.get(cid);
+    res.json(file.data);
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({ error: "Metadata not found" });
+  }
+});
+
 // PUT /api/certificates/database/:id/revoke
-router.put("/database/:id/revoke", async (req, res) => {
+router.put("/database/:id/revoke", authenticate, async (req, res) => {
+  if (req.auth.role !== 'issuer') {
+    return res.status(403).json({ error: "Only issuers can revoke certificates" });
+  }
+
   try {
     const { id } = req.params;
 
     const certificate = await Certificate.findByPk(id);
     if (!certificate) {
       return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    if (certificate.issuer_wallet_address.toLowerCase() !== req.auth.wallet.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot revoke a certificate issued by another issuer" });
     }
 
     await certificate.update({ is_revoked: true });

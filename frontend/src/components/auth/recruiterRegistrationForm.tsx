@@ -58,25 +58,16 @@ export function RecruiterRegistrationForm() {
   const onSubmit = (data: RecruiterRegistrationFormData) => {
     register(data, {
       onSuccess: (response) => {
-        if (response.token && (response.recruiter || response.user)) {
-          // If the backend returns 'user' object use it, else fallback to recruiter mapping
-          const userObj = response.user || {
-            id: 0,
-            role: 'recruiter',
-            name: response.recruiter.name,
-            lastName: response.recruiter.lastName,
-            email: response.recruiter.email,
-            walletAddress: null,
-          };
-          login(response.token, {
-            id: userObj.id || 0,
-            email: userObj.email || response.recruiter?.email,
-            role: userObj.role || 'recruiter',
-            name: userObj.name || response.recruiter?.name,
-            lastName: userObj.lastName || userObj.lastname || response.recruiter?.lastName || null,
-            walletAddress: userObj.walletAddress || userObj.wallet_address || null,
+        if (response.user) {
+          login({
+            id: response.user.id || 0,
+            email: response.user.email,
+            role: response.user.role || 'recruiter',
+            name: response.user.name || null,
+            lastName: (response.user as any).lastname || null,
+            walletAddress: (response.user as any).wallet_address || null,
           });
-          navigate('/recruiter-dashboard');
+          navigate('/dashboard/recruiter');
         }
       }
     });

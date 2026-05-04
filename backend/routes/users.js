@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 
 const { User, Student, Issuer, Recruiter, UserSession, sequelize } = require("../models");
-const { signToken, authenticate } = require("../middleware/auth");
+const { signToken, signRefreshToken, setAuthCookies, authenticate } = require("../middleware/auth");
 const { cacheSession } = require("../services/redis");
 const { authorizeIssuer } = require("../services/authorizeIssuer");
 
@@ -54,7 +54,8 @@ router.post("/register", registerLimiter, async (req, res) => {
     }
 
     const nonce = crypto.randomBytes(16).toString("hex");
-    const verificationToken = crypto.randomBytes(48).toString("hex");
+    const rawVerificationToken = crypto.randomBytes(48).toString("hex");
+    const verificationToken = crypto.createHash('sha256').update(rawVerificationToken).digest('hex');
     const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
     let newUser;
     let roleSpecificData;
@@ -92,8 +93,7 @@ router.post("/register", registerLimiter, async (req, res) => {
 
     const payload = { sub: newUser.id, role: newUser.role, wallet: newUser.wallet_address };
     const token = signToken(payload);
-    const decoded = jwt.decode(token);
-    const expiresAt = new Date(decoded.exp * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await UserSession.destroy({ where: { wallet_address: normalizedWallet } });
     await UserSession.create({
@@ -102,12 +102,14 @@ router.post("/register", registerLimiter, async (req, res) => {
       expires_at: expiresAt,
     });
 
-    const ttl = Math.floor((expiresAt - Date.now()) / 1000);
+    const ttl = Math.floor((new Date(jwt.decode(token).exp * 1000) - Date.now()) / 1000);
     await cacheSession(normalizedWallet, ttl);
+
+    const refreshToken = signRefreshToken(payload);
+    setAuthCookies(res, token, refreshToken);
 
     return res.status(201).json({
       message: "User registered successfully",
-      token,
       user: {
         id: newUser.id,
         wallet_address: newUser.wallet_address,
@@ -127,7 +129,7 @@ router.post("/register", registerLimiter, async (req, res) => {
 });
 
 // GET /api/users/:wallet_address
-router.get("/:wallet_address", async (req, res) => {
+router.get("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
 
@@ -199,8 +201,8 @@ router.put("/:wallet_address", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/users/:wallet_address/nonce
-router.post("/:wallet_address/nonce", async (req, res) => {
+// GET /api/users/:wallet_address/nonce — returns current challenge nonce for wallet login (public, read-only)
+router.get("/:wallet_address/nonce", async (req, res) => {
   try {
     const { wallet_address } = req.params;
 
@@ -209,13 +211,10 @@ router.post("/:wallet_address/nonce", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const newNonce = crypto.randomBytes(16).toString("hex");
-    await user.update({ nonce: newNonce });
-
-    res.json({ nonce: newNonce });
+    res.json({ nonce: user.nonce });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to generate nonce" });
+    res.status(500).json({ error: "Failed to fetch nonce" });
   }
 });
 

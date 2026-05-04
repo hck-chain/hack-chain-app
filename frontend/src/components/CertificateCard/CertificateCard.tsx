@@ -14,8 +14,8 @@ interface CertificateCardProps {
   innerGradient?: string;
 }
 
-const hackChainLogo = "/images/logoHackchain.png";
-const sealLogo = "/images/certificateSeal.png";
+const hackChainLogo = "/images/logoHackchain.webp";
+const sealLogo = "/images/certificateSeal.webp";
 
 const CertificateCard: React.FC<CertificateCardProps> = ({
   className = "",

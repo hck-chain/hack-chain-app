@@ -9,7 +9,7 @@ function updateFile(file, newStrings) {
 const enNew = {
   "features": {
     "title1": "Why Choose ",
-    "title2": "HackChain",
+    "title2": "Hack Chain?",
     "subTitle": "The future of certification is here. Built on blockchain, verified by experts, and recognized globally.",
     "items": {
       "nft": {

@@ -7,7 +7,7 @@ import { LoginForm } from "@/components/auth/loginForm";
 import BackgroundAnimation from "@/components/BackgroundAnimation";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import Footer from "@/components/Footer";
-import hackChainLogo from "/images/logoHackchain.png";
+import hackChainLogo from "/images/logoHackchain.webp";
 import { useAuth } from "@/contexts/AuthContext";
 import { appKit } from "@/config/walletConfig";
 
@@ -25,7 +25,7 @@ export default function Login() {
 
     if (!isAuthenticated) {
       (async () => {
-        try { await appKit.disconnect(); } catch (_) {}
+        try { await appKit.disconnect(); } catch (_) { }
         finally { setIsDisconnecting(false); }
       })();
     } else {
@@ -78,8 +78,8 @@ export default function Login() {
   // Redirect already-authenticated users directly to their dashboard.
   // All hooks are declared above — safe to return early here.
   if (!isLoading && isAuthenticated && user) {
-    if (user.role === 'student')   return <Navigate to="/dashboard/talent" replace />;
-    if (user.role === 'issuer')    return <Navigate to="/educator/dashboard" replace />;
+    if (user.role === 'student') return <Navigate to="/dashboard/talent" replace />;
+    if (user.role === 'issuer') return <Navigate to="/educator/dashboard" replace />;
     if (user.role === 'recruiter') return <Navigate to="/dashboard/recruiter" replace />;
   }
 
@@ -126,14 +126,14 @@ export default function Login() {
 
       {/* Main Content */}
       <main className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-28 pb-12 flex-1 flex flex-col items-center justify-center">
-        
+
         {/* Login Card */}
-        <div 
+        <div
           id="login-card"
           className="w-full max-w-md glass border border-purple-500/20 shadow-2xl rounded-2xl overflow-hidden"
         >
           {/* Top gradient accent */}
-          <div 
+          <div
             className="h-1 w-full"
             style={{
               background: 'linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), rgba(236, 72, 153, 0.6), transparent)',
@@ -145,22 +145,14 @@ export default function Login() {
             {/* Header */}
             <div className="text-center mb-6">
               {/* Icon */}
-              <div 
+              <div
                 className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg"
               >
-                <svg 
-                  className="w-7 h-7 text-white" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={1.5} 
-                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7l4 4z" 
-                  />
-                </svg>
+                <img
+                  src="/icons/login.avif"
+                  alt="Login"
+                  className="w-12 h-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                />
               </div>
 
               {/* Title */}
@@ -176,7 +168,7 @@ export default function Login() {
           </div>
 
           {/* Bottom accent */}
-          <div 
+          <div
             className="h-px w-full"
             style={{
               background: 'linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), transparent)',

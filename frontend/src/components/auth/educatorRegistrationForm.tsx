@@ -57,25 +57,16 @@ export function EducatorRegistrationForm() {
   const onSubmit = (data: EducatorRegistrationFormData) => {
     register(data, {
       onSuccess: (response) => {
-        if (response.token && (response.issuer || response.user)) {
-          // If the backend returns 'user' object use it, else fallback to issuer mapping
-          const userObj = response.user || {
-            id: 0,
-            role: 'issuer',
-            name: response.issuer.name,
-            lastName: null,
-            email: response.issuer.email,
-            walletAddress: response.issuer.walletAddress,
-          };
-          login(response.token, {
-            id: userObj.id || 0,
-            email: userObj.email || response.issuer?.email,
-            role: userObj.role || 'issuer',
-            name: userObj.name || response.issuer?.name,
-            lastName: userObj.lastName || userObj.lastname || null,
-            walletAddress: userObj.walletAddress || userObj.wallet_address || response.issuer?.walletAddress || null,
+        if (response.user) {
+          login({
+            id: response.user.id || 0,
+            email: response.user.email,
+            role: response.user.role || 'issuer',
+            name: response.user.name || null,
+            lastName: (response.user as any).lastname || null,
+            walletAddress: (response.user as any).wallet_address || null,
           });
-          navigate('/educator/profile/edit');
+          navigate('/educator/dashboard');
         }
       }
     });

@@ -806,13 +806,11 @@ function App() {
         }
 
         try {
-            const token = localStorage.getItem('authToken');
-            if (!token) return;
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issuers/mint`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     walletTalent,

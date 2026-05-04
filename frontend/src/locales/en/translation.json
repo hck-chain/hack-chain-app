@@ -31,8 +31,8 @@
     "trust3": "Global recognition"
   },
   "features": {
-    "title1": "Why Choose ",
-    "title2": "HackChain",
+    "title1": "Why",
+    "title2": "Choose Hack Chain?",
     "subTitle": "The future of certification is here. Built on blockchain, verified by experts, and recognized globally.",
     "items": {
       "nft": {
@@ -460,6 +460,26 @@
   },
   "partner": {
     "text": "HackChain is advised by Token Consulting Group. Comprehensive consulting specialized in tokenization projects."
+  },
+  "marquee": {
+    "eyebrow": "Universal access",
+    "wallets": "Compatible with 400+ wallets",
+    "title1": "Sign in with ",
+    "title2": "any wallet",
+    "subtitle": "Bring your existing wallet — no new account, no extra password. We sign you in with the same key you already use to manage your assets.",
+    "stat1": "400+ wallets",
+    "stat2": "WalletConnect v2",
+    "stat3": "One-tap sign-in"
+  },
+  "educatorDashboard": {
+    "eyebrow": "Educator dashboard",
+    "title1": "Create certificates in ",
+    "title2": "minutes",
+    "subtitle": "Issue verifiable credentials from your panel: load data, set requirements, and publish with a simple guided flow.",
+    "detail": "Keep cohorts, templates, and evidence in one place. Every certificate is traceable, share-ready, and verifiable in seconds. You can also manage revocations and updates without losing history.",
+    "point1": "Fast setup",
+    "point2": "Instant validation",
+    "point3": "Secure delivery"
   },
   "metamask": {
     "modalTitle": "MetaMask Required",

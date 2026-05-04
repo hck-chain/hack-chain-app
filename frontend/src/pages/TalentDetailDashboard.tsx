@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Award, ChevronDown, Briefcase, Wallet, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/services/api';
-const HackChainLogo = '/images/logoHackchain2.png';
+const HackChainLogo = '/images/logoHackchain2.webp';
 
 interface Certificate {
     identifier: string;

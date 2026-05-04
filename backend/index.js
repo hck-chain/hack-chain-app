@@ -2,10 +2,8 @@ require("dotenv").config();
 const helmet = require("helmet");
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
-const session = require("express-session");
-const pg = require("pg");
-const PgSession = require("connect-pg-simple")(session);
 const cron = require("node-cron");
 const db = require("./models");
 const path = require("path");
@@ -18,7 +16,7 @@ app.set('trust proxy', 1); // Esto resuelve express-rate-limit en proxies
 
 // ---------- CORS ----------
 const allowedOrigins = [
-  // "https://hackchain.app",
+  "https://hackchain.app",
   "https://www.hackchain.app",
   ...(process.env.NODE_ENV !== "production" ? ["http://localhost:8080", "http://localhost:5173"] : []),
 ];
@@ -36,6 +34,7 @@ app.use(cors({
 // ---------- Middleware ----------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // ---------- Global rate limiter ----------
 // Covers all /api/ routes. Specific limiters (login: 8/min, upload: 10/hr)
@@ -88,24 +87,6 @@ app.use(helmet({
   },
 }));
 
-// CONFIGURACIÓN DE SESIÓN (Evita que te mande al login)
-app.use(session({
-  store: new PgSession({
-    pool: new pg.Pool({ connectionString: process.env.DATABASE_URL }),
-    tableName: 'user_sessions',
-    createTableIfMissing: true
-  }),
-  secret: process.env.SESSION_SECRET || 'hackchain_secret_2026',
-  resave: false,
-  saveUninitialized: false,
-  proxy: true, // Vital para Render
-  cookie: {
-    secure: true, // Solo HTTPS
-    httpOnly: true,
-    sameSite: 'none', // Crucial para el conflicto www vs no-www
-    maxAge: 30 * 24 * 60 * 60 * 1000
-  }
-}));
 
 
 // ---------- Rutas ----------

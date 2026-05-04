@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface LoginResponse {
   message: string;
-  token: string;
   user: {
     id: number;
     email: string | null;
@@ -15,17 +14,15 @@ interface LoginResponse {
 }
 
 export const useLogin = () => {
-  // ... resto igual
   const navigate = useNavigate();
-  const { login } = useAuth();  // ← agregar
+  const { login } = useAuth();
 
   return useMutation({
     mutationFn: async (credentials: { wallet_address: string }) => {
       return api.postPublic<LoginResponse>('/api/auth/login', credentials);
     },
     onSuccess: (data) => {
-      // Usar login() del contexto en lugar de localStorage directo
-      login(data.token, {
+      login({
         id: data.user.id,
         email: data.user.email ?? '',
         role: data.user.role,

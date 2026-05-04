@@ -45,10 +45,9 @@ interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string, user: AuthUser) => void;
+  login: (user: AuthUser) => void;
   logout: () => void;
 }
 
@@ -64,23 +63,17 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // 1. Rehidratar desde localStorage al montar el componente
-  // Usamos localStorage para que la sesión sea persistente entre pestañas y recargas
   useEffect(() => {
     try {
-      const storedToken = localStorage.getItem('authToken');
       const storedUser = localStorage.getItem('user');
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
+      if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
       console.error("Error rehidratando sesión:", error);
-      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
     } finally {
       setIsLoading(false);
@@ -88,10 +81,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // 2. Función de Login
-  const login = useCallback((newToken: string, newUser: AuthUser) => {
-    localStorage.setItem('authToken', newToken);
+  const login = useCallback((newUser: AuthUser) => {
     localStorage.setItem('user', JSON.stringify(newUser));
-    setToken(newToken);
     setUser(newUser);
   }, []);
 
@@ -106,20 +97,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearWalletStorage();
 
     // Limpiamos el almacenamiento local
-    localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('user');
 
     // Limpiamos el estado de React
-    setToken(null);
     setUser(null);
   }, []);
 
   const value: AuthContextValue = {
     user,
-    token,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated: !!user,
     isLoading,
     login,
     logout,
