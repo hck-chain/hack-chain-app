@@ -238,6 +238,7 @@
     "subtitle": "Create and issue blockchain-verified credentials with ease.",
     "welcome": "Welcome back,",
     "certificatesIssued": "Certificates Issued",
+    "talentsAvailable": "Talents on Platform",
     "roleLabel": "Role",
     "walletLabel": "Wallet Address",
     "emailLabel": "Email",
@@ -471,7 +472,7 @@
     "stat2": "WalletConnect v2",
     "stat3": "One-tap sign-in"
   },
-  "educatorDashboard": {
+  "educatorLanding": {
     "eyebrow": "Educator dashboard",
     "title1": "Create certificates in ",
     "title2": "minutes",

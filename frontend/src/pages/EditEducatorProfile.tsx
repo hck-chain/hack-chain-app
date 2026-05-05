@@ -28,11 +28,38 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { KnowledgeAreasSelector } from '@/components/KnowledgeAreasSelector/KnowledgeAreasSelector';
 import { useMyEducatorProfile } from '@/hooks/useMyEducatorProfile';
-import { useUpdateEducatorProfile, useUpdateEducatorPhoto } from '@/hooks/useUpdateEducatorProfile';
+import { useUpdateEducatorProfile, useUpdateEducatorPhoto, useDeleteEducatorPhoto } from '@/hooks/useUpdateEducatorProfile';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+async function compressImage(file: File, maxPx = 600, quality = 0.85): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file),
+        'image/jpeg',
+        quality
+      );
+    };
+    img.src = objectUrl;
+  });
+}
 
 function resolveIpfs(url: string | null): string {
   if (!url) return '';
@@ -70,7 +97,7 @@ function missingSections(org: string, bio: string, areas: string[], photo: strin
 // ---------------------------------------------------------------------------
 
 function Section({ icon: Icon, title, children }: {
-  icon: React.ElementType;
+  icon: any;
   title: string;
   children: React.ReactNode;
 }) {
@@ -79,7 +106,7 @@ function Section({ icon: Icon, title, children }: {
       <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-[60px] pointer-events-none" />
       <AnimeParticles />
       <div className="relative z-10 flex items-center gap-2.5 px-6 py-4 border-b-2 border-white/30">
-        <Icon className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+        {typeof Icon === 'string' ? <img src={Icon} className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" alt={title} /> : <Icon className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />}
         <span className="text-base font-bold text-white drop-shadow-md">{title}</span>
       </div>
       <div className="relative z-10 p-6">{children}</div>
@@ -99,12 +126,14 @@ const EditEducatorProfile = () => {
   const { data: profile, isPending: isLoadingProfile } = useMyEducatorProfile();
   const updateProfile = useUpdateEducatorProfile();
   const updatePhoto = useUpdateEducatorPhoto();
+  const deletePhoto = useDeleteEducatorPhoto();
 
   const [organizationName, setOrganizationName] = useState('');
   const [bio, setBio] = useState('');
   const [knowledgeAreas, setKnowledgeAreas] = useState<string[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [isPhotoMarkedForDeletion, setIsPhotoMarkedForDeletion] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
 
   useEffect(() => {
@@ -115,11 +144,42 @@ const EditEducatorProfile = () => {
     setPhotoPreview(resolveIpfs(profile.photo_url));
   }, [profile]);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPendingPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview((prev) => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return previewUrl;
+    });
+    setIsPhotoMarkedForDeletion(false);
+    setIsCompressing(true);
+    const compressed = await compressImage(file);
+    setIsCompressing(false);
+
+    try {
+      const ipfsUrl = await updatePhoto.mutateAsync(compressed);
+      setPhotoPreview((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return resolveIpfs(ipfsUrl);
+      });
+    } catch (err: unknown) {
+      setPhotoPreview((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return resolveIpfs(profile?.photo_url ?? null);
+      });
+      const message = err instanceof Error ? err.message : 'Could not upload photo';
+      toast({ title: 'Error uploading photo', description: message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeletePhotoIntent = () => {
+    setPhotoPreview((prev) => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setIsPhotoMarkedForDeletion(true);
   };
 
   const handleSaveIntent = () => {
@@ -136,9 +196,9 @@ const EditEducatorProfile = () => {
     setShowIncompleteDialog(false);
     if (isSaving) return;
     try {
-      if (pendingPhotoFile) {
-        await updatePhoto.mutateAsync(pendingPhotoFile);
-        setPendingPhotoFile(null);
+      if (isPhotoMarkedForDeletion) {
+        await deletePhoto.mutateAsync();
+        setIsPhotoMarkedForDeletion(false);
       }
       await updateProfile.mutateAsync({
         organization_name: organizationName.trim() || undefined,
@@ -158,7 +218,7 @@ const EditEducatorProfile = () => {
     }
   };
 
-  const isSaving = updateProfile.isPending || updatePhoto.isPending;
+  const isSaving = updateProfile.isPending || updatePhoto.isPending || deletePhoto.isPending;
   const completion = profileCompletion(organizationName, bio, knowledgeAreas, photoPreview);
   const wallet = profile?.wallet_address ?? '';
 
@@ -232,15 +292,33 @@ const EditEducatorProfile = () => {
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isSaving}
-                  className="absolute -bottom-1.5 -right-1.5 h-7 w-7 rounded-lg bg-purple-600 hover:bg-purple-500 border-2 border-[#07070f] flex items-center justify-center transition-colors disabled:opacity-50 shadow-lg"
-                  title="Change photo"
-                >
-                  <Camera className="h-3.5 w-3.5 text-white" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      className="absolute -bottom-1.5 -right-1.5 h-7 w-7 rounded-lg bg-purple-600 hover:bg-purple-500 border-2 border-[#07070f] flex items-center justify-center transition-colors disabled:opacity-50 shadow-lg"
+                      title="Cambiar foto"
+                    >
+                      <Camera className="h-3.5 w-3.5 text-white" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-40 z-50">
+                    <DropdownMenuItem 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="cursor-pointer"
+                    >
+                      Subir nueva foto
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleDeletePhotoIntent}
+                      disabled={!photoPreview}
+                      className="cursor-pointer text-red-500 focus:text-red-500 focus:bg-red-50"
+                    >
+                      Eliminar foto
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -249,6 +327,7 @@ const EditEducatorProfile = () => {
                   onChange={handlePhotoChange}
                   disabled={isSaving}
                 />
+                <p className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-slate-600 whitespace-nowrap">Max 2 MB</p>
               </div>
 
               {/* Name + meta */}
@@ -267,8 +346,17 @@ const EditEducatorProfile = () => {
                     {wallet.slice(0, 6)}…{wallet.slice(-4)}
                   </p>
                 )}
-                {pendingPhotoFile && (
-                  <p className="text-[11px] text-purple-400 mt-1">New photo ready — will upload on save.</p>
+                {isCompressing && (
+                  <p className="text-[11px] text-fuchsia-400 mt-1 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 animate-pulse shrink-0" />
+                    Optimizing…
+                  </p>
+                )}
+                {updatePhoto.isPending && !isCompressing && (
+                  <p className="text-[11px] text-purple-400 mt-1 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse shrink-0" />
+                    Uploading photo…
+                  </p>
                 )}
               </div>
 
@@ -288,7 +376,7 @@ const EditEducatorProfile = () => {
 
               {/* Left col */}
               <div className="lg:col-span-2 space-y-5">
-                <Section icon={User} title="Organization">
+                <Section icon="/icons/normalUser.avif" title="Organization">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-white drop-shadow-md">Name</Label>
                     <Input
@@ -302,7 +390,7 @@ const EditEducatorProfile = () => {
                   </div>
                 </Section>
 
-                <Section icon={Shield} title="Account">
+                <Section icon="/icons/escudoNeon.avif" title="Account">
                   <div className="space-y-3">
                     <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
                       <Briefcase className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
@@ -341,7 +429,7 @@ const EditEducatorProfile = () => {
 
               {/* Right col */}
               <div className="lg:col-span-3 space-y-5">
-                <Section icon={User} title="Bio">
+                <Section icon="/icons/normalUser.avif" title="Bio">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-white drop-shadow-md">Bio</Label>
                     <Textarea
@@ -361,7 +449,7 @@ const EditEducatorProfile = () => {
                   </div>
                 </Section>
 
-                <Section icon={BookOpen} title="Knowledge areas">
+                <Section icon="/icons/libroNeon.avif" title="Knowledge areas">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-white drop-shadow-md">Select your knowledge areas</Label>
                     <KnowledgeAreasSelector
@@ -438,7 +526,7 @@ const EditEducatorProfile = () => {
             >
               {isSaving
                 ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Saving…</>
-                : <><Save className="mr-2 h-3.5 w-3.5" />Save profile</>
+                : <><img src="/icons/guardar.avif" className="mr-2 h-4 w-4 object-contain drop-shadow-md" alt="Save" />Save profile</>
               }
             </Button>
           </div>

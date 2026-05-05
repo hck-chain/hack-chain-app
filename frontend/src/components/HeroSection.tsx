@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useHoverInteractions } from '@/hooks/useAnimeHooks';
@@ -15,6 +15,16 @@ const infraLogos = [
 const HeroSection = () => {
   const { t } = useTranslation();
   const { handleIconHover, handleIconLeave } = useHoverInteractions();
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   return (
     <section
@@ -86,12 +96,12 @@ const HeroSection = () => {
           >
             <Suspense
               fallback={
-                <div className="w-[480px] h-[480px] flex items-center justify-center">
+                <div className="w-[340px] h-[340px] lg:w-[480px] lg:h-[480px] flex items-center justify-center">
                   <div className="w-12 h-12 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin" />
                 </div>
               }
             >
-              <GlobeViz />
+              <GlobeViz mobile={!isDesktop} />
             </Suspense>
           </motion.div>
 

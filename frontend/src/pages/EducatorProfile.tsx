@@ -69,7 +69,7 @@ function StatCard({
   label,
   value,
 }: {
-  icon: React.ElementType;
+  icon: any;
   label: string;
   value: number;
 }) {
@@ -78,7 +78,7 @@ function StatCard({
       <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none" />
       <AnimeParticles />
       <div className="relative z-10 flex flex-col items-center justify-center gap-1">
-        <Icon className="h-5 w-5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mb-1" />
+        {typeof Icon === 'string' ? <img src={Icon} className="h-6 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mb-1" alt={label} /> : <Icon className="h-5 w-5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mb-1" />}
         <span className="text-2xl font-bold text-white drop-shadow-sm">{value}</span>
         <span className="text-xs text-white uppercase tracking-wider font-bold drop-shadow-md">{label}</span>
       </div>
@@ -127,7 +127,7 @@ const EducatorProfile = () => {
           {/* ---- Error state ---- */}
           {isError && (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-              <GraduationCap className="h-10 w-10 mb-3 opacity-30" />
+              <img src="/icons/graduado.avif" className="h-12 w-12 mb-3 opacity-30 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
               <p className="text-base">No se encontró el educador.</p>
               <Button
                 variant="ghost"
@@ -180,13 +180,13 @@ const EducatorProfile = () => {
 
                     <div className="flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-1 mt-3">
                       <span className="flex items-center gap-1.5 text-xs text-white drop-shadow-md font-bold">
-                        <Wallet className="h-3.5 w-3.5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                        <img src="/icons/wallet.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
                         <span className="font-mono">
                           {educator.wallet_address ? `${educator.wallet_address.slice(0, 6)}…${educator.wallet_address.slice(-4)}` : "—"}
                         </span>
                       </span>
                       <span className="flex items-center gap-1.5 text-xs text-white drop-shadow-md font-bold">
-                        <CalendarDays className="h-3.5 w-3.5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                        <img src="/icons/calendario.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
                         Desde {formatDate(educator.joined_at)}
                       </span>
                     </div>
@@ -203,12 +203,12 @@ const EducatorProfile = () => {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-4">
                 <StatCard
-                  icon={Award}
+                  icon={"/icons/medalla.avif"}
                   label="Certificados emitidos"
                   value={educator.certificates_issued}
                 />
                 <StatCard
-                  icon={Users}
+                  icon={"/icons/talentsPlattform.avif"}
                   label="Talentos formados"
                   value={educator.talents_formed}
                 />
@@ -221,8 +221,8 @@ const EducatorProfile = () => {
                   <AnimeParticles />
                   <div className="relative z-10">
                     <h2 className="text-sm font-bold uppercase tracking-widest text-white drop-shadow-md mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                      Áreas de conocimiento
+                      <img src="/icons/libroNeon.avif" className="h-6 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                       Áreas de conocimiento
                     </h2>
                     <div className="flex flex-wrap gap-2">
                       {educator.knowledge_areas.map((area) => (
@@ -244,7 +244,7 @@ const EducatorProfile = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-purple-500/5 rounded-full blur-[60px] pointer-events-none" />
                 <AnimeParticles />
                 <div className="relative z-10 flex flex-col items-center justify-center text-slate-300">
-                  <GraduationCap className="h-8 w-8 mb-2 opacity-80 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                  <img src="/icons/graduado.avif" className="h-10 w-10 mb-2 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
                   <p className="text-sm font-bold drop-shadow-md text-white">Cursos y contenido — próximamente.</p>
                 </div>
               </div>

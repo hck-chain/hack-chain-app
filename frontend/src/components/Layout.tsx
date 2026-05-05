@@ -1,12 +1,10 @@
 import React from 'react';
 import BackgroundAnimation from '@/components/BackgroundAnimation';
-import FloatingElements from '@/components/FloatingElements';
 import ScrollToTopButton from '@/components/ScrollToTopButton';
 import Footer from './Footer';
 import { useScrollReveal } from '@/hooks/useAnimeHooks';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Inicil
   useScrollReveal();
 
   return (
@@ -14,7 +12,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <div className="fixed inset-0 -z-30 bg-background" />
       <div className="fixed inset-0 -z-20 pointer-events-none">
         <BackgroundAnimation />
-        <FloatingElements />
       </div>
       <div className="relative z-10">
         {children}

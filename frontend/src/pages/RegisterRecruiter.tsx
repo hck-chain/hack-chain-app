@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Building, Users, Shield, Search } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { RecruiterRegistrationForm } from "@/components/auth/recruiterRegistrationForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +75,7 @@ export function RegisterRecruiter() {
               <LanguageToggle />
               <Link to="/register" className="flex items-center gap-2 group">
                 <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
-                <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
+                  <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-green-400 transition-colors duration-300">
                   {t('registerRecruiter.back')}
                 </span>
               </Link>
@@ -108,8 +108,8 @@ export function RegisterRecruiter() {
               {/* Features */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4 group p-6 glass rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all duration-300 reveal-item">
-                  <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
-                    <Building className="h-8 w-8 text-white" />
+                  <div className="flex-shrink-0 w-20 h-20 bg-green-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-[0_0_15px_rgba(34,197,94,0.3)] group-hover:shadow-[0_0_22px_rgba(34,197,94,0.5)]">
+                    <img src="/icons/recruiterExperience.avif" alt="Recruiter Experience" className="h-14 w-14 object-contain drop-shadow-md" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-exo font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
@@ -126,7 +126,7 @@ export function RegisterRecruiter() {
                         t('registerRecruiter.p4')
                       ].map((text, i) => (
                         <div key={i} className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
                           <span className="text-[13px] text-slate-400 font-lato">{text}</span>
                         </div>
                       ))}
@@ -136,20 +136,25 @@ export function RegisterRecruiter() {
 
                 {/* Additional Benefits */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 reveal-item">
-                  {[
-                    { icon: Search, title: t('registerRecruiter.b1Title'), desc: t('registerRecruiter.b1Desc'), color: "emerald" },
-                    { icon: Shield, title: t('registerRecruiter.b2Title'), desc: t('registerRecruiter.b2Desc'), color: "emerald" }
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 p-4 glass rounded-lg border border-emerald-500/20 hover:border-emerald-500/30 transition-all duration-200">
-                      <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
-                        <item.icon className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="font-exo font-semibold text-emerald-400">{item.title}</h4>
-                        <p className="text-xs text-slate-400 font-lato">{item.desc}</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-4 glass rounded-lg border border-green-500/20 hover:border-green-500/30 transition-all duration-200">
+                    <div className="w-12 h-12 flex-shrink-0 bg-green-400 rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                      <img src="/icons/lupa.avif" alt="Find Top Talent" className="h-8 w-8 object-contain drop-shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                     </div>
-                  ))}
+                    <div>
+                      <h4 className="font-exo font-semibold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{t('registerRecruiter.b1Title')}</h4>
+                      <p className="text-xs text-slate-400 font-lato">{t('registerRecruiter.b1Desc')}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 glass rounded-lg border border-green-500/20 hover:border-green-500/30 transition-all duration-200">
+                    <div className="w-12 h-12 flex-shrink-0 bg-green-400 rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                      <img src="/icons/check.avif" alt="Verified Talent" className="h-8 w-8 object-contain drop-shadow-sm" />
+                    </div>
+                    <div>
+                      <h4 className="font-exo font-semibold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{t('registerRecruiter.b2Title')}</h4>
+                      <p className="text-xs text-slate-400 font-lato">{t('registerRecruiter.b2Desc')}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

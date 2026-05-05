@@ -238,6 +238,7 @@
     "subtitle": "Creá y emití credenciales verificadas en blockchain fácilmente.",
     "welcome": "Bienvenido,",
     "certificatesIssued": "Certificados Emitidos",
+    "talentsAvailable": "Talentos en la Plataforma",
     "roleLabel": "Rol",
     "walletLabel": "Dirección de Wallet",
     "emailLabel": "Correo",
@@ -471,7 +472,7 @@
     "stat2": "WalletConnect v2",
     "stat3": "Login en un toque"
   },
-  "educatorDashboard": {
+  "educatorLanding": {
     "eyebrow": "Dashboard educador",
     "title1": "Creá certificados en ",
     "title2": "minutos",
