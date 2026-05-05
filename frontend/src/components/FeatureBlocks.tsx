@@ -86,7 +86,7 @@ const FeatureBlocks = () => {
             <span className="block gradient-text whitespace-nowrap">{t('features.title2')}</span>
           </h2>
 
-          <div className="flex justify-center lg:justify-end">
+          <div className="flex justify-start lg:justify-end">
             <p className="font-body text-lg md:text-xl text-white/55 w-full max-w-sm font-medium lg:translate-x-12">
               {t('features.subTitle')}
             </p>

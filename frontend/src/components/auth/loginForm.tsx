@@ -25,7 +25,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
         <div className="relative">
           <div className="absolute inset-0 -m-6 w-28 h-28 rounded-full border border-purple-500/30 animate-ping" />
           <div className="absolute inset-0 -m-4 w-24 h-24 rounded-full border border-pink-500/20 animate-pulse" />
-          
+
           <div
             className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
             style={{
@@ -35,7 +35,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
             <img src="/icons/wallet.avif" alt="Wallet" className="w-14 h-14 animate-pulse object-contain" />
           </div>
         </div>
-        
+
         {/* Status */}
         <div className="text-center space-y-2">
           <h3 className="text-lg font-semibold text-white animate-pulse">
@@ -48,7 +48,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
 
         {/* Progress bar */}
         <div className="w-full max-w-[200px] h-1 bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"
             style={{
               animation: 'data-flow 1.5s ease-in-out infinite',
@@ -56,7 +56,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
             }}
           />
         </div>
-        
+
         <style>{`
           @keyframes data-flow {
             0% { transform: translateX(-100%); }
@@ -101,28 +101,28 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
         }}
       >
         {/* Animated neon border lines */}
-        <span 
+        <span
           className="absolute top-0 left-0 w-full h-0.5 neon-line"
           style={{
             background: 'linear-gradient(90deg, transparent, #a855f7, transparent)',
             animation: 'neon-top 2s linear infinite',
           }}
         />
-        <span 
+        <span
           className="absolute top-0 right-0 w-0.5 h-full neon-line"
           style={{
             background: 'linear-gradient(180deg, transparent, #a855f7, transparent)',
             animation: 'neon-right 2s linear infinite 0.5s',
           }}
         />
-        <span 
+        <span
           className="absolute bottom-0 right-0 w-full h-0.5 neon-line"
           style={{
             background: 'linear-gradient(270deg, transparent, #ec4899, transparent)',
             animation: 'neon-bottom 2s linear infinite 1s',
           }}
         />
-        <span 
+        <span
           className="absolute bottom-0 left-0 w-0.5 h-full neon-line"
           style={{
             background: 'linear-gradient(360deg, transparent, #ec4899, transparent)',
@@ -131,7 +131,7 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
         />
 
         {/* Hover overlay */}
-        <div 
+        <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           style={{
             background: 'rgba(168, 85, 247, 0.1)',

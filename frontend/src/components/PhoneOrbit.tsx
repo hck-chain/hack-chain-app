@@ -194,11 +194,15 @@ const PhoneOrbit = () => {
       </div>
 
       {/* Orbit scene — full-bleed, icons + phone centered */}
-      <div
+      <motion.div
         ref={orbitRef}
         className="relative mx-auto"
         style={{ height: 820 }}
         aria-hidden
+        initial={{ opacity: 0, y: 80, scale: 0.92 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ type: 'spring', stiffness: 60, damping: 20, mass: 1.3 }}
       >
         {/* Ambient glow behind phone */}
         <div
@@ -379,7 +383,7 @@ const PhoneOrbit = () => {
             }}
           />
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 md:mt-32">
         <motion.div

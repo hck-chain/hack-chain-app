@@ -28,17 +28,17 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ name, role, imag
             rel="noopener noreferrer"
             className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
           >
-            <h3 className="font-title text-xl font-bold text-foreground group-hover:text-blue-500 transition-colors">
+            <h3 className="font-title text-xl font-bold text-white group-hover:text-blue-500 transition-colors">
               {name}
             </h3>
             <Linkedin className="w-5 h-5 text-blue-500 flex-shrink-0" />
           </a>
         ) : (
-          <h3 className="font-title text-xl font-bold text-foreground">
+          <h3 className="font-title text-xl font-bold text-white">
             {name}
           </h3>
         )}
-        <p className="font-body text-foreground/60">
+        <p className="font-body text-white/60 font-medium">
           {role}
         </p>
       </div>

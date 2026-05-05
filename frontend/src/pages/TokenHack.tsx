@@ -1,26 +1,7 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, TargetAndTransition } from 'framer-motion';
-import {
-  PiRocketLaunchFill,
-  PiLightbulbFilamentFill,
-  PiMagnifyingGlassFill,
-  PiShareNetworkFill,
-  PiChartLineUpFill,
-  PiCrownSimpleFill,
-  PiCoinsFill,
-  PiHexagonFill,
-  PiFileTextFill,
-  PiArrowRightBold,
-  PiEnvelopeSimpleFill,
-  PiCheckCircleFill,
-  PiStarFill,
-  PiShieldCheckFill,
-  PiUsersThreeFill,
-  PiKeyFill,
-  PiTrophyFill,
-  PiHandshakeFill,
-  PiLockKeyFill,
-} from 'react-icons/pi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PiArrowRightBold, PiEnvelopeSimpleFill, PiCheckCircleFill } from 'react-icons/pi';
 import Layout from '@/components/Layout';
 import Navbar from '@/components/Navbar';
 import TokenDistributionChart from '@/components/TokenDistributionChart';
@@ -28,68 +9,31 @@ import { Button } from '@/components/ui/button';
 import { FileText, ArrowRight } from 'lucide-react';
 import { AnimeParticles } from '@/components/animations/AnimeComponents';
 
-// ─── Animation variants ───────────────────────────────────────────────────────
-
-type AnimVariant = 'float' | 'pulse' | 'spin' | 'bounce' | 'swing' | 'breathe';
-
-const ANIM_LOOPS: Record<AnimVariant, TargetAndTransition> = {
-  float: { y: [0, -6, 0], transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' } },
-  breathe: { scale: [1, 1.18, 1], transition: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } },
-  spin: { rotate: [0, 360], transition: { duration: 8, repeat: Infinity, ease: 'linear' } },
-  bounce: { y: [0, -8, 0, -4, 0], transition: { duration: 1.8, repeat: Infinity, ease: 'easeOut', repeatDelay: 1.2 } },
-  swing: { rotate: [0, 14, -14, 8, -8, 0], transition: { duration: 2.4, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.8 } },
-  pulse: { scale: [1, 1.25, 1], opacity: [0.85, 1, 0.85], transition: { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } },
-};
-
-const AnimatedIcon = ({
-  Icon, className = '', delay = 0, variant = 'float',
-}: {
-  Icon: React.ComponentType<{ className?: string }>;
-  className?: string;
-  delay?: number;
-  variant?: AnimVariant;
-}) => (
-  <motion.div
-    initial={{ scale: 0, rotate: -180, opacity: 0 }}
-    whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
-    viewport={{ once: true }}
-    transition={{ type: 'spring', stiffness: 200, damping: 15, delay }}
-  >
-    <motion.div animate={ANIM_LOOPS[variant]} style={{ originX: '50%', originY: '50%' }}>
-      <Icon className={className} />
-    </motion.div>
-  </motion.div>
-);
-
-// ─── Shared fade-up variant ───────────────────────────────────────────────────
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: '-80px' },
+  viewport: { once: true, margin: '-80px' } as const,
 };
 
-const staggerContainer = {
-  initial: {},
-  whileInView: { transition: { staggerChildren: 0.12 } },
-  viewport: { once: true, margin: '-80px' },
-};
-
-const staggerItem = {
-  initial: { opacity: 0, y: 25 },
-  whileInView: { opacity: 1, y: 0 },
-};
-
-// ─── Reusable section header ──────────────────────────────────────────────────
+const SectionEyebrow = ({ label }: { label: string }) => (
+  <div className="flex items-center gap-6 mb-16">
+    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+    <span className="font-title text-[10px] uppercase tracking-[0.32em] text-white/25 font-bold select-none shrink-0">
+      {label}
+    </span>
+    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+  </div>
+);
 
 const SectionHeader = ({ title, highlight, subtitle }: { title: string; highlight: string; subtitle?: string }) => (
   <motion.div {...fadeUp} transition={{ duration: 0.6 }} className="text-center mb-16">
     <h2 className="font-title text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-      {title}
-      <span className="gradient-text">{highlight}</span>
+      {title}<span className="gradient-text">{highlight}</span>
     </h2>
     {subtitle && (
-      <p className="font-body text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+      <p className="font-body text-lg text-white/45 max-w-3xl mx-auto leading-relaxed font-medium">
         {subtitle}
       </p>
     )}
@@ -100,6 +44,96 @@ const SectionHeader = ({ title, highlight, subtitle }: { title: string; highligh
 
 const TokenHack = () => {
   const { t } = useTranslation();
+  const [activeRole, setActiveRole] = useState(0);
+
+  const roles = [
+    {
+      imgSrc: '/icons/talent.avif',
+      label: t('token.forTalent'),
+      title: t('token.talentTitle'),
+      desc: t('token.talentDesc'),
+      perks: [t('token.talentPerk1'), t('token.talentPerk2'), t('token.talentPerk3')],
+      claySrc: 'from-purple-500/80 via-fuchsia-500/65 to-purple-700/50',
+      shadow: 'shadow-clay-purple',
+      accent: 'text-purple-400',
+    },
+    {
+      imgSrc: '/icons/libro.avif',
+      label: t('token.forEducators'),
+      title: t('token.educatorTitle'),
+      desc: t('token.educatorDesc'),
+      perks: [t('token.educatorPerk1'), t('token.educatorPerk2'), t('token.educatorPerk3')],
+      claySrc: 'from-cyan-400/80 via-sky-500/65 to-blue-700/50',
+      shadow: 'shadow-clay-cyan',
+      accent: 'text-cyan-400',
+    },
+    {
+      imgSrc: '/icons/maletin.avif',
+      label: t('token.forRecruiters'),
+      title: t('token.recruiterTitle'),
+      desc: t('token.recruiterDesc'),
+      perks: [t('token.recruiterPerk1'), t('token.recruiterPerk2'), t('token.recruiterPerk3')],
+      claySrc: 'from-emerald-400/80 via-green-500/65 to-emerald-700/50',
+      shadow: 'shadow-clay-emerald',
+      accent: 'text-emerald-400',
+    },
+  ];
+
+  const objectives = [
+    {
+      imgSrc: '/icons/talentsPlattform.avif',
+      label: t('token.objCommunityLabel'),
+      desc: t('token.objCommunityDesc'),
+      claySrc: 'from-purple-500/80 via-fuchsia-500/65 to-purple-700/50',
+      shadow: 'shadow-clay-purple',
+    },
+    {
+      imgSrc: '/icons/escudo.avif',
+      label: t('token.objPlatformLabel'),
+      desc: t('token.objPlatformDesc'),
+      claySrc: 'from-cyan-400/80 via-sky-500/65 to-blue-700/50',
+      shadow: 'shadow-clay-cyan',
+    },
+    {
+      imgSrc: '/icons/medalla.avif',
+      label: t('token.objUserLabel'),
+      desc: t('token.objUserDesc'),
+      claySrc: 'from-pink-400/80 via-rose-500/65 to-pink-700/50',
+      shadow: 'shadow-clay-pink',
+    },
+  ];
+
+  const financeSteps = [
+    {
+      number: '01',
+      imgSrc: '/icons/mundo.avif',
+      title: t('token.referralTitle'),
+      desc: t('token.referralDesc'),
+      claySrc: 'from-amber-300/80 via-orange-500/65 to-orange-700/50',
+      shadow: 'shadow-clay-amber',
+      cta: false,
+    },
+    {
+      number: '02',
+      imgSrc: '/icons/rayo.avif',
+      title: t('token.stakingTitle'),
+      desc: t('token.stakingDesc'),
+      claySrc: 'from-emerald-400/80 via-green-500/65 to-emerald-700/50',
+      shadow: 'shadow-clay-emerald',
+      cta: false,
+    },
+    {
+      number: '03',
+      imgSrc: '/icons/documento.avif',
+      title: t('token.privateSaleTitle'),
+      desc: t('token.privateSaleDesc'),
+      claySrc: 'from-purple-500/80 via-fuchsia-500/65 to-purple-700/50',
+      shadow: 'shadow-clay-purple',
+      cta: true,
+    },
+  ];
+
+  const activeRoleData = roles[activeRole];
 
   return (
     <Layout>
@@ -108,111 +142,115 @@ const TokenHack = () => {
 
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 1: Hero — Token logo + tagline + quick stats
+            SECTION 1 — Hero: $HACK sobre el void
         ═══════════════════════════════════════════════════════════ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 sm:mb-32">
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="glass rounded-3xl p-8 sm:p-12 md:p-16 text-center relative overflow-hidden"
-          >
-            <div className="absolute top-0 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
-            
-            {/* Anime.js Background Particles */}
-            <AnimeParticles />
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32 sm:mb-40 relative overflow-hidden">
 
-            <div className="relative z-10">
-              {/* Token logo — large + glow */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.1, type: 'spring', stiffness: 200 }}
-                className="mx-auto mb-10 relative w-40 h-40 sm:w-48 sm:h-48"
-              >
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 blur-2xl scale-110 pointer-events-none" />
-                <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden">
-                  <img
-                    src="/Token_2.png"
-                    alt="HACK Token"
-                    className="w-full h-full object-contain p-3 drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]"
-                  />
-                </div>
-              </motion.div>
+          {/* Ambient glow — sin superficie, solo luz */}
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-purple-500/[0.07] rounded-full blur-[140px] pointer-events-none" />
+          <AnimeParticles />
 
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="font-title text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 tracking-tighter"
-              >
-                {t('token.heroTitle1')}
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 drop-shadow-[0_0_25px_rgba(168,85,247,0.5)]">
-                  {t('token.heroTitle2')}
-                </span>
-              </motion.h1>
+          <div className="relative z-10 text-center">
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
-                className="font-body text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-10"
-              >
-                {t('token.heroTagline')}
-              </motion.p>
-
-              {/* Quick stats */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.7 }}
-                className="flex flex-wrap justify-center gap-4 sm:gap-6"
-              >
-                {[
-                  { label: t('token.totalSupply'), value: t('token.totalSupplyValue'), Icon: PiCoinsFill },
-                  { label: t('token.network'), value: t('token.networkValue'), Icon: PiHexagonFill },
-                  { label: t('token.standard'), value: t('token.standardValue'), Icon: PiFileTextFill },
-                ].map((stat, idx) => (
-                  <div
-                    key={stat.label}
-                    className="glass rounded-xl px-5 py-3 sm:px-6 sm:py-4 flex items-center gap-3 border border-white/5"
-                  >
-                    <AnimatedIcon Icon={stat.Icon} className="w-5 h-5 text-purple-400" delay={0.8 + idx * 0.15} variant="breathe" />
-                    <div className="text-left">
-                      <p className="font-body text-xs text-muted-foreground">{stat.label}</p>
-                      <p className="font-title text-sm sm:text-base font-semibold text-foreground">{stat.value}</p>
-                    </div>
-                  </div>
-                ))}
-              </motion.div>
+            {/* Eyebrow con ticker vivo */}
+            <div className="flex items-center gap-6 mb-16 max-w-sm mx-auto">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/25 font-bold select-none shrink-0 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                ERC-20 · Polygon
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
             </div>
-          </motion.div>
+
+            {/* Token logo — levitando libre */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.7, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, type: 'spring', stiffness: 160 }}
+              className="flex justify-center mb-10"
+            >
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative w-32 h-32 sm:w-44 sm:h-44"
+              >
+                <div className="absolute inset-0 rounded-full bg-purple-500/30 blur-3xl scale-[1.9] pointer-events-none" />
+                <img
+                  src="/Token_2.png"
+                  alt="HACK Token"
+                  className="relative w-full h-full object-contain drop-shadow-[0_0_44px_rgba(168,85,247,0.85)]"
+                />
+              </motion.div>
+            </motion.div>
+
+            {/* $HACK — signature ticker */}
+            <motion.h1
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.25 }}
+              className="font-title text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black mb-6 tracking-tighter leading-none"
+            >
+              <span className="font-mono text-purple-400/55" style={{ fontSize: '0.7em', verticalAlign: 'baseline' }}>$</span>
+              {t('token.heroTitle1').trim()}
+              <span className="gradient-text">{t('token.heroTitle2')}</span>
+              <span className="font-mono text-purple-400/20 animate-pulse" aria-hidden>_</span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.9, delay: 0.5 }}
+              className="font-body text-lg sm:text-xl text-white/50 max-w-3xl mx-auto leading-relaxed font-medium mb-16"
+            >
+              {t('token.heroTagline')}
+            </motion.p>
+
+            {/* Stats — 3 columnas abiertas, sin bordes */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="flex flex-wrap justify-center gap-x-16 gap-y-8"
+            >
+              {[
+                { label: t('token.totalSupply'), value: t('token.totalSupplyValue') },
+                { label: t('token.network'),     value: t('token.networkValue') },
+                { label: t('token.standard'),    value: t('token.standardValue') },
+              ].map((stat) => (
+                <div key={stat.label} className="flex flex-col items-center gap-2">
+                  <span className="font-body text-xs text-white/25 uppercase tracking-[0.2em] font-semibold">
+                    {stat.label}
+                  </span>
+                  <span className="font-mono text-base sm:text-lg font-bold gradient-text">
+                    {stat.value}
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+
+          </div>
         </section>
 
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 2: ¿Qué es $HACK? — Split layout (Reental style)
-            Left: mission bullets | Right: visual card
+            SECTION 2 — ¿Qué es $HACK? (split abierto)
         ═══════════════════════════════════════════════════════════ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 sm:mb-32">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32 sm:mb-40">
+          <SectionEyebrow label={t('token.whatIs')} />
 
-            {/* Left — Text */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20 items-center">
+
+            {/* Left — texto abierto */}
             <motion.div {...fadeUp} transition={{ duration: 0.6 }}>
-              <p className="font-title text-sm font-bold text-purple-400 uppercase tracking-widest mb-3">
-                {t('token.whatIs')}
-              </p>
               <h2 className="font-title text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
                 {t('token.ecosystemTitle')}
                 <span className="gradient-text">{t('token.ecosystemHighlight')}</span>
               </h2>
-              <p className="font-body text-lg text-muted-foreground leading-relaxed mb-8">
+              <p className="font-body text-lg text-white/50 leading-relaxed mb-10 font-medium">
                 {t('token.ecosystemDesc')}
               </p>
 
-              {/* Mission bullets — Reental style */}
-              <ul className="space-y-4">
+              <ul className="space-y-5 mb-10">
                 {(t('token.ecosystemBullets', { returnObjects: true }) as string[]).map((text: string, idx: number) => (
                   <motion.li
                     key={idx}
@@ -223,255 +261,229 @@ const TokenHack = () => {
                     className="flex items-start gap-3"
                   >
                     <PiCheckCircleFill className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                    <span className="font-body text-foreground/80">{text}</span>
+                    <span className="font-body text-white/70">{text}</span>
                   </motion.li>
                 ))}
               </ul>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="mt-8"
-              >
-                <a href="/docs/Token_Whitepaper.pdf" target="_blank" rel="noopener noreferrer">
-                  <Button
-                    variant="outline"
-                    className="font-title border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10 group"
+              <a href="/docs/Token_Whitepaper.pdf" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="font-title border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10 group">
+                  <FileText className="w-4 h-4 mr-2" />
+                  {t('token.whitepaperBtn')}
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </a>
+            </motion.div>
+
+            {/* Right — objetivos con clay icons, sin card */}
+            <div className="flex flex-col gap-10">
+              {objectives.map((obj, idx) => (
+                <motion.div
+                  key={obj.label}
+                  initial={{ opacity: 0, x: 28 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ type: 'spring', stiffness: 80, damping: 18, delay: idx * 0.13 }}
+                  className="flex items-center gap-7"
+                >
+                  <motion.div
+                    className={`clay-icon w-16 h-16 flex-shrink-0 bg-gradient-to-br ${obj.claySrc} ${obj.shadow}`}
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 4 + idx, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    <FileText className="w-4 h-4 mr-2" />
-                    {t('token.whitepaperBtn')}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </a>
-              </motion.div>
-            </motion.div>
-
-            {/* Right — Visual card */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="glass rounded-3xl p-8 sm:p-10 relative overflow-hidden"
-            >
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-[60px]" />
-              <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px]" />
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                    <AnimatedIcon Icon={PiTrophyFill} className="w-5 h-5 text-white" variant="bounce" />
+                    <img
+                      src={obj.imgSrc}
+                      alt={obj.label}
+                      className="w-9 h-9 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    />
+                  </motion.div>
+                  <div>
+                    <p className="font-title font-black text-base text-white mb-1 tracking-tight">{obj.label}</p>
+                    <p className="font-body text-sm text-white/40">{obj.desc}</p>
                   </div>
-                  <span className="font-title font-bold text-lg">{t('token.objectivesTitle')}</span>
-                </div>
+                </motion.div>
+              ))}
 
-                <div className="space-y-4">
-                  {[
-                    { Icon: PiUsersThreeFill, label: t('token.objCommunityLabel'), desc: t('token.objCommunityDesc'), color: 'text-purple-400' },
-                    { Icon: PiShieldCheckFill, label: t('token.objPlatformLabel'), desc: t('token.objPlatformDesc'), color: 'text-blue-400' },
-                    { Icon: PiHandshakeFill, label: t('token.objUserLabel'), desc: t('token.objUserDesc'), color: 'text-pink-400' },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                      <item.Icon className={`w-6 h-6 flex-shrink-0 mt-0.5 ${item.color}`} />
-                      <div>
-                        <p className="font-title font-semibold text-sm text-foreground">{item.label}</p>
-                        <p className="font-body text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Divider + slogan */}
-                <div className="mt-6 pt-6 border-t border-white/5 text-center">
-                  <p className="font-title text-sm font-bold text-foreground/60 italic">
-                    "{t('token.communitySlogan')}"
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+              <p className="font-title text-sm font-bold text-white/30 italic pl-[5.75rem]">
+                "{t('token.communitySlogan')}"
+              </p>
+            </div>
           </div>
         </section>
 
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 3: Características — 3 feature cards (Reental style)
-            DeFi → Learn   |   Comunidad → Network   |   Real Estate → Hire
+            SECTION 3 — Roles: tab panel abierto con clay icons
         ═══════════════════════════════════════════════════════════ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 sm:mb-32">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32 sm:mb-40">
+          <SectionEyebrow label="Token Features" />
           <SectionHeader
             title="Token "
             highlight="Features"
             subtitle="Discover how Token HACK powers every interaction across the HackChain ecosystem"
           />
 
-          <motion.div {...staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {[
-              {
-                Icon: PiRocketLaunchFill,
-                label: t('token.forTalent'),
-                title: t('token.talentTitle'),
-                desc: t('token.talentDesc'),
-                perks: [t('token.talentPerk1'), t('token.talentPerk2'), t('token.talentPerk3')],
-                gradient: 'from-purple-500 to-pink-500',
-                glow: 'rgba(168, 85, 247, 0.15)',
-                variant: 'bounce' as AnimVariant,
-              },
-              {
-                Icon: PiLightbulbFilamentFill,
-                label: t('token.forEducators'),
-                title: t('token.educatorTitle'),
-                desc: t('token.educatorDesc'),
-                perks: [t('token.educatorPerk1'), t('token.educatorPerk2'), t('token.educatorPerk3')],
-                gradient: 'from-blue-500 to-cyan-500',
-                glow: 'rgba(59, 130, 246, 0.15)',
-                variant: 'pulse' as AnimVariant,
-              },
-              {
-                Icon: PiMagnifyingGlassFill,
-                label: t('token.forRecruiters'),
-                title: t('token.recruiterTitle'),
-                desc: t('token.recruiterDesc'),
-                perks: [t('token.recruiterPerk1'), t('token.recruiterPerk2'), t('token.recruiterPerk3')],
-                gradient: 'from-green-500 to-emerald-500',
-                glow: 'rgba(34, 197, 94, 0.15)',
-                variant: 'swing' as AnimVariant,
-              },
-            ].map((card, idx) => (
-              <motion.div
-                key={card.title}
-                variants={staggerItem}
-                transition={{ duration: 0.5 }}
-                className="glass rounded-2xl glass-hover group relative overflow-hidden flex flex-col"
+          {/* Selectores de rol — texto puro, sin bordes */}
+          <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 mb-16">
+            {roles.map((role, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveRole(idx)}
+                className={`font-title text-base font-bold uppercase tracking-[0.12em] transition-all duration-300 ${
+                  activeRole === idx
+                    ? 'gradient-text'
+                    : 'text-white/25 hover:text-white/50'
+                }`}
               >
-                {/* Top accent line — Reental style */}
-                <div className={`h-1 w-full bg-gradient-to-r ${card.gradient} rounded-t-2xl`} />
-
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"
-                  style={{ background: `radial-gradient(circle at 50% 0%, ${card.glow}, transparent 70%)` }}
-                />
-
-                <div className="relative z-10 p-6 sm:p-8 flex-1 flex flex-col">
-                  {/* Pill label */}
-                  <span className={`self-start mb-4 text-xs font-title font-bold bg-gradient-to-r ${card.gradient} bg-clip-text text-transparent border border-white/10 rounded-full px-3 py-1`}>
-                    {card.label}
-                  </span>
-
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${card.gradient} flex items-center justify-center mb-5`}>
-                    <AnimatedIcon Icon={card.Icon} className="w-7 h-7 text-white" delay={idx * 0.15} variant={card.variant} />
-                  </div>
-
-                  <h3 className="font-title text-xl sm:text-2xl font-bold mb-3 gradient-text">{card.title}</h3>
-                  <p className="font-body text-muted-foreground leading-relaxed mb-5">{card.desc}</p>
-
-                  {/* Perks list — Reental style */}
-                  <ul className="mt-auto space-y-2">
-                    {card.perks.map((perk) => (
-                      <li key={perk} className="flex items-center gap-2 text-sm font-body text-foreground/70">
-                        <PiCheckCircleFill className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                        {perk}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </motion.div>
+                {role.label}
+              </button>
             ))}
-          </motion.div>
+          </div>
+
+          {/* Panel de contenido — completamente abierto */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeRole}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.26, ease: 'easeOut' }}
+              className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-12 lg:gap-20 items-center"
+            >
+              {/* Clay icon + identidad del rol */}
+              <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+                <motion.div
+                  className={`clay-icon w-28 h-28 sm:w-36 sm:h-36 mb-8 bg-gradient-to-br ${activeRoleData.claySrc} ${activeRoleData.shadow}`}
+                  animate={{ y: [0, -12, 0] }}
+                  transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <img
+                    src={activeRoleData.imgSrc}
+                    alt={activeRoleData.title}
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)]"
+                  />
+                </motion.div>
+
+                <h3 className="font-title text-4xl sm:text-5xl font-black gradient-text leading-tight mb-3 tracking-tight">
+                  {activeRoleData.title}
+                </h3>
+                <span className="font-body text-xs text-white/25 uppercase tracking-[0.2em] font-semibold">
+                  {activeRoleData.label}
+                </span>
+              </div>
+
+              {/* Descripción + perks abiertos */}
+              <div>
+                <p className="font-body text-lg text-white/50 leading-relaxed mb-10 font-medium">
+                  {activeRoleData.desc}
+                </p>
+                <div className="space-y-5">
+                  {activeRoleData.perks.map((perk, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <span className={`font-mono text-xs font-bold ${activeRoleData.accent} w-6 flex-shrink-0 select-none`}>
+                        0{i + 1}
+                      </span>
+                      <PiCheckCircleFill className={`w-4 h-4 ${activeRoleData.accent} flex-shrink-0`} />
+                      <span className="font-body text-base text-white/60">{perk}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </section>
 
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 4: Finance — 3 earning methods (referral/staking/sale)
+            SECTION 4 — Finance: step flow con clay icons
         ═══════════════════════════════════════════════════════════ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 sm:mb-32">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32 sm:mb-40">
+          <SectionEyebrow label={`${t('token.financeTitle')}${t('token.financeHighlight')}`} />
           <SectionHeader title={t('token.financeTitle')} highlight={t('token.financeHighlight')} />
 
-          <motion.div {...staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {[
-              {
-                Icon: PiShareNetworkFill,
-                title: t('token.referralTitle'),
-                desc: t('token.referralDesc'),
-                gradient: 'from-amber-500 to-orange-500',
-                glow: 'rgba(245, 158, 11, 0.15)',
-                variant: 'spin' as AnimVariant,
-              },
-              {
-                Icon: PiChartLineUpFill,
-                title: t('token.stakingTitle'),
-                desc: t('token.stakingDesc'),
-                gradient: 'from-green-500 to-emerald-500',
-                glow: 'rgba(34, 197, 94, 0.15)',
-                variant: 'float' as AnimVariant,
-              },
-              {
-                Icon: PiCrownSimpleFill,
-                title: t('token.privateSaleTitle'),
-                desc: t('token.privateSaleDesc'),
-                gradient: 'from-purple-500 to-indigo-500',
-                glow: 'rgba(124, 58, 237, 0.15)',
-                cta: true,
-                variant: 'pulse' as AnimVariant,
-              },
-            ].map((item, idx) => (
-              <motion.div
-                key={item.title}
-                variants={staggerItem}
-                transition={{ duration: 0.5 }}
-                className="glass rounded-2xl p-6 sm:p-8 glass-hover group relative overflow-hidden flex flex-col"
-              >
-                <div className={`h-1 w-full bg-gradient-to-r ${item.gradient} rounded-full mb-6`} />
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"
-                  style={{ background: `radial-gradient(circle at 50% 0%, ${item.glow}, transparent 70%)` }}
-                />
-                <div className="relative z-10 flex-1">
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${item.gradient} flex items-center justify-center mb-5`}>
-                    <AnimatedIcon Icon={item.Icon} className="w-7 h-7 text-white" delay={idx * 0.15} variant={item.variant} />
-                  </div>
-                  <h3 className="font-title text-xl sm:text-2xl font-bold mb-3 gradient-text">{item.title}</h3>
-                  <p className="font-body text-muted-foreground leading-relaxed">{item.desc}</p>
-                </div>
+          <div className="relative">
+            {/* Línea conectora — desktop */}
+            <div
+              className="hidden md:block absolute top-9 h-px pointer-events-none"
+              style={{
+                left: 'calc(16.67% + 36px)',
+                right: 'calc(16.67% + 36px)',
+                background: 'linear-gradient(90deg, rgba(245,158,11,0.25), rgba(34,197,94,0.25), rgba(168,85,247,0.25))',
+              }}
+            />
 
-                {item.cta && (
-                  <div className="relative z-10 mt-6">
-                    <a href="/contact">
-                      <Button
-                        variant="outline"
-                        className="w-full font-title border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10 text-foreground group/btn"
-                      >
-                        <PiEnvelopeSimpleFill className="w-4 h-4 mr-2" />
-                        {t('token.privateSaleCta')}
-                        <PiArrowRightBold className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                      </Button>
-                    </a>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-10">
+              {financeSteps.map((step, idx) => (
+                <motion.div
+                  key={step.title}
+                  initial={{ opacity: 0, y: 28 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-60px' }}
+                  transition={{ type: 'spring', stiffness: 80, damping: 18, delay: idx * 0.15 }}
+                  className="flex flex-col"
+                >
+                  {/* Clay icon + número fantasma */}
+                  <div className="flex items-center gap-5 mb-8">
+                    <motion.div
+                      className={`clay-icon w-[4.5rem] h-[4.5rem] flex-shrink-0 bg-gradient-to-br ${step.claySrc} ${step.shadow} relative z-10`}
+                      animate={{ y: [0, -7, 0] }}
+                      transition={{ duration: 4 + idx * 0.8, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <img
+                        src={step.imgSrc}
+                        alt={step.title}
+                        className="w-9 h-9 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                      />
+                    </motion.div>
+                    <span className="font-mono text-6xl font-black text-white/[0.05] leading-none select-none">
+                      {step.number}
+                    </span>
                   </div>
-                )}
-              </motion.div>
-            ))}
-          </motion.div>
+
+                  <h3 className="font-title text-xl font-black text-white mb-3 tracking-tight">{step.title}</h3>
+                  <p className="font-body text-sm text-white/40 leading-relaxed flex-1">{step.desc}</p>
+
+                  {step.cta && (
+                    <div className="mt-8">
+                      <a href="/contact">
+                        <Button
+                          variant="outline"
+                          className="w-full font-title border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10 group"
+                        >
+                          <PiEnvelopeSimpleFill className="w-4 h-4 mr-2" />
+                          {t('token.privateSaleCta')}
+                          <PiArrowRightBold className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </a>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </section>
 
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 5: Token Distribution chart
+            SECTION 5 — Token Distribution: chart sobre el void
         ═══════════════════════════════════════════════════════════ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 sm:mb-32">
-          <div className="glass rounded-3xl p-6 sm:p-10 md:p-14 mb-10 relative overflow-hidden">
-            <AnimeParticles />
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32 sm:mb-40">
+          <SectionEyebrow label={`${t('token.distributionTitle')}${t('token.distributionHighlight')}`} />
+          <SectionHeader
+            title={t('token.distributionTitle')}
+            highlight={t('token.distributionHighlight')}
+            subtitle={t('token.distributionDesc')}
+          />
+
+          {/* Glow ambiental sutil — sin superficie */}
+          <div className="relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-purple-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
             <div className="relative z-10">
-              <SectionHeader
-                title={t('token.distributionTitle')}
-                highlight={t('token.distributionHighlight')}
-                subtitle={t('token.distributionDesc')}
-              />
               <TokenDistributionChart />
             </div>
           </div>
 
-          <motion.div {...fadeUp} transition={{ duration: 0.6, delay: 0.3 }} className="text-center">
+          <motion.div {...fadeUp} transition={{ duration: 0.6, delay: 0.3 }} className="text-center mt-16">
             <a href="/docs/Token_Whitepaper.pdf" target="_blank" rel="noopener noreferrer">
               <Button
                 size="lg"
@@ -482,53 +494,67 @@ const TokenHack = () => {
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </a>
-            <p className="font-body text-sm text-muted-foreground mt-4">
+            <p className="font-body text-sm text-white/25 mt-4">
               {t('token.whitepaperSubtext')}
             </p>
           </motion.div>
         </section>
 
 
-
-
-
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 9: Bottom CTA — Get Started centered
+            SECTION 6 — CTA: texto puro al estilo CallToAction
         ═══════════════════════════════════════════════════════════ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            {...fadeUp}
-            transition={{ duration: 0.8 }}
-            className="glass rounded-3xl p-8 sm:p-12 md:p-16 text-center relative overflow-hidden"
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+          {/* $HACK eyebrow */}
+          <div className="flex items-center gap-6 mb-14 max-w-xs mx-auto">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-white/25 font-bold select-none shrink-0 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+              $HACK
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+          </div>
+
+          <motion.h2
+            className="font-title text-4xl sm:text-6xl md:text-7xl font-black mb-8 leading-[1.02] tracking-tight"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ type: 'spring', stiffness: 80, damping: 18 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
+            {t('token.ctaTitle')}
+            <span className="gradient-text">{t('token.ctaHighlight')}</span>
+          </motion.h2>
 
-            <div className="relative z-10">
-              <h2 className="font-title text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                {t('token.ctaTitle')}
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 drop-shadow-[0_0_20px_rgba(168,85,247,0.4)]">
-                  {t('token.ctaHighlight')}
-                </span>
-              </h2>
+          <motion.p
+            className="font-body text-lg md:text-xl lg:text-2xl text-white/50 mb-14 leading-relaxed font-medium max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.1 }}
+          >
+            {t('token.ctaDesc')}
+          </motion.p>
 
-              <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-                {t('token.ctaDesc')}
-              </p>
-
-              <a href="/register">
-                <Button
-                  size="lg"
-                  className="font-title text-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/20 px-10 py-6 rounded-xl group"
-                >
-                  {t('nav.getStarted')}
-                  <PiArrowRightBold className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </a>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.2 }}
+          >
+            <a href="/register">
+              <Button
+                size="lg"
+                className="font-title text-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/20 px-10 py-6 rounded-xl group"
+              >
+                {t('nav.getStarted')}
+                <PiArrowRightBold className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
           </motion.div>
-        </section>
 
+        </section>
 
       </main>
     </Layout>

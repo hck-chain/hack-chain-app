@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEducatorProfile } from '@/hooks/useEducatorProfile';
 import type { EducatorProfile as EducatorProfileType } from '@/types/dashboard';
 import { AnimeParticles } from '@/components/animations/AnimeComponents';
+import { useTranslation } from 'react-i18next';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -93,6 +94,7 @@ function StatCard({
 const EducatorProfile = () => {
   const { wallet } = useParams<{ wallet: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
 
   const displayName =
@@ -118,7 +120,7 @@ const EducatorProfile = () => {
               className="flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full px-4 -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Volver</span>
+              <span className="hidden sm:inline">{t('backBtn')}</span>
             </Button>
 
             <img src={HackChainLogo} alt="HackChain" className="h-10 object-contain" />
@@ -128,14 +130,14 @@ const EducatorProfile = () => {
           {isError && (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
               <img src="/icons/graduado.avif" className="h-12 w-12 mb-3 opacity-30 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
-              <p className="text-base">No se encontró el educador.</p>
+              <p className="text-base">{t('educatorNotFound')}</p>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate(-1)}
                 className="mt-4 text-blue-400 hover:text-blue-300"
               >
-                Volver
+                {t('backBtn')}
               </Button>
             </div>
           )}
@@ -187,7 +189,7 @@ const EducatorProfile = () => {
                       </span>
                       <span className="flex items-center gap-1.5 text-xs text-white drop-shadow-md font-bold">
                         <img src="/icons/calendario.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                        Desde {formatDate(educator.joined_at)}
+                        {t('since')} {formatDate(educator.joined_at)}
                       </span>
                     </div>
 
@@ -204,12 +206,12 @@ const EducatorProfile = () => {
               <div className="grid grid-cols-2 gap-4">
                 <StatCard
                   icon={"/icons/medalla.avif"}
-                  label="Certificados emitidos"
+                  label={t('certificatesIssued')}
                   value={educator.certificates_issued}
                 />
                 <StatCard
                   icon={"/icons/talentsPlattform.avif"}
-                  label="Talentos formados"
+                  label={t('talentsFormed')}
                   value={educator.talents_formed}
                 />
               </div>
@@ -222,7 +224,7 @@ const EducatorProfile = () => {
                   <div className="relative z-10">
                     <h2 className="text-sm font-bold uppercase tracking-widest text-white drop-shadow-md mb-3 flex items-center gap-2">
                       <img src="/icons/libroNeon.avif" className="h-6 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                       Áreas de conocimiento
+                       {t('knowledgeAreas.label')}
                     </h2>
                     <div className="flex flex-wrap gap-2">
                       {educator.knowledge_areas.map((area) => (
@@ -245,7 +247,7 @@ const EducatorProfile = () => {
                 <AnimeParticles />
                 <div className="relative z-10 flex flex-col items-center justify-center text-slate-300">
                   <img src="/icons/graduado.avif" className="h-10 w-10 mb-2 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                  <p className="text-sm font-bold drop-shadow-md text-white">Cursos y contenido — próximamente.</p>
+                  <p className="text-sm font-bold drop-shadow-md text-white">{t('comingSoonContent')}</p>
                 </div>
               </div>
             </motion.div>

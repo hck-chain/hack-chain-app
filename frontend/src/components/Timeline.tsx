@@ -73,10 +73,10 @@ export const Timeline = () => {
         transition={{ duration: 0.6 }}
         className="text-center mb-24 relative z-10"
       >
-        <h3 className="text-sm font-exo tracking-widest text-purple-400 font-bold mb-3 uppercase">
+        <h3 className="text-sm font-title tracking-[0.22em] text-white/35 font-bold mb-3 uppercase">
           {t('team.timeline.subtitle')}
         </h3>
-        <h2 className="text-4xl md:text-5xl font-title font-bold text-white drop-shadow-md">
+        <h2 className="text-4xl md:text-5xl font-title font-black tracking-tight text-white drop-shadow-md">
           {t('team.timeline.title')}
         </h2>
       </motion.div>
@@ -114,20 +114,20 @@ export const Timeline = () => {
 
                 {/* Content Card */}
                 <div className="w-full md:w-[45%] pl-16 md:pl-0">
-                  <div className={`p-6 bg-slate-900/60 backdrop-blur-2xl rounded-2xl border border-purple-500/10 border-t-purple-500/40 border-l-purple-500/40 shadow-xl relative group transition-all duration-300 hover:border-purple-400/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]`}>
+                  <div className={`p-6 bg-[#0B0B0F]/60 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-xl relative group transition-all duration-300 hover:border-white/20 glass hover:glass-hover`}>
                     
                     {/* Connecting Line (Desktop) */}
                     <div className={`hidden md:block absolute top-1/2 transform -translate-y-1/2 w-8 h-[2px] bg-purple-500/30 ${isEven ? 'left-full' : 'right-full'}`}></div>
 
-                    <div className="inline-block px-3 py-1 mb-4 text-xs font-bold font-exo text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded-full">
+                    <div className="inline-block px-3 py-1 mb-4 text-xs font-bold font-title text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded-full">
                       {t(`team.timeline.${item.id}.date`)}
                     </div>
                     
-                    <h3 className="text-xl font-bold font-exo text-white mb-2 group-hover:text-purple-300 transition-colors">
+                    <h3 className="text-xl font-bold font-title text-white mb-2 group-hover:text-purple-300 transition-colors">
                       {t(`team.timeline.${item.id}.title`)}
                     </h3>
                     
-                    <p className="text-slate-300 font-lato text-sm leading-relaxed">
+                    <p className="text-white/60 font-body text-base font-medium leading-relaxed">
                       {t(`team.timeline.${item.id}.description`)}
                     </p>
                   </div>

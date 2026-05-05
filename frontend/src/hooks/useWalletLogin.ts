@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 
 const buildSignMessage = (address: string, nonce: string) =>
-  `HackChain wants you to sign in with your Ethereum account:\n${address}\n\nSign in to HackChain\n\nNonce: ${nonce}`;
+    `HackChain wants you to sign in with your Ethereum account:\n${address}\n\nSign in to HackChain\n\nNonce: ${nonce}`;
 
 interface WalletLoginResponse {
     message: string;
@@ -43,8 +43,8 @@ export const useWalletLogin = () => {
                 walletAddress: data.user.wallet_address,
             });
 
-            if (data.user.role === 'student')        navigate('/dashboard/talent');
-            else if (data.user.role === 'issuer')    navigate('/educator/dashboard');
+            if (data.user.role === 'student') navigate('/dashboard/talent');
+            else if (data.user.role === 'issuer') navigate('/educator/dashboard');
             else if (data.user.role === 'recruiter') navigate('/dashboard/recruiter');
             else navigate('/');
         },
@@ -52,7 +52,7 @@ export const useWalletLogin = () => {
             const notFound = err instanceof ApiServiceError && err.status === 404;
             setIsWalletNotFound(notFound);
             setError(err.message);
-            appKit.disconnect().catch(() => {});
+            appKit.disconnect().catch(() => { });
         }
     });
 
@@ -67,7 +67,7 @@ export const useWalletLogin = () => {
             // tras un logout), forzamos disconnect antes de abrir para que el
             // modal muestre la pantalla de connect y no la de cuenta ya conectada.
             if (appKit.getAddress()) {
-                await appKit.disconnect().catch(() => {});
+                await appKit.disconnect().catch(() => { });
             }
 
             // Forzamos el view 'Connect' para evitar que AppKit abra la vista
