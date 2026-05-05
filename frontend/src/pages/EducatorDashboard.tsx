@@ -1,6 +1,6 @@
 import Layout from '@/components/Layout';
 import { LanguageToggle } from '@/components/LanguageToggle';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check } from 'lucide-react';
+import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
@@ -196,7 +196,7 @@ const EducatorDashboard = () => {
     window.location.href = '/login';
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.name === 'logo' && e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -204,22 +204,23 @@ const EducatorDashboard = () => {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      setForm({ ...form, logo: URL.createObjectURL(file) });
+      setForm(prev => ({ ...prev, logo: URL.createObjectURL(file) }));
     } else {
-      setForm({ ...form, [e.target.name]: e.target.value });
+      const { name, value } = e.target;
+      setForm(prev => ({ ...prev, [name]: value }));
     }
-  };
+  }, []);
 
-  const handleTalentChange = (walletAddress: string) => {
+  const handleTalentChange = useCallback((walletAddress: string) => {
     const selectedTalent = talents.find(s => s.user.wallet_address === walletAddress);
     if (selectedTalent) {
-      setForm({
-        ...form,
+      setForm(prev => ({
+        ...prev,
         talentWallet: selectedTalent.user.wallet_address,
-        talentName: selectedTalent.user.name
-      });
+        talentName: selectedTalent.user.name,
+      }));
     }
-  };
+  }, [talents]);
 
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -404,9 +405,7 @@ const EducatorDashboard = () => {
         isPending={deleteAccount.isPending}
       />
       <Layout>
-        {/* Container principal transparente para dejar ver el fondo global */}
-        <div className="min-h-screen relative font-sans text-slate-200">
-
+        <div className="min-h-screen relative font-body text-slate-200">
           <motion.main
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -414,38 +413,38 @@ const EducatorDashboard = () => {
             className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
           >
 
-            {/* Header Section */}
-            <header className="mb-8 sm:mb-16 md:mb-28 grid grid-cols-1 md:grid-cols-3 items-start md:items-center gap-6">
+            {/* ── Header ── */}
+            <header className="mb-8 grid grid-cols-2 md:grid-cols-3 items-center gap-4">
 
-              {/* Columna Izquierda: Títulos */}
               <div className="flex flex-col">
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-2">
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                <p className="font-title text-[10px] sm:text-xs uppercase tracking-[0.22em] text-white/35 font-bold mb-1.5 sm:mb-3">
+                  {t('educatorDashboard.roleName')}
+                </p>
+                <h1 className="font-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.02] mb-1 sm:mb-2">
+                  <span className="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(168,85,247,0.55)]">
                     {t('educatorDashboard.title')}
                   </span>
                 </h1>
-                <p className="text-lg text-slate-400 font-light">
+                <p className="hidden sm:block font-body text-base text-white/50 font-medium">
                   {t('educatorDashboard.subtitle')}
                 </p>
               </div>
 
-              {/* Columna Central: Logo (Centrado real y seguro) */}
               <div className="hidden md:flex justify-center">
-                <img src={HackChainLogo} alt="Logo" className="h-16 md:h-24 object-contain" />
+                <img src={HackChainLogo} alt="HackChain" className="h-16 md:h-20 object-contain" />
               </div>
 
-              {/* Columna Derecha: Popover de Usuario */}
               <div className="flex justify-end items-center gap-2">
                 <LanguageToggle />
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
+                      className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-3 sm:px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
                     >
                       <div className="flex flex-row items-baseline gap-1 overflow-hidden">
-                        <span className="text-sm text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
-                        <span className="text-sm font-bold text-white truncate max-w-[120px] lg:max-w-[180px]">
+                        <span className="hidden sm:inline text-xs text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
+                        <span className="text-sm font-bold text-white truncate max-w-[100px] sm:max-w-[140px]">
                           {userData.organization_name || t('educatorDashboard.roleName')}
                         </span>
                       </div>
@@ -464,32 +463,30 @@ const EducatorDashboard = () => {
                       <div className="flex items-center gap-4 pb-4 border-b border-purple-500/20">
                         <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="md" />
                         <div className="flex-1 overflow-hidden">
-                          <h3 className="text-base font-bold text-white truncate">
+                          <h3 className="font-title text-base font-bold text-white truncate">
                             {userData.organization_name || "My Organization"}
                           </h3>
                           <p className="text-xs text-purple-400 font-medium">{userData.role || t('educatorDashboard.roleName')}</p>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                          <FileText className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <img src="/icons/documento.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.certificatesIssued')}</p>
-                            <p className="text-sm text-slate-200 truncate">{certificatesIssued > 0 ? certificatesIssued : t('educatorDashboard.noneYet')}</p>
+                            <p className="text-sm text-slate-200">{certificatesIssued > 0 ? certificatesIssued : t('educatorDashboard.noneYet')}</p>
                           </div>
                         </div>
-
                         <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                          <Briefcase className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <img src="/icons/maletinNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.roleLabel')}</p>
                             <p className="text-sm text-slate-200">{t('educatorDashboard.roleName')}</p>
                           </div>
                         </div>
-
                         <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                          <Wallet className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <img src="/icons/wallet.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.walletLabel')}</p>
                             <div className="flex items-center gap-2">
@@ -515,10 +512,9 @@ const EducatorDashboard = () => {
                             </div>
                           </div>
                         </div>
-
                         {userData.email && (
                           <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
-                            <Mail className="h-4 w-4 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                            <img src="/icons/mail.avif" className="h-8 w-8 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorDashboard.emailLabel', 'Correo')}</p>
                               <p className="text-sm text-slate-200 font-mono">
@@ -538,7 +534,7 @@ const EducatorDashboard = () => {
                           variant="outline"
                           className="w-full border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30"
                         >
-                          <UserPen className="h-4 w-4 mr-2" />
+                          <img src="/icons/editProfile.avif" className="h-4 w-4 mr-2 object-contain drop-shadow-md" />
                           Edit profile
                         </Button>
                         <Button
@@ -546,7 +542,7 @@ const EducatorDashboard = () => {
                           variant="outline"
                           className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30"
                         >
-                          <LogOut className="h-4 w-4 mr-2" />
+                          <img src="/icons/logout.avif" className="h-5 w-5 mr-2 object-contain drop-shadow-md" />
                           {t('educatorDashboard.logout')}
                         </Button>
                         <Button
@@ -554,7 +550,7 @@ const EducatorDashboard = () => {
                           variant="ghost"
                           className="w-full text-slate-500 hover:text-red-400 hover:bg-red-500/5 text-xs"
                         >
-                          <Trash2 className="h-3 w-3 mr-2" />
+                          <img src="/icons/delete.avif" className="h-5 w-5 mr-2 object-contain drop-shadow-md" />
                           Delete account
                         </Button>
                       </div>
@@ -564,43 +560,75 @@ const EducatorDashboard = () => {
               </div>
             </header>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            {/* ── Stat chips ── */}
+            <div className="flex flex-wrap gap-3 mb-10">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
+                <div className="h-8 w-8 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
+                  <img src="/icons/medalla.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                </div>
+                <div>
+                  <p className="font-title text-[10px] uppercase tracking-[0.18em] text-white/30 font-bold leading-none mb-1">
+                    {t('educatorDashboard.certificatesIssued')}
+                  </p>
+                  <p className="font-title text-lg font-black text-white leading-none">{certificatesIssued}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
+                <div className="h-8 w-8 rounded-xl bg-fuchsia-500/15 flex items-center justify-center shrink-0">
+                  <img src="/icons/talentsPlattform.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]" />
+                </div>
+                <div>
+                  <p className="font-title text-[10px] uppercase tracking-[0.18em] text-white/30 font-bold leading-none mb-1">
+                    {t('educatorDashboard.talentsAvailable', 'Talentos en plataforma')}
+                  </p>
+                  <p className="font-title text-lg font-black text-white leading-none">{talents.length}</p>
+                </div>
+              </div>
+            </div>
 
-              {/* Left Column: Form (Create) */}
+            {/* ── Main grid ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+              {/* Left: Form */}
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.2 }}
                 className="lg:col-span-5 order-2 lg:order-1"
               >
-                <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
-                  {/* Internal decorative gradient */}
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative overflow-hidden bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-5 sm:p-8 shadow-2xl">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+                  <div className="absolute -top-24 -right-24 w-56 h-56 bg-purple-500/10 rounded-full blur-[70px] pointer-events-none" />
 
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-2">{t('educatorDashboard.formTitle')}</h2>
-                    <p className="text-slate-400 text-sm">{t('educatorDashboard.formSubtitle')}</p>
+                  <div className="relative z-10 mb-6">
+                    <p className="font-title text-[10px] uppercase tracking-[0.22em] text-purple-400/70 font-bold mb-1.5">
+                      {t('educatorDashboard.formTitle')}
+                    </p>
+                    <p className="font-body text-sm text-white/40">{t('educatorDashboard.formSubtitle')}</p>
                   </div>
 
-                  <form className="space-y-6">
+                  <form className="relative z-10 space-y-5">
                     <div className="space-y-4">
                       <div className="group/input">
-                        <Label htmlFor="certificateTitle" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldCertTitle')}</Label>
+                        <Label htmlFor="certificateTitle" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                          {t('educatorDashboard.fieldCertTitle')}
+                        </Label>
                         <Input
                           id="certificateTitle"
                           name="certificateTitle"
                           value={form.certificateTitle}
                           onChange={handleChange}
                           placeholder={t('educatorDashboard.fieldCertTitlePlaceholder')}
-                          className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
+                          className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all"
                         />
                       </div>
 
                       <div className="group/input">
-                        <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldTalentName')}</Label>
+                        <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                          {t('educatorDashboard.fieldTalentName')}
+                        </Label>
                         <Select onValueChange={handleTalentChange} value={form.talentWallet}>
-                          <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-12">
+                          <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-11">
                             <SelectValue placeholder={t('educatorDashboard.selectTalent')} />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-900 border-white/10 text-white">
@@ -611,64 +639,70 @@ const EducatorDashboard = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                        <p className="text-[10px] text-slate-500 mt-1 pl-1">
+                        <p className="text-[10px] text-slate-600 mt-1.5 pl-1 font-mono">
                           {t('educatorDashboard.selectedWallet')} {form.talentWallet || t('educatorDashboard.selectedWalletNone')}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="group/input">
-                          <Label htmlFor="issuer" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldIssuer')}</Label>
+                          <Label htmlFor="issuer" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                            {t('educatorDashboard.fieldIssuer')}
+                          </Label>
                           <Input
                             id="issuer"
                             name="issuer"
                             value={form.issuer}
                             onChange={handleChange}
                             placeholder={t('educatorDashboard.fieldIssuerPlaceholder')}
-                            className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
+                            className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all"
                           />
                         </div>
                         <div className="group/input">
-                          <Label htmlFor="issueDate" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldDate')}</Label>
+                          <Label htmlFor="issueDate" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                            {t('educatorDashboard.fieldDate')}
+                          </Label>
                           <Input
                             id="issueDate"
                             name="issueDate"
                             type="date"
                             value={form.issueDate}
                             onChange={handleChange}
-                            className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all [color-scheme:dark]"
+                            className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all [color-scheme:dark]"
                           />
                         </div>
                       </div>
 
                       <div className="group/input">
-                        <Label htmlFor="certificateType" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldType')}</Label>
+                        <Label htmlFor="certificateType" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                          {t('educatorDashboard.fieldType')}
+                        </Label>
                         <Input
                           id="certificateType"
                           name="certificateType"
                           value={form.certificateType}
                           onChange={handleChange}
                           placeholder={t('educatorDashboard.fieldTypePlaceholder')}
-                          className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-12 transition-all"
+                          className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all"
                         />
                       </div>
 
                       <div className="group/input">
-                        <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 block group-focus-within/input:text-purple-400 transition-colors">{t('educatorDashboard.fieldLogo')}</Label>
-                        <div className="relative">
-                          <Input
-                            id="logo"
-                            name="logo"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleChange}
-                            className="bg-black/20 border-white/10 file:bg-white/10 file:text-white file:border-0 file:rounded-lg file:px-4 file:mr-4 hover:file:bg-white/20 text-slate-400 cursor-pointer rounded-xl pt-2 pb-2 h-auto transition-all"
-                          />
-                        </div>
+                        <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                          {t('educatorDashboard.fieldLogo')}
+                        </Label>
+                        <Input
+                          id="logo"
+                          name="logo"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleChange}
+                          className="bg-black/20 border-white/10 file:bg-white/10 file:text-white file:border-0 file:rounded-lg file:px-4 file:mr-4 hover:file:bg-white/20 text-slate-400 cursor-pointer rounded-xl pt-2 pb-2 h-auto transition-all"
+                        />
                       </div>
                     </div>
 
-                    <div className="pt-6 flex flex-col sm:flex-row gap-4">
+                    <div className="pt-4 flex flex-col sm:flex-row gap-3">
                       <Button
                         type="button"
                         onClick={handleCreateCertificate}
@@ -676,7 +710,10 @@ const EducatorDashboard = () => {
                         className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                         {isLoading ? (
-                          <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('educatorDashboard.creating')}</span>
+                          <span className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            {t('educatorDashboard.creating')}
+                          </span>
                         ) : t('educatorDashboard.createCertificate')}
                       </Button>
                       <Button
@@ -692,20 +729,25 @@ const EducatorDashboard = () => {
                 </div>
               </motion.div>
 
-              {/* Right Column: Preview (Large) */}
+              {/* Right: Preview */}
               <motion.div
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
+                transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.4 }}
                 className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
               >
-                <div className="bg-slate-900/20 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 md:p-8 flex flex-col items-center justify-center min-h-[600px] relative">
-                  {/* "Preview" Label */}
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                    <span className="text-xs font-medium tracking-widest uppercase text-slate-400">{t('educatorDashboard.livePreview')}</span>
+                <div className="relative overflow-hidden bg-white/[0.02] backdrop-blur-sm border border-white/[0.07] rounded-[28px] sm:rounded-[40px] p-5 sm:p-8 lg:p-10 flex flex-col items-center justify-center min-h-[380px] lg:min-h-[620px]">
+                  <div className="absolute top-0 right-0 w-72 h-72 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-56 h-56 bg-fuchsia-500/10 rounded-full blur-[70px] pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent" />
+
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
+                    <span className="font-title text-[10px] font-bold tracking-[0.22em] uppercase text-white/30">
+                      {t('educatorDashboard.livePreview')}
+                    </span>
                   </div>
 
-                  <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
+                  <div className="transform transition-transform hover:scale-[1.02] duration-500 relative z-10" ref={cardRef}>
                     <CertificateCard
                       certificateType={form.certificateType || "Certificate of Completion"}
                       name={form.talentName || 'Talent Name'}
@@ -718,9 +760,11 @@ const EducatorDashboard = () => {
                     />
                   </div>
 
-                  <div className="mt-3 text-center max-w-md">
-                    <h3 className="text-white font-semibold text-lg mb-1">{t('educatorDashboard.reviewTitle')}</h3>
-                    <p className="text-slate-500 text-sm">
+                  <div className="mt-5 text-center max-w-md relative z-10">
+                    <p className="font-title text-[10px] uppercase tracking-[0.22em] text-white/25 font-bold mb-1.5">
+                      {t('educatorDashboard.reviewTitle')}
+                    </p>
+                    <p className="font-body text-sm text-white/35">
                       {t('educatorDashboard.reviewDesc')}
                     </p>
                   </div>

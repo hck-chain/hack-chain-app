@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Users, Award, GraduationCapIcon, ArrowDownNarrowWideIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { EducatorRegistrationForm } from "@/components/auth/educatorRegistrationForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +75,7 @@ export default function RegisterEducator() {
                 <LanguageToggle />
                 <Link to="/register" className="flex items-center gap-2 group">
                   <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:-translate-x-1" />
-                  <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-purple-400 transition-colors duration-300">
+                  <span className="text-sm md:text-base font-lato font-medium text-slate-300 group-hover:text-blue-400 transition-colors duration-300">
                     {t('registerEducator.back')}
                   </span>
                 </Link>
@@ -109,8 +109,8 @@ export default function RegisterEducator() {
                 {/* Features */}
                 <div className="space-y-6">
                   <div className="flex items-start gap-4 group p-6 glass rounded-xl border border-blue-500/30 hover:border-blue-500/50 transition-all duration-300 reveal-item">
-                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
-                      <ArrowDownNarrowWideIcon className="h-8 w-8 text-white" />
+                    <div className="flex-shrink-0 w-20 h-20 bg-blue-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-[0_0_15px_rgba(59,130,246,0.3)] group-hover:shadow-[0_0_22px_rgba(59,130,246,0.5)]">
+                      <img src="/icons/educatorExperience.avif" alt="Educator Experience" className="h-14 w-14 object-contain drop-shadow-md" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-xl font-exo font-bold mb-2 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
@@ -121,19 +121,19 @@ export default function RegisterEducator() {
                       </p>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                           <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p1')}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                           <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p2')}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                           <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p3')}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                           <span className="text-[13px] text-slate-400 font-lato">{t('registerEducator.p4')}</span>
                         </div>
                       </div>
@@ -142,22 +142,22 @@ export default function RegisterEducator() {
 
                   {/* Additional Benefits */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 reveal-item">
-                    <div className="flex items-center gap-3 p-4 glass rounded-lg border border-cyan-500/20 hover:border-cyan-500/30 transition-all duration-200">
-                      <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                        <GraduationCapIcon className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-3 p-4 glass rounded-lg border border-blue-500/20 hover:border-blue-500/30 transition-all duration-200">
+                      <div className="w-12 h-12 flex-shrink-0 bg-blue-400 rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                        <img src="/icons/graduado.avif" alt="Verified Educator" className="h-8 w-8 object-contain drop-shadow-sm" />
                       </div>
                       <div>
-                        <h4 className="font-exo font-semibold text-cyan-400">{t('registerEducator.b1Title')}</h4>
+                        <h4 className="font-exo font-semibold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t('registerEducator.b1Title')}</h4>
                         <p className="text-xs text-slate-400 font-lato">{t('registerEducator.b1Desc')}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 glass rounded-lg border border-cyan-500/20 hover:border-cyan-500/30 transition-all duration-200">
-                      <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                        <Users className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-3 p-4 glass rounded-lg border border-blue-500/20 hover:border-blue-500/30 transition-all duration-200">
+                      <div className="w-12 h-12 flex-shrink-0 bg-blue-400 rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                        <img src="/icons/topRecruiters.avif" alt="Global Reach" className="h-8 w-8 object-contain drop-shadow-sm" />
                       </div>
                       <div>
-                        <h4 className="font-exo font-semibold text-cyan-400">{t('registerEducator.b2Title')}</h4>
+                        <h4 className="font-exo font-semibold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t('registerEducator.b2Title')}</h4>
                         <p className="text-xs text-slate-400 font-lato">{t('registerEducator.b2Desc')}</p>
                       </div>
                     </div>

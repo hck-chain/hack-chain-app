@@ -98,7 +98,7 @@ export function UserRegistrationForm() {
                       onFocus={() => handleFieldTouch('name')}
                       {...field}
                     />
-                    {isFieldValid('name') && <Check className="absolute right-3 top-3 h-4 w-4 text-purple-400" />}
+                    {isFieldValid('name') && <Check className="absolute right-3 top-3 h-4 w-4 text-pink-400" />}
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -121,7 +121,7 @@ export function UserRegistrationForm() {
                       onFocus={() => handleFieldTouch('lastName')}
                       {...field}
                     />
-                    {isFieldValid('lastName') && <Check className="absolute right-3 top-3 h-4 w-4 text-purple-400" />}
+                    {isFieldValid('lastName') && <Check className="absolute right-3 top-3 h-4 w-4 text-pink-400" />}
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -145,7 +145,7 @@ export function UserRegistrationForm() {
                       onFocus={() => handleFieldTouch('email')}
                       {...field}
                     />
-                    {isFieldValid('email') && <Check className="absolute right-3 top-3 h-4 w-4 text-purple-400" />}
+                    {isFieldValid('email') && <Check className="absolute right-3 top-3 h-4 w-4 text-pink-400" />}
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -155,7 +155,7 @@ export function UserRegistrationForm() {
 
           <Button
             type="submit"
-            className="w-full font-lato text-base bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(192,38,211,0.4)] hover:shadow-[0_0_30px_rgba(192,38,211,0.6)] hover:-translate-y-0.5"
+            className="w-full font-lato text-base bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold py-3 mt-6 transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] hover:-translate-y-0.5"
             disabled={isLoading}
           >
             {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('registrationForm.creating')}</> : t('registrationForm.create')}
@@ -165,7 +165,7 @@ export function UserRegistrationForm() {
           <div className="mt-6 text-center">
             <p className="text-gray-400 font-lato text-sm">
               {t('registerUser.already')}{' '}
-              <Link to="/login" className="text-blue-400 hover:text-blue-300 font-bold underline-offset-4 hover:underline transition-all">
+              <Link to="/login" className="text-pink-400 hover:text-pink-300 font-bold underline-offset-4 hover:underline transition-all">
                 {t('registerUser.signIn')}
               </Link>
             </p>

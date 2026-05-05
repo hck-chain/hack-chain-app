@@ -52,13 +52,13 @@ const ARCS: ArcLink[] = [
   { startLat: 25.2048, startLng: 55.2708, endLat: 48.8566, endLng: 2.3522, color: [LIME, PURPLE] },
 ];
 
-const GlobeViz = () => {
+const GlobeViz = ({ mobile = false }: { mobile?: boolean }) => {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const reflCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [size, setSize] = useState(480);
+  const [size, setSize] = useState(mobile ? 320 : 480);
 
-  const arcsData = useMemo(() => ARCS, []);
+  const arcsData = useMemo(() => (mobile ? ARCS.slice(0, 6) : ARCS), [mobile]);
   const pointsData = useMemo(() => CITIES, []);
 
   // Responsive size
@@ -66,34 +66,32 @@ const GlobeViz = () => {
     const updateSize = () => {
       if (containerRef.current) {
         const w = containerRef.current.offsetWidth;
-        setSize(Math.min(w, 560));
+        setSize(Math.min(w, mobile ? 360 : 560));
       }
     };
     updateSize();
     const ro = new ResizeObserver(updateSize);
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [mobile]);
 
   // Globe controls
   useEffect(() => {
     if (!globeRef.current) return;
     const controls = globeRef.current.controls();
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.4;
+    controls.autoRotateSpeed = mobile ? 0.25 : 0.4;
     controls.enableZoom = false;
     controls.enablePan = false;
     globeRef.current.pointOfView({ lat: 20, lng: 10, altitude: 2.2 });
-  }, []);
 
-  // Real-time canvas reflection
-  // Works by copying the WebGL canvas pixels every frame into a 2D canvas,
-  // drawn flipped (scaleY -1) with a gradient fade-out mask.
-  // preserveDrawingBuffer: true is required on the renderer so pixels
-  // are available after the frame is composited.
+  }, [mobile]);
+
+  // Real-time canvas reflection — disabled on mobile (GPU-CPU pixel readback is
+  // too expensive on mobile and causes scroll jank).
   useEffect(() => {
     const reflCanvas = reflCanvasRef.current;
-    if (!reflCanvas) return;
+    if (!reflCanvas || mobile) return;
     const ctx = reflCanvas.getContext('2d');
     if (!ctx) return;
 
@@ -166,8 +164,13 @@ const GlobeViz = () => {
         width={size}
         height={size}
         backgroundColor="rgba(0,0,0,0)"
-        rendererConfig={{ preserveDrawingBuffer: true }}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+        rendererConfig={{ preserveDrawingBuffer: !mobile }}
+        onGlobeReady={() => {
+          if (mobile && globeRef.current) {
+            globeRef.current.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1));
+          }
+        }}
+        globeImageUrl="/images/earth-dark.jpg"
         atmosphereColor="hsl(263,72%,55%)"
         atmosphereAltitude={0.25}
         arcsData={arcsData}
@@ -184,22 +187,24 @@ const GlobeViz = () => {
         pointsMerge={false}
       />
 
-      {/* Reflection: absolutely positioned — does NOT affect layout height */}
-      <canvas
-        ref={reflCanvasRef}
-        style={{
-          position: 'absolute',
-          top: '100%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          marginTop: -Math.round(size * 0.26),
-          width: size,
-          height: reflH,
-          pointerEvents: 'none',
-          opacity: 0.9,
-          display: 'block',
-        }}
-      />
+      {/* Reflection: disabled on mobile to avoid GPU-CPU readback jank */}
+      {!mobile && (
+        <canvas
+          ref={reflCanvasRef}
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginTop: -Math.round(size * 0.26),
+            width: size,
+            height: reflH,
+            pointerEvents: 'none',
+            opacity: 0.9,
+            display: 'block',
+          }}
+        />
+      )}
     </div>
   );
 };

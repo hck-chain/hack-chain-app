@@ -45,3 +45,21 @@ export function useUpdateEducatorPhoto() {
     },
   });
 }
+
+
+async function deletePhoto() {
+  await api.patch('/api/issuers/me/photo', { photo_url: null });
+}
+
+export function useDeleteEducatorPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deletePhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-educator-profile'] });
+    },
+    onError: (error: Error) => {
+      console.error('Photo deletion failed:', error.message);
+    },
+  });
+}

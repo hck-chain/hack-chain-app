@@ -45,7 +45,7 @@ export function DeleteAccountModal({
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <img src="/icons/warning.avif" className="h-6 w-6 object-contain drop-shadow-md" alt="Warning" />
             </div>
             <DialogTitle className="text-white text-lg">{t('deleteAccount.title')}</DialogTitle>
           </div>

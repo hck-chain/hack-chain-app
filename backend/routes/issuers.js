@@ -234,14 +234,18 @@ router.post("/mint", authenticate, async (req, res) => {
 // PATCH /api/issuers/me/photo  — update own profile photo (ipfs:// URI only)
 router.patch("/me/photo", authenticate, async (req, res) => {
   try {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only educator accounts can update this profile" });
+    }
+
     const wallet = req.auth.wallet.toLowerCase();
     const { photo_url } = req.body;
 
-    if (!photo_url || typeof photo_url !== "string") {
-      return res.status(400).json({ error: "photo_url is required" });
+    if (photo_url !== null && typeof photo_url !== "string") {
+      return res.status(400).json({ error: "photo_url is required to be a string or null" });
     }
 
-    if (!/^ipfs:\/\/[a-zA-Z0-9]+$/.test(photo_url)) {
+    if (photo_url && typeof photo_url === "string" && !/^ipfs:\/\/[a-zA-Z0-9]+$/.test(photo_url)) {
       return res.status(400).json({ error: "photo_url must be a valid ipfs:// URI" });
     }
 

@@ -391,19 +391,19 @@ const PhoneOrbit = () => {
         >
           <div>
             <p className="font-title text-[11px] uppercase tracking-[0.35em] text-white/45 font-bold mb-5">
-              {t('educatorDashboard.eyebrow')}
+              {t('educatorLanding.eyebrow')}
             </p>
             <h3 className="font-title text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.06] text-white mb-6">
-              {t('educatorDashboard.title1')}
+              {t('educatorLanding.title1')}
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-fuchsia-400 to-purple-400">
-                {t('educatorDashboard.title2')}
+                {t('educatorLanding.title2')}
               </span>
             </h3>
             <p className="font-body text-lg sm:text-xl text-white/60 leading-relaxed mb-4 max-w-2xl">
-              {t('educatorDashboard.subtitle')}
+              {t('educatorLanding.subtitle')}
             </p>
             <p className="font-body text-base sm:text-lg text-white/50 leading-relaxed mb-8 max-w-2xl">
-              {t('educatorDashboard.detail')}
+              {t('educatorLanding.detail')}
             </p>
           </div>
 

@@ -75,18 +75,28 @@ export const useWalletLogin = () => {
             await appKit.open({ view: 'Connect' });
 
             const walletAddress = await new Promise<string | null>((resolve) => {
+                let resolved = false;
+                let modalClosedTimer: ReturnType<typeof setTimeout> | null = null;
+
+                const finish = (value: string | null) => {
+                    if (resolved) return;
+                    resolved = true;
+                    if (modalClosedTimer) clearTimeout(modalClosedTimer);
+                    unsubscribeAccount();
+                    unsubscribeEvents();
+                    resolve(value);
+                };
+
                 const unsubscribeAccount = appKit.subscribeAccount((account) => {
-                    if (account.address) {
-                        unsubscribeAccount();
-                        resolve(account.address);
-                    }
+                    if (account.address) finish(account.address);
                 });
 
                 const unsubscribeEvents = appKit.subscribeEvents((event) => {
                     if (event.data.event === 'MODAL_CLOSE') {
-                        unsubscribeAccount();
-                        unsubscribeEvents();
-                        resolve(null);
+                        // On iOS with mobile wallets, the modal closes when the user is
+                        // redirected to the native wallet app. We wait a few seconds to
+                        // let the account resolve before treating this as a cancellation.
+                        modalClosedTimer = setTimeout(() => finish(null), 4000);
                     }
                 });
             });
@@ -104,6 +114,11 @@ export const useWalletLogin = () => {
 
             const walletProvider = appKit.getProvider('eip155');
             if (!walletProvider) throw new Error("Wallet provider unavailable");
+
+            // On iOS, WalletConnect needs a moment to re-establish the relay session
+            // after the deep-link return from the native wallet before it can send
+            // the sign request reliably.
+            await new Promise(r => setTimeout(r, 600));
 
             const signer = new ethers.providers.Web3Provider(walletProvider as ethers.providers.ExternalProvider).getSigner();
             const signature = await signer.signMessage(message);
