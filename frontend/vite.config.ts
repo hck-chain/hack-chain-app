@@ -46,6 +46,21 @@ export default defineConfig(({ mode }) => ({
     css: false,
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Pin React to the workspace copy in the test environment only. The
+      // monorepo root ships React 19 for unrelated tooling; without this
+      // alias, vitest loads two React majors and breaks hooks. Limited to
+      // `test.alias` so the production build keeps its existing resolution.
+      react: path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+    },
+    server: {
+      deps: {
+        // Force these packages through Vite's transform pipeline so the
+        // resolve.alias for "react" applies inside their bare imports too.
+        // Without this, externalized deps load root React (19) while the
+        // app gets workspace React (18) → broken hooks.
+        inline: [/@tanstack\/react-query/, /@testing-library\/react/],
+      },
     },
   },
 }));

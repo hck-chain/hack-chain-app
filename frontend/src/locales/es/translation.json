@@ -190,7 +190,11 @@
     "createOne": "Crear una",
     "success": "¡Inicio de sesión exitoso!",
     "walletNotFound": "Esta wallet no está registrada.",
-    "registerHere": "Crea una cuenta para comenzar"
+    "registerHere": "Crea una cuenta para comenzar",
+    "walletConnected": "Wallet conectada",
+    "signToLogin": "Firmar para entrar",
+    "signing": "Esperando la firma en tu wallet...",
+    "useDifferentWallet": "Usar otra wallet"
   },
   "dashboard": {
     "logoutTitle": "Sesión cerrada",

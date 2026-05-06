@@ -4,3 +4,7 @@
 .env.*.local
 .claude/
 .cursor/
+.md
+.agents/
+skills-lock.json
+AGENTS.md
