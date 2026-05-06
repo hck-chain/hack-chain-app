@@ -39,16 +39,24 @@ const Contact = () => {
     {
       key: 'talent',
       label: t('contact.roleTalent'),
-      icon: <User className="w-5 h-5" />,
+      icon: (
+        <div className="bg-pink-400 rounded-md p-1 flex items-center justify-center shadow-[0_0_10px_rgba(236,72,153,0.4)]">
+          <img src="/icons/talentExperience.avif" alt="Talent" className="w-5 h-5 object-contain" />
+        </div>
+      ),
       faqIndex: 2,
-      color: 'text-purple-400',
-      border: 'border-purple-500/40',
-      activeBg: 'bg-purple-500/10',
+      color: 'text-pink-400',
+      border: 'border-pink-500/40',
+      activeBg: 'bg-pink-500/10',
     },
     {
       key: 'educator',
       label: t('contact.roleEducator'),
-      icon: <Award className="w-5 h-5" />,
+      icon: (
+        <div className="bg-blue-400 rounded-md p-1 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.4)]">
+          <img src="/icons/educatorExperience.avif" alt="Educator" className="w-5 h-5 object-contain" />
+        </div>
+      ),
       faqIndex: 3,
       color: 'text-blue-400',
       border: 'border-blue-500/40',
@@ -57,11 +65,15 @@ const Contact = () => {
     {
       key: 'recruiter',
       label: t('contact.roleRecruiter'),
-      icon: <Building className="w-5 h-5" />,
+      icon: (
+        <div className="bg-green-400 rounded-md p-1 flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.4)]">
+          <img src="/icons/recruiterExperience.avif" alt="Recruiter" className="w-5 h-5 object-contain" />
+        </div>
+      ),
       faqIndex: 4,
-      color: 'text-cyan-400',
-      border: 'border-cyan-500/40',
-      activeBg: 'bg-cyan-500/10',
+      color: 'text-green-400',
+      border: 'border-green-500/40',
+      activeBg: 'bg-green-500/10',
     },
   ];
 
@@ -69,7 +81,7 @@ const Contact = () => {
   const activeFaq = faqItems[activeRoleData.faqIndex];
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[#0B0B0F] font-lato overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col bg-[#0B0B0F] font-body overflow-x-hidden">
       <BackgroundAnimation />
       <Navbar />
 
@@ -80,11 +92,11 @@ const Contact = () => {
           className="mb-16 animate-in fade-in slide-in-from-bottom-6 duration-700"
           style={{ animationDelay: '0ms', animationFillMode: 'both' }}
         >
-          <h1 className="text-5xl md:text-6xl font-exo font-bold text-white mb-4">
+          <h1 className="text-5xl md:text-6xl font-title font-black text-white mb-4 tracking-tight">
             {t('contact.title')}{' '}
-            <span className="gradient-text">{t('contact.titleHighlight')}</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 drop-shadow-[0_0_28px_rgba(168,85,247,0.55)]">{t('contact.titleHighlight')}</span>
           </h1>
-          <p className="text-gray-400 text-base max-w-lg">
+          <p className="text-white/60 font-body text-lg font-medium max-w-lg">
             {t('contact.subtitle')}
           </p>
         </section>
@@ -94,17 +106,17 @@ const Contact = () => {
           className="mb-20 animate-in fade-in slide-in-from-bottom-6 duration-700"
           style={{ animationDelay: '150ms', animationFillMode: 'both' }}
         >
-          <p className="text-xs font-exo font-semibold tracking-[0.3em] uppercase text-blue-400 mb-10">
+          <p className="text-xs font-title font-bold tracking-[0.22em] uppercase text-white/35 mb-10">
             {t('contact.generalLabel')}
           </p>
 
           <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
             {[faqItems[0], faqItems[1]].map((item, i) => (
               <div key={i} className="flex flex-col gap-3 self-start">
-                <h2 className="font-exo font-semibold text-white text-lg leading-snug">
+                <h2 className="font-title font-bold text-white text-xl leading-snug">
                   {item.question}
                 </h2>
-                <p className="text-gray-400 text-sm leading-relaxed">
+                <p className="text-white/60 font-body text-base leading-relaxed font-medium">
                   {item.answer}
                 </p>
               </div>
@@ -117,7 +129,7 @@ const Contact = () => {
           className="mb-20 animate-in fade-in slide-in-from-bottom-6 duration-700"
           style={{ animationDelay: '300ms', animationFillMode: 'both' }}
         >
-          <p className="text-xs font-exo font-semibold tracking-[0.3em] uppercase text-blue-400 mb-6">
+          <p className="text-xs font-title font-bold tracking-[0.22em] uppercase text-white/35 mb-6">
             {t('contact.rolesLabel')}
           </p>
 
@@ -126,10 +138,10 @@ const Contact = () => {
               <button
                 key={role.key}
                 onClick={() => setActiveRole(role.key)}
-                className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full border font-exo text-xs sm:text-sm font-semibold transition-all duration-200
+                className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full border font-body text-xs sm:text-sm font-semibold transition-all duration-200
                   ${activeRole === role.key
                     ? `${role.activeBg} ${role.border} ${role.color}`
-                    : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white bg-transparent'
+                    : 'border-white/10 text-white/60 hover:border-white/20 hover:text-white bg-transparent'
                   }`}
               >
                 {role.icon}
@@ -138,14 +150,14 @@ const Contact = () => {
             ))}
           </div>
 
-          <div className={`rounded-2xl border p-8 transition-all duration-300 ${activeRoleData.activeBg} ${activeRoleData.border}`}>
-            <p className={`text-xs font-exo font-semibold tracking-widest uppercase mb-4 ${activeRoleData.color}`}>
+          <div className={`rounded-2xl border p-8 transition-all duration-300 glass hover:glass-hover ${activeRoleData.border}`}>
+            <p className={`text-xs font-title font-bold tracking-[0.22em] uppercase mb-4 ${activeRoleData.color}`}>
               {activeRoleData.label}
             </p>
-            <h3 className="font-exo font-bold text-white text-xl md:text-2xl mb-4 leading-snug">
+            <h3 className="font-title font-bold text-white text-2xl md:text-3xl mb-4 leading-snug">
               {activeFaq.question}
             </h3>
-            <p className="text-gray-300 leading-relaxed">
+            <p className="text-white/60 font-body text-base leading-relaxed font-medium">
               {activeFaq.answer}
             </p>
           </div>
@@ -154,7 +166,7 @@ const Contact = () => {
         {/* Contact Directory */}
         <div className="relative flex items-center mb-16">
           <div className="flex-1 h-px bg-white/10" />
-          <span className="mx-5 text-xs font-exo tracking-widest uppercase text-gray-500">
+          <span className="mx-5 text-xs font-title tracking-[0.22em] font-bold uppercase text-white/35">
             {t('contact.directoryTitle')}
           </span>
           <div className="flex-1 h-px bg-white/10" />
@@ -186,10 +198,10 @@ const Contact = () => {
                   {item.icon}
                 </div>
               </div>
-              <h4 className={`font-exo font-bold text-[15px] mb-2 truncate transition-colors duration-300 group-hover:text-white/30 text-white`} title={email}>
+              <h4 className={`font-title font-bold text-[15px] mb-2 truncate transition-colors duration-300 group-hover:text-white/30 text-white`} title={email}>
                 {email}
               </h4>
-              <p className="text-gray-400 text-xs leading-relaxed mt-auto transition-colors duration-300 group-hover:text-gray-600">
+              <p className="text-white/60 font-body font-medium text-xs leading-relaxed mt-auto transition-colors duration-300 group-hover:text-white/20">
                 {desc}
               </p>
 
@@ -202,7 +214,7 @@ const Contact = () => {
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border ${item.border} ${item.color} ${item.hover} hover:bg-white/10 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0`}
                 >
                   <Mail className="w-4 h-4" />
-                  <span className="text-sm font-semibold font-exo tracking-wide">{t('contact.openInGmail', 'Abrir en Gmail')}</span>
+                  <span className="text-sm font-semibold font-title tracking-wide">{t('contact.openInGmail', 'Abrir en Gmail')}</span>
                 </a>
               </div>
             </div>

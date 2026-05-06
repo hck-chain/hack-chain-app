@@ -60,13 +60,13 @@ const AboutUs = () => {
             transition={{ duration: 0.5 }}
             className="mb-20 flex flex-col md:flex-row items-start md:items-center gap-6"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-title font-bold text-foreground tracking-tighter drop-shadow-md">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-title font-black text-white tracking-tight drop-shadow-md">
               {t('team.title')}{' '}
-              <span className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 drop-shadow-[0_0_28px_rgba(168,85,247,0.55)]">
                 {t('team.subtitle')}
               </span>
             </h1>
-            <div className="hidden md:block h-[2px] bg-foreground/20 flex-grow mt-2"></div>
+            <div className="hidden md:block h-[2px] bg-white/10 flex-grow mt-2"></div>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
@@ -95,8 +95,8 @@ const AboutUs = () => {
             transition={{ duration: 0.5 }}
             className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-12"
           >
-            <div className="hidden md:block h-[2px] bg-foreground/20 flex-grow mt-2"></div>
-            <h2 className="text-4xl md:text-6xl font-body font-bold text-foreground">
+            <div className="hidden md:block h-[2px] bg-white/10 flex-grow mt-2"></div>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-title font-black text-white tracking-tight">
               {t('team.aboutBlock.title')}
             </h2>
           </motion.div>
@@ -106,7 +106,7 @@ const AboutUs = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="max-w-3xl font-body text-foreground/80 md:text-xl leading-relaxed space-y-6"
+            className="max-w-3xl font-body text-white/60 md:text-lg font-medium leading-relaxed space-y-6"
           >
             <p>
               {t('team.aboutBlock.p1')}
