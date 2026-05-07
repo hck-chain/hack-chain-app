@@ -92,23 +92,15 @@ function missingSections(org: string, bio: string, areas: string[], photo: strin
 // ---------------------------------------------------------------------------
 
 interface SectionDividerProps {
-  iconSrc: string;
   label: string;
-  claySrc: string;
-  shadow: string;
   accentColor: string;
 }
 
-function SectionDivider({ iconSrc, label, claySrc, shadow, accentColor }: SectionDividerProps) {
+function SectionDivider({ label, accentColor }: SectionDividerProps) {
   return (
     <div className="flex items-center gap-5 my-14">
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
       <div className="flex items-center gap-3">
-        <div
-          className={`clay-icon w-9 h-9 ${claySrc} rounded-full flex items-center justify-center border border-white/[0.05] backdrop-blur-sm backdrop-brightness-150`}
-        >
-          <img src={iconSrc} alt={label} className="w-[18px] h-[18px] object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]" />
-        </div>
         <span className={`font-title text-[10px] uppercase tracking-[0.3em] font-black ${accentColor}`}>{label}</span>
       </div>
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
@@ -380,10 +372,7 @@ const EditEducatorProfile = () => {
 
             {/* ── Bio ── */}
             <SectionDivider
-              iconSrc="/icons/editProfile.avif"
               label={t('editProfile.bioSection')}
-              claySrc="bg-emerald-950/60 shadow-[0_0_15px_rgba(16,185,129,0.3)] ring-1 ring-emerald-500/30"
-              shadow=""
               accentColor="text-emerald-400/80"
             />
 
@@ -398,7 +387,7 @@ const EditEducatorProfile = () => {
                 maxLength={500}
                 rows={6}
                 placeholder={t('editProfile.bioPlaceholder')}
-                className="w-full bg-transparent border-0 border-b border-white/[0.08] focus:border-emerald-500/30 rounded-none outline-none resize-none font-body text-lg text-white/70 placeholder:text-white/15 leading-relaxed pb-4 px-0 shadow-none ring-0 focus-visible:ring-0 transition-colors"
+                className="w-full bg-black/20 border border-white/10 focus:border-emerald-500/30 rounded-xl outline-none resize-none font-body text-lg text-white/70 placeholder:text-white/15 leading-relaxed p-4 shadow-none ring-0 focus-visible:ring-0 transition-colors"
               />
               <div className="flex justify-end">
                 <span className={`text-xs font-mono ${bio.length > 450 ? 'text-amber-400' : 'text-white/15'}`}>
@@ -409,10 +398,7 @@ const EditEducatorProfile = () => {
 
             {/* ── Knowledge areas ── */}
             <SectionDivider
-              iconSrc="/icons/libroNeon.avif"
               label={t('editProfile.areasSection')}
-              claySrc="bg-amber-950/60 shadow-[0_0_15px_rgba(245,158,11,0.3)] ring-1 ring-amber-500/30"
-              shadow=""
               accentColor="text-amber-400/80"
             />
 
@@ -428,10 +414,7 @@ const EditEducatorProfile = () => {
 
             {/* ── Account info ── */}
             <SectionDivider
-              iconSrc="/icons/escudoNeon.avif"
               label={t('editProfile.accountSection')}
-              claySrc="bg-cyan-950/60 shadow-[0_0_15px_rgba(6,182,212,0.3)] ring-1 ring-cyan-500/30"
-              shadow=""
               accentColor="text-cyan-400/80"
             />
 
