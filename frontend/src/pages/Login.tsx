@@ -146,10 +146,10 @@ export default function Login() {
             <div className="text-center mb-6">
               {/* Icon */}
               <div
-                className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg"
+                className="inline-flex items-center justify-center w-14 h-14 square-full mb-4 bg-gradient-to-r from-black-500 to-black shadow-lg"
               >
                 <img
-                  src="/icons/login.avif"
+                  src="/favicon.ico"
                   alt="Login"
                   className="w-12 h-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
                 />
