@@ -6,6 +6,24 @@ const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { authenticate } = require("../middleware/auth");
 
+// Normalize a social/website URL field. Accepts empty string or null (clears the field).
+// Returns { ok: true, value } on success, or { ok: false, error } on failure.
+function normalizeUrl(value, label) {
+  if (value === null || value === undefined) return { ok: true, value: null };
+  if (typeof value !== "string") {
+    return { ok: false, error: `${label} must be a string or null` };
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") return { ok: true, value: null };
+  if (trimmed.length > 500) {
+    return { ok: false, error: `${label} must be 500 characters or less` };
+  }
+  if (!/^https?:\/\/[^\s<>"']+$/i.test(trimmed)) {
+    return { ok: false, error: `${label} must be a valid http(s) URL` };
+  }
+  return { ok: true, value: trimmed };
+}
+
 // GET /api/issuers/me — own full profile (authenticated)
 router.get("/me", authenticate, async (req, res) => {
   try {
@@ -26,6 +44,9 @@ router.get("/me", authenticate, async (req, res) => {
       bio: issuer.bio,
       photo_url: issuer.photo_url,
       knowledge_areas: issuer.knowledge_areas ?? [],
+      website_url: issuer.website_url ?? null,
+      linkedin_url: issuer.linkedin_url ?? null,
+      twitter_url: issuer.twitter_url ?? null,
       wallet_address: issuer.wallet_address,
       email: issuer.User?.email ?? null,
       name: issuer.User?.name ?? null,
@@ -97,7 +118,7 @@ router.patch("/me", authenticate, async (req, res) => {
     }
 
     const wallet = req.auth.wallet.toLowerCase();
-    const { bio, knowledge_areas, organization_name } = req.body;
+    const { bio, knowledge_areas, organization_name, website_url, linkedin_url, twitter_url } = req.body;
 
     if (bio !== undefined && typeof bio !== "string") {
       return res.status(400).json({ error: "bio must be a string" });
@@ -120,10 +141,23 @@ router.patch("/me", authenticate, async (req, res) => {
       return res.status(400).json({ error: "organization_name must be a non-empty string" });
     }
 
+    const urlChecks = [
+      { key: "website_url", raw: website_url, label: "website_url" },
+      { key: "linkedin_url", raw: linkedin_url, label: "linkedin_url" },
+      { key: "twitter_url", raw: twitter_url, label: "twitter_url" },
+    ];
+    const normalizedUrls = {};
+    for (const { key, raw, label } of urlChecks) {
+      if (raw === undefined) continue;
+      const result = normalizeUrl(raw, label);
+      if (!result.ok) return res.status(400).json({ error: result.error });
+      normalizedUrls[key] = result.value;
+    }
+
     const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
     if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
-    const updates = {};
+    const updates = { ...normalizedUrls };
     if (bio !== undefined) updates.bio = bio.trim();
     if (knowledge_areas !== undefined) updates.knowledge_areas = knowledge_areas;
     if (organization_name !== undefined) updates.organization_name = organization_name.trim();
@@ -137,6 +171,9 @@ router.patch("/me", authenticate, async (req, res) => {
         bio: issuer.bio,
         knowledge_areas: issuer.knowledge_areas,
         photo_url: issuer.photo_url,
+        website_url: issuer.website_url,
+        linkedin_url: issuer.linkedin_url,
+        twitter_url: issuer.twitter_url,
       },
     });
   } catch (err) {
@@ -301,6 +338,9 @@ router.get("/:wallet_address", async (req, res) => {
         photo_url: issuer.photo_url || null,
         bio: issuer.bio || null,
         knowledge_areas: issuer.knowledge_areas || [],
+        website_url: issuer.website_url || null,
+        linkedin_url: issuer.linkedin_url || null,
+        twitter_url: issuer.twitter_url || null,
         certificates_issued: issuer.certificates_issued,
         talents_formed,
         joined_at: issuer.User?.created_at || issuer.created_at,

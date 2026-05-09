@@ -6,6 +6,9 @@ export interface MyEducatorProfile {
   bio: string | null;
   photo_url: string | null;
   knowledge_areas: string[];
+  website_url: string | null;
+  linkedin_url: string | null;
+  twitter_url: string | null;
   wallet_address: string;
   email: string | null;
   email_verified: boolean;

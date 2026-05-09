@@ -23,6 +23,9 @@ export interface Educator {
 
 export interface EducatorProfile extends Omit<Educator, 'certs_to_me'> {
   talents_formed: number;
+  website_url: string | null;
+  linkedin_url: string | null;
+  twitter_url: string | null;
 }
 
 export interface TalentInfo {
