@@ -674,7 +674,17 @@
     "missingPhotoTitle": "Foto de perfil",
     "missingPhotoDesc": "los perfiles con foto reciben muchas más visitas.",
     "completeProfileHint": "Un perfil completo obtiene más visibilidad con talentos y reclutadores.",
-    "savedChangesNote": "Los cambios guardados se reflejan en tu perfil público inmediatamente."
+    "savedChangesNote": "Los cambios guardados se reflejan en tu perfil público inmediatamente.",
+    "areasHint": "Las áreas que enseñás aparecen en tu perfil público y ayudan a los talentos a encontrarte.",
+    "linksSection": "Conexiones",
+    "linksHint": "Sumá enlaces externos para que los talentos y recruiters te conozcan más allá de la plataforma.",
+    "websiteLabel": "Sitio web",
+    "websitePlaceholder": "https://tuorganizacion.com",
+    "linkedinLabel": "LinkedIn",
+    "linkedinPlaceholder": "https://linkedin.com/in/tuusuario",
+    "twitterLabel": "X / Twitter",
+    "twitterPlaceholder": "https://x.com/tuusuario",
+    "invalidUrl": "Algún enlace no es una URL válida. Revisalo antes de guardar."
   },
   "deleteAccount": {
     "title": "Eliminar cuenta de educador",
@@ -717,6 +727,22 @@
     "toastErrorDefault": "Algo salió mal",
     "errorUploadingPhoto": "No se pudo subir la foto",
     "toastErrorUploadingTitle": "Error subiendo foto",
-    "toastErrorTitle": "Error"
+    "toastErrorTitle": "Error",
+    "verifiedBadge": "Verificado",
+    "aboutSection": "Sobre el educador",
+    "noBio": "Este educador todavía no completó su biografía.",
+    "linksSection": "Conexiones",
+    "websiteLabel": "Sitio web",
+    "linkedinLabel": "LinkedIn",
+    "twitterLabel": "X / Twitter",
+    "verificationSection": "Verificación on-chain",
+    "issuerWalletLabel": "Wallet del educador",
+    "contractLabel": "Contrato HackCertificate",
+    "viewOnExplorer": "Ver en explorer",
+    "certificatesGalleryLabel": "Certificados emitidos",
+    "certificatesGalleryHint": "Acá vas a poder ver los últimos certificados que emitió este educador.",
+    "talentsListLabel": "Talentos formados",
+    "talentsListHint": "Pronto vas a poder explorar los talentos certificados por este educador.",
+    "comingSoon": "Próximamente"
   }
 }

@@ -5,6 +5,9 @@ export interface UpdateProfilePayload {
   bio?: string;
   knowledge_areas?: string[];
   organization_name?: string;
+  website_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
 }
 
 async function updateProfile(payload: UpdateProfilePayload) {

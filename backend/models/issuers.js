@@ -19,7 +19,10 @@ module.exports = (sequelize, DataTypes) => {
     certificates_issued: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
     photo_url: { type: DataTypes.STRING(500), allowNull: true },
     bio: { type: DataTypes.TEXT, allowNull: true },
-    knowledge_areas: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] }
+    knowledge_areas: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+    website_url: { type: DataTypes.STRING(500), allowNull: true },
+    linkedin_url: { type: DataTypes.STRING(500), allowNull: true },
+    twitter_url: { type: DataTypes.STRING(500), allowNull: true }
   }, {
     tableName: 'issuers',
     underscored: true,

@@ -674,7 +674,17 @@
     "missingPhotoTitle": "Profile photo",
     "missingPhotoDesc": "profiles with a photo get significantly more views.",
     "completeProfileHint": "A complete profile gets more visibility with talents and recruiters.",
-    "savedChangesNote": "Saved changes are reflected on your public profile immediately."
+    "savedChangesNote": "Saved changes are reflected on your public profile immediately.",
+    "areasHint": "The areas you teach appear on your public profile and help talents find you.",
+    "linksSection": "Connections",
+    "linksHint": "Add external links so talents and recruiters can learn more about you beyond the platform.",
+    "websiteLabel": "Website",
+    "websitePlaceholder": "https://yourorganization.com",
+    "linkedinLabel": "LinkedIn",
+    "linkedinPlaceholder": "https://linkedin.com/in/yourhandle",
+    "twitterLabel": "X / Twitter",
+    "twitterPlaceholder": "https://x.com/yourhandle",
+    "invalidUrl": "One of the links is not a valid URL. Please review before saving."
   },
   "deleteAccount": {
     "title": "Delete educator account",
@@ -717,6 +727,22 @@
     "toastErrorDefault": "Something went wrong",
     "errorUploadingPhoto": "Could not upload photo",
     "toastErrorUploadingTitle": "Error uploading photo",
-    "toastErrorTitle": "Error"
+    "toastErrorTitle": "Error",
+    "verifiedBadge": "Verified",
+    "aboutSection": "About this educator",
+    "noBio": "This educator hasn't completed their bio yet.",
+    "linksSection": "Connections",
+    "websiteLabel": "Website",
+    "linkedinLabel": "LinkedIn",
+    "twitterLabel": "X / Twitter",
+    "verificationSection": "On-chain verification",
+    "issuerWalletLabel": "Educator wallet",
+    "contractLabel": "HackCertificate contract",
+    "viewOnExplorer": "View on explorer",
+    "certificatesGalleryLabel": "Issued certificates",
+    "certificatesGalleryHint": "The latest certificates issued by this educator will appear here.",
+    "talentsListLabel": "Talents trained",
+    "talentsListHint": "Soon you'll be able to explore the talents certified by this educator.",
+    "comingSoon": "Coming soon"
   }
 }
