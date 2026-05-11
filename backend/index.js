@@ -4,9 +4,11 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
+const { RedisStore } = require("rate-limit-redis");
 const cron = require("node-cron");
 const db = require("./models");
 const path = require("path");
+const { getRedis } = require("./services/redis");
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -39,15 +41,15 @@ app.use(cookieParser());
 // ---------- Global rate limiter ----------
 // Covers all /api/ routes. Specific limiters (login: 8/min, upload: 10/hr)
 // apply on top of this for their own endpoints.
-// Note: uses in-memory store per process — with PM2 cluster the effective
-// limit scales with worker count. Add a Redis store if stricter cross-process
-// enforcement is required.
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: parseInt(process.env.GLOBAL_RATE_LIMIT_MAX || "100", 10),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
+  store: new RedisStore({
+    sendCommand: (...args) => getRedis().call(...args),
+  }),
 });
 app.use("/api/", globalLimiter);
 
