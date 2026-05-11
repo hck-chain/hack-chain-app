@@ -39,4 +39,4 @@ async function deleteSession(walletAddress) {
   await getRedis().del(sessionKey(walletAddress));
 }
 
-module.exports = { cacheSession, sessionExists, deleteSession };
+module.exports = { getRedis, cacheSession, sessionExists, deleteSession };

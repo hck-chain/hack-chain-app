@@ -13,7 +13,8 @@ const userService = require("../services/userService");
 const { signToken, signRefreshToken, setAuthCookies, setAccessCookie, clearAuthCookies, verifyRefreshToken, authenticate, getUserFromToken } = require("../middleware/auth");
 const { User, UserSession } = require("../models");
 const { Op } = require('sequelize');
-const { cacheSession, deleteSession } = require("../services/redis");
+const { cacheSession, deleteSession, getRedis } = require("../services/redis");
+const { RedisStore } = require("rate-limit-redis");
 const { sendVerificationEmail } = require("../services/emailService");
 require("dotenv").config();
 
@@ -27,9 +28,13 @@ const buildSignMessage = (address, nonce) =>
 
 // Rate limiter for login — small window + few requests to slow brute-force
 const loginLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 8, // max requests per ip per window
+  windowMs: 60 * 1000,
+  max: 8,
   message: { error: "Too many login attempts, slow down" },
+  store: new RedisStore({
+    sendCommand: (...args) => getRedis().call(...args),
+    prefix: "rl:login:",
+  }),
 });
 
 /**
