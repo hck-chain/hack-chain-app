@@ -10,6 +10,80 @@ const pinata = new PinataSDK({
 const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { authenticate } = require("../middleware/auth");
 
+// ===========================================================================
+// Harjoot integration — SKELETON routes (DS Sections 4 and 5).
+// Implementation pending: the Harjoot partner API is not available yet.
+// Each handler returns 501 until implemented.
+// See documents/harjoot-integration-handoff.md for the full contract.
+//
+// Services these routes will use (add the requires when implementing):
+//   ../services/harjootService    ../services/paymentService
+//   ../middleware/harjootAccess   ../services/issuerService
+// ===========================================================================
+
+/**
+ * POST /api/certificates/precheck
+ * DS Section 4 — pre-issuance check. Body: { studentWallet }.
+ * Verifies (1) the educator is approved (decision 7) and (2) the talent is a
+ * registered user (decision 5). Returns the HACK amount to pay plus the
+ * Treasury / HACK token addresses, or an error code the form can act on.
+ * Error codes: EDUCATOR_NOT_APPROVED | TALENT_NOT_FOUND.
+ */
+router.post("/precheck", authenticate, (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only issuers can issue certificates" });
+  }
+  // TODO(impl): DS Section 4 precheck.
+  //  - SELECT educator_approval_status; if not 'approved' -> EDUCATOR_NOT_APPROVED.
+  //  - SELECT user by studentWallet with role 'student'; if none -> TALENT_NOT_FOUND.
+  //  - paymentService.calculateMintPrice() -> { amountHack, ... }.
+  return res
+    .status(501)
+    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
+});
+
+/**
+ * POST /api/certificates/issue
+ * DS Section 4 — full certificate issuance (multipart/form-data).
+ * NOTE: the DS labels this "POST /api/certificates", but that path is already
+ * used for Pinata metadata upload. It is mapped to /issue here; renaming or
+ * merging the two is an OPEN DECISION (see the handoff doc).
+ * Fields: title, description, issue_date, studentWallet, pdfFile, paymentTxHash.
+ * Flow: verify HACK payment -> hash PDF -> pin to IPFS -> Harjoot upload
+ *       (hash_only) -> mint soulbound NFT -> persist -> queue treasury transfer.
+ */
+router.post("/issue", authenticate, (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only issuers can issue certificates" });
+  }
+  // TODO(impl): DS Section 4 issuance. Requires the harjootAccess middleware,
+  //  multer for the PDF upload, paymentService.verifyHackPayment(),
+  //  harjootService.uploadCertificate(), the on-chain mint adapter, and an
+  //  INSERT into `treasury_transfers_queue`.
+  return res
+    .status(501)
+    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
+});
+
+/**
+ * POST /api/certificates/invite-talent
+ * DS Section 5 — invite an unregistered talent by email. When precheck returns
+ * TALENT_NOT_FOUND the educator can invite the talent to register.
+ * Body: { studentWallet, email, message? }.
+ */
+router.post("/invite-talent", authenticate, (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only issuers can invite talents" });
+  }
+  // TODO(impl): DS Section 5.
+  //  - INSERT into `talent_invitations` { educator_user_id,
+  //    student_wallet_address, email, status:'pending' }.
+  //  - emailService: send the invitation email to the talent.
+  return res
+    .status(501)
+    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
+});
+
 // POST /api/certificates: Upload certificate metadata to Pinata
 router.post("/", authenticate, async (req, res) => {
   if (req.auth.role !== 'issuer') {

@@ -59,6 +59,26 @@ router.get("/me", authenticate, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/issuers/me/status
+ * DS Section 2.5 — SKELETON. Educator approval status for the authenticated
+ * issuer. Returns one of: pending_approval | rejected | approved (with the
+ * reason when rejected). The educator dashboard uses this to gate certificate
+ * issuance. Implementation pending — see documents/harjoot-integration-handoff.md.
+ */
+router.get("/me/status", authenticate, (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
+  }
+  // TODO(impl): DS Section 2.5.
+  //  - SELECT educator_approval_status (+ rejection_reason) FROM users
+  //    WHERE id = req.auth.sub.
+  //  - respond { status, reason? }.
+  return res
+    .status(501)
+    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
+});
+
 // GET /api/issuers  — public, paginated educator discovery
 // Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
 router.get("/", async (req, res) => {

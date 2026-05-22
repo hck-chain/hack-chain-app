@@ -101,6 +101,7 @@ const issuersRouter = require("./routes/issuers");
 const recruitersRouter = require("./routes/recruiters");
 const opensea = require("./routes/opensea");
 const uploadRoutes = require("./routes/upload");
+const adminRouter = require("./routes/admin");
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
@@ -111,6 +112,7 @@ app.use("/api/issuers", issuersRouter);
 app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/admin", adminRouter);
 
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -165,6 +167,15 @@ let server;
     `);
     console.log("Email verification columns ensured.");
 
+    // ----------------------------------------------------------------------
+    // DS Section 0 — Harjoot partner health check (SKELETON / pending).
+    // On startup, confirm the Harjoot partner API key is valid and cache the
+    // partner config in memory:
+    //   const info = await require("./services/harjootService").getPartnerInfo();
+    // If the call fails, log it and alert ops — do NOT block server startup.
+    // See documents/harjoot-integration-handoff.md.
+    // ----------------------------------------------------------------------
+
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
       console.log(`🔗 Frontend origin: https://www.hackchain.app`);
@@ -183,6 +194,11 @@ let server;
       }
     });
 
+
+    // DS Section 13 — schedule the Treasury -> Harjoot settlement worker here
+    // once implemented (mirrors the session-purge cron above):
+    //   require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
+    // See documents/harjoot-integration-handoff.md.
 
   } catch (err) {
     console.error("Failed to start server:", err);
