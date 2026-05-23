@@ -91,6 +91,16 @@ router.post("/register", registerLimiter, async (req, res) => {
       }
     });
 
+    // ----------------------------------------------------------------------
+    // DS Section 2 — Harjoot membership activation (SKELETON / pending).
+    // After the user + role profile are committed, register them in Harjoot:
+    //   await harjootService.activateAccess(role, newUser, roleSpecificData);
+    // Call it AFTER this transaction commits — never hold a DB transaction
+    // open on an external HTTP call. A failure here is non-fatal:
+    // middleware/harjootAccess.js lazily re-activates on the first protected
+    // request. See documents/harjoot-integration-handoff.md.
+    // ----------------------------------------------------------------------
+
     const payload = { sub: newUser.id, role: newUser.role, wallet: newUser.wallet_address };
     const token = signToken(payload);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
