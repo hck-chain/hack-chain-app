@@ -51,7 +51,14 @@ module.exports = (sequelize, DataTypes) => {
     is_revoked: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
-    }
+    },
+
+    // ---- Phase 1 (Harjoot integration) — see scripts/migrate-harjoot-phase1.js ----
+    harjoot_verification_id:  { type: DataTypes.STRING, allowNull: true },
+    harjoot_verification_url: { type: DataTypes.STRING, allowNull: true },
+    harjoot_qr_url:           { type: DataTypes.STRING, allowNull: true },
+    payment_id:               { type: DataTypes.INTEGER, allowNull: true },
+    status:                   { type: DataTypes.STRING, allowNull: true, defaultValue: 'issued' }
   }, {
     tableName: 'certificates',
     underscored: true,
@@ -70,6 +77,14 @@ module.exports = (sequelize, DataTypes) => {
       targetKey: 'wallet_address',
       as: 'student'
     });
+
+    // Phase 1 (Harjoot integration): each issued cert may be funded by a payment.
+    if (models.Payment) {
+      Certificate.belongsTo(models.Payment, {
+        foreignKey: 'payment_id',
+        targetKey: 'id',
+      });
+    }
   };
 
   return Certificate;
