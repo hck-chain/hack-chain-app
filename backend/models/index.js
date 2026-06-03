@@ -75,6 +75,11 @@ db.Recruiter = require("./recruiters")(sequelize, DataTypes);
 db.Certificate = require("./certificates")(sequelize, DataTypes);
 db.UserSession = require("./userSessions")(sequelize, DataTypes);
 
+// Phase 1 — Harjoot integration models. See scripts/migrate-harjoot-phase1.js.
+db.Payment = require("./payments")(sequelize, DataTypes);
+db.TalentInvitation = require("./talentInvitations")(sequelize, DataTypes);
+db.TreasuryTransfer = require("./treasuryTransfers")(sequelize, DataTypes);
+
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);

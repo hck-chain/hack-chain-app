@@ -21,7 +21,14 @@ module.exports = (sequelize, DataTypes) => {
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
     email_verified: { type: DataTypes.BOOLEAN, defaultValue: false, allowNull: false },
     verification_token: { type: DataTypes.STRING(128), allowNull: true },
-    verification_token_expires_at: { type: DataTypes.DATE, allowNull: true }
+    verification_token_expires_at: { type: DataTypes.DATE, allowNull: true },
+
+    // ---- Phase 1 (Harjoot integration) — see scripts/migrate-harjoot-phase1.js ----
+    harjoot_membership_expires_at: { type: DataTypes.DATE, allowNull: true },
+    educator_approval_status:      { type: DataTypes.STRING, allowNull: true },
+    approved_at:                   { type: DataTypes.DATE, allowNull: true },
+    approved_by:                   { type: DataTypes.INTEGER, allowNull: true },
+    rejection_reason:              { type: DataTypes.TEXT, allowNull: true }
   }, {
     tableName: 'users',
     underscored: true,

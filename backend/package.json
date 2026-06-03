@@ -6,7 +6,8 @@
     "start": "node --max-old-space-size=1536 index.js",
     "dev": "nodemon index.js",
     "test": "jest --runInBand --detectOpenHandles",
-    "migrate:issuer-profile": "node scripts/migrate-issuer-profile.js"
+    "migrate:issuer-profile": "node scripts/migrate-issuer-profile.js",
+    "migrate:harjoot-phase1": "node scripts/migrate-harjoot-phase1.js"
   },
   "keywords": [],
   "author": "",
@@ -44,5 +45,10 @@
   "devDependencies": {
     "jest": "^30.1.3",
     "supertest": "^7.1.4"
+  },
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/tests/setup-env.js"
+    ]
   }
 }
