@@ -13,15 +13,33 @@
 require("dotenv").config();
 
 // ---------------------------------------------------------------------------
-// Required variables — server must not start without these
+// Mock mode — checked first because it gates the credential requirement.
+// In production this should NEVER be true; in dev/test it lets the backend
+// boot without real Harjoot credentials (uses the in-process mock client).
 // ---------------------------------------------------------------------------
 
-if (!process.env.HARJOOT_API_BASE_URL) {
-  throw new Error("HARJOOT_API_BASE_URL environment variable is required");
-}
+const USE_MOCK = (process.env.HARJOOT_USE_MOCK === "true" || process.env.HARJOOT_USE_MOCK === "1");
 
-if (!process.env.HARJOOT_PARTNER_API_KEY) {
-  throw new Error("HARJOOT_PARTNER_API_KEY environment variable is required");
+// ---------------------------------------------------------------------------
+// Required variables — only when talking to the REAL Harjoot API.
+// When HARJOOT_USE_MOCK=true the in-process mock client takes over and these
+// values are never read, so we skip validation to keep dev frictionless.
+// ---------------------------------------------------------------------------
+
+if (!USE_MOCK) {
+  if (!process.env.HARJOOT_API_BASE_URL) {
+    throw new Error(
+      "HARJOOT_API_BASE_URL environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
+
+  if (!process.env.HARJOOT_PARTNER_API_KEY) {
+    throw new Error(
+      "HARJOOT_PARTNER_API_KEY environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -65,7 +83,7 @@ const config = Object.freeze({
   }),
 
   // Runtime flags
-  useMock: parseBool(process.env.HARJOOT_USE_MOCK, false),
+  useMock: USE_MOCK,
 });
 
 module.exports = config;

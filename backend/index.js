@@ -168,13 +168,14 @@ let server;
     console.log("Email verification columns ensured.");
 
     // ----------------------------------------------------------------------
-    // DS Section 0 — Harjoot partner health check (SKELETON / pending).
-    // On startup, confirm the Harjoot partner API key is valid and cache the
-    // partner config in memory:
-    //   const info = await require("./services/harjootService").getPartnerInfo();
-    // If the call fails, log it and alert ops — do NOT block server startup.
-    // See documents/harjoot-integration-handoff.md.
+    // DS Section 0 — Harjoot partner health check.
+    // Confirms the partner API key is valid and caches the partner config in
+    // memory. The use case never throws — Harjoot being unreachable must NOT
+    // block server startup. See backend/harjoot/usecases/checkPartnerHealth.js.
     // ----------------------------------------------------------------------
+    const { createHarjootClient } = require("./harjoot/client");
+    const { checkPartnerHealth } = require("./harjoot/usecases/checkPartnerHealth");
+    await checkPartnerHealth(createHarjootClient());
 
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
