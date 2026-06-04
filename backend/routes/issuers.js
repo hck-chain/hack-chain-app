@@ -61,22 +61,36 @@ router.get("/me", authenticate, async (req, res) => {
 
 /**
  * GET /api/issuers/me/status
- * DS Section 2.5 — SKELETON. Educator approval status for the authenticated
- * issuer. Returns one of: pending_approval | rejected | approved (with the
- * reason when rejected). The educator dashboard uses this to gate certificate
- * issuance. Implementation pending — see documents/harjoot-integration-handoff.md.
+ * DS Section 2.5 — educator approval status for the authenticated issuer.
+ * Returns one of pending_approval | rejected | approved. When rejected the
+ * body also carries the reason; when approved it carries the approved_at
+ * timestamp. The educator dashboard uses this to gate the issuance UI.
  */
-router.get("/me/status", authenticate, (req, res) => {
+router.get("/me/status", authenticate, async (req, res) => {
   if (req.auth.role !== "issuer") {
     return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
   }
-  // TODO(impl): DS Section 2.5.
-  //  - SELECT educator_approval_status (+ rejection_reason) FROM users
-  //    WHERE id = req.auth.sub.
-  //  - respond { status, reason? }.
-  return res
-    .status(501)
-    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
+  try {
+    const user = await User.findByPk(req.auth.sub, {
+      attributes: ["educator_approval_status", "rejection_reason", "approved_at"],
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const status = user.educator_approval_status || "pending_approval";
+    const body = { status };
+    if (status === "rejected" && user.rejection_reason) {
+      body.reason = user.rejection_reason;
+    }
+    if (status === "approved" && user.approved_at) {
+      body.approved_at = user.approved_at;
+    }
+    return res.json(body);
+  } catch (err) {
+    console.error("GET /api/issuers/me/status error:", err);
+    return res.status(500).json({ error: "Failed to fetch status" });
+  }
 });
 
 // GET /api/issuers  — public, paginated educator discovery
