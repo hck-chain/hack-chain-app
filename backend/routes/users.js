@@ -4,12 +4,15 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 
+const db = require("../models");
 const { User, Student, Issuer, Recruiter, UserSession, sequelize } = require("../models");
 const { signToken, signRefreshToken, setAuthCookies, authenticate } = require("../middleware/auth");
 const { cacheSession } = require("../services/redis");
 const { authorizeIssuer } = require("../services/authorizeIssuer");
+const emailService = require("../services/emailService");
 const { createHarjootClient } = require("../harjoot/client");
 const { activateMembership } = require("../harjoot/usecases/activateMembership");
+const { claimInvitation } = require("../harjoot/usecases/claimInvitation");
 
 const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 
@@ -107,6 +110,22 @@ router.post("/register", registerLimiter, async (req, res) => {
       user: newUser,
       profile: roleSpecificData,
     });
+
+    // DS Section 5 — claim any pending educator invitations targeting this
+    // wallet. Best effort: failures here (DB or email) must not block the
+    // registration response. Only students can have claimable invites.
+    if (newUser.role === "student") {
+      try {
+        await claimInvitation({
+          models: db,
+          emailService,
+          studentWallet: newUser.wallet_address,
+          studentUser: newUser,
+        });
+      } catch (err) {
+        console.error("[register] claimInvitation failed:", err && err.message);
+      }
+    }
 
     const payload = { sub: newUser.id, role: newUser.role, wallet: newUser.wallet_address };
     const token = signToken(payload);

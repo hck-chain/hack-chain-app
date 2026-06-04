@@ -7,8 +7,17 @@ const pinata = new PinataSDK({
   pinataGateway: process.env.GATEWAY_URL,
 });
 
+const { body, validationResult } = require("express-validator");
+const db = require("../models");
 const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { authenticate } = require("../middleware/auth");
+const emailService = require("../services/emailService");
+const { inviteTalent } = require("../harjoot/usecases/inviteTalent");
+
+// Lowercased 0x-prefixed Ethereum address.
+function isHexWallet(value) {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
 
 // ===========================================================================
 // Harjoot integration — SKELETON routes (DS Sections 4 and 5).
@@ -67,22 +76,74 @@ router.post("/issue", authenticate, (req, res) => {
 
 /**
  * POST /api/certificates/invite-talent
- * DS Section 5 — invite an unregistered talent by email. When precheck returns
- * TALENT_NOT_FOUND the educator can invite the talent to register.
- * Body: { studentWallet, email, message? }.
+ * DS Section 5 — invite an unregistered talent by email. Typically called
+ * after Section 4's precheck returns TALENT_NOT_FOUND. Dedupes per
+ * (educator, wallet) so re-clicks don't spam the invitee.
+ *
+ * Body: { studentWallet, email, message? }
+ * Returns: 200 { invitation } | 409 INVITE_ALREADY_PENDING
+ *          | 403 EDUCATOR_NOT_APPROVED | 422 validation
  */
-router.post("/invite-talent", authenticate, (req, res) => {
-  if (req.auth.role !== "issuer") {
-    return res.status(403).json({ error: "Only issuers can invite talents" });
-  }
-  // TODO(impl): DS Section 5.
-  //  - INSERT into `talent_invitations` { educator_user_id,
-  //    student_wallet_address, email, status:'pending' }.
-  //  - emailService: send the invitation email to the talent.
-  return res
-    .status(501)
-    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
-});
+router.post(
+  "/invite-talent",
+  authenticate,
+  [
+    body("studentWallet").custom(isHexWallet).withMessage("studentWallet must be a valid 0x-prefixed Ethereum address"),
+    body("email").isEmail().withMessage("email must be a valid address").isLength({ max: 255 }),
+    body("message").optional({ nullable: true }).isString().isLength({ max: 2000 }),
+  ],
+  async (req, res) => {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only issuers can invite talents" });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    try {
+      const educator = await User.findByPk(req.auth.sub);
+      if (!educator) {
+        return res.status(404).json({ error: "Educator not found" });
+      }
+      if (educator.educator_approval_status !== "approved") {
+        return res.status(403).json({ error: "EDUCATOR_NOT_APPROVED" });
+      }
+
+      const result = await inviteTalent({
+        models: db,
+        emailService,
+        educator,
+        studentWallet: req.body.studentWallet,
+        email: req.body.email,
+        message: req.body.message,
+      });
+
+      if (!result.ok) {
+        if (result.reason === "INVITE_ALREADY_PENDING") {
+          return res.status(409).json({
+            error: "INVITE_ALREADY_PENDING",
+            invitation: { id: result.invitation.id, status: result.invitation.status },
+          });
+        }
+        return res.status(400).json({ error: result.reason || "Failed to invite talent" });
+      }
+
+      return res.json({
+        message: "Talent invited",
+        invitation: {
+          id: result.invitation.id,
+          student_wallet_address: result.invitation.student_wallet_address,
+          email: result.invitation.email,
+          status: result.invitation.status,
+        },
+      });
+    } catch (err) {
+      console.error("POST /api/certificates/invite-talent error:", err);
+      return res.status(500).json({ error: "Failed to invite talent" });
+    }
+  },
+);
 
 // POST /api/certificates: Upload certificate metadata to Pinata
 router.post("/", authenticate, async (req, res) => {
