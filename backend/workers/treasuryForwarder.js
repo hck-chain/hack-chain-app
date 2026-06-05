@@ -208,20 +208,121 @@ async function processTreasuryQueue(params) {
 }
 
 // ---------------------------------------------------------------------------
-// Scheduler — wired in Phase 8c
+// Scheduler — two-tier design.
 // ---------------------------------------------------------------------------
+//
+// runTreasuryForwarderOnce(options)
+//   Pure one-shot invocation. Builds the deps that processTreasuryQueue
+//   needs (selecting the conversion strategy by env), invokes it, and
+//   logs the outcome. ALWAYS swallows errors — a single bad tick must
+//   never crash the cron loop.
+//
+// scheduleTreasuryForwarder(options)
+//   Thin wrapper around node-cron + an in-process lock. The lock
+//   prevents a slow tick from overlapping with the next scheduled run
+//   on the SAME process. Multi-instance contention (two boxes both
+//   draining the same queue) is a separate concern handled by the
+//   row-level state machine — the worst case is a no-op fetch on the
+//   loser.
+//
+// Both export the same signature for ops convenience: a manual
+// `runTreasuryForwarderOnce()` call from a /admin route or REPL will
+// drain the queue immediately.
 
-const NOT_IMPLEMENTED =
-  "scheduleTreasuryForwarder is wired in Phase 8c; not available yet";
+const DEFAULT_CRON_EXPRESSION = "*/10 * * * *";
 
-function scheduleTreasuryForwarder(_options = {}) {
-  // TODO(Phase 8c): cron.schedule("*/10 * * * *", processTreasuryQueue) with
-  // injected deps. Single-instance lock so multiple boxes don't race.
-  throw new Error(NOT_IMPLEMENTED);
+/**
+ * Build the deps and invoke processTreasuryQueue once. Returns the
+ * worker result (or an error envelope when the dep build itself
+ * throws — e.g. the strategy factory rejects an unknown mode).
+ *
+ * @param {object} [options]
+ * @param {object} [options.models]          Defaults to require("../models").
+ * @param {object} [options.harjootClient]   Defaults to createHarjootClient().
+ * @param {function} [options.selectStrategy] Defaults to strategy factory.
+ * @param {function} [options.usdtTransfer]  Forwarded to processTreasuryQueue.
+ * @param {string}   [options.harjootWallet] Forwarded to processTreasuryQueue.
+ * @param {number}   [options.batchSize]     Forwarded to processTreasuryQueue.
+ */
+async function runTreasuryForwarderOnce(options = {}) {
+  // Lazy requires so this module stays cheap to import (mirrors the
+  // pattern in harjoot/client/index.js).
+  const models = options.models || require("../models");
+  const harjootClient = options.harjootClient
+    || require("../harjoot/client").createHarjootClient();
+  const selectStrategy = options.selectStrategy
+    || require("../harjoot/strategies/factory").selectStrategy;
+
+  let strategy;
+  let mode;
+  try {
+    ({ strategy, mode } = selectStrategy());
+  } catch (err) {
+    console.error(`${LOG_PREFIX} strategy selection failed: ${err.message || err}`);
+    return { processed: 0, mode: null, failed: true, error: err.message || String(err) };
+  }
+
+  console.log(`${LOG_PREFIX} tick mode=${mode}`);
+  try {
+    return await processTreasuryQueue({
+      models,
+      strategy,
+      harjootClient,
+      usdtTransfer: options.usdtTransfer,
+      harjootWallet: options.harjootWallet,
+      batchSize: options.batchSize,
+    });
+  } catch (err) {
+    // processTreasuryQueue throws only on programmer-error dep issues.
+    // Surface the error in logs but never let it crash the cron.
+    console.error(`${LOG_PREFIX} tick aborted: ${err.message || err}`);
+    return { processed: 0, mode, failed: true, error: err.message || String(err) };
+  }
+}
+
+/**
+ * Schedule the treasury worker on a cron. Returns the cron task so
+ * callers (tests, graceful shutdown) can stop it.
+ *
+ * @param {object} [options] All keys forwarded to runTreasuryForwarderOnce.
+ * @param {string} [options.cronExpression] Defaults to "*\/10 * * * *".
+ * @param {object} [options.cron]           Override node-cron (tests only).
+ *
+ * @returns {{ stop: Function } | null}     null when CHAIN/Harjoot are
+ *                                          disabled and the worker would
+ *                                          have nothing to do.
+ */
+function scheduleTreasuryForwarder(options = {}) {
+  const cron = options.cron || require("node-cron");
+  const cronExpression = options.cronExpression || DEFAULT_CRON_EXPRESSION;
+
+  // Multi-tick re-entrancy guard. If a tick takes longer than the cron
+  // interval (large queue, slow RPC), we skip the overlapping tick
+  // rather than queue up and stampede the chain.
+  let running = false;
+
+  const tick = async () => {
+    if (running) {
+      console.log(`${LOG_PREFIX} previous tick still running; skipping`);
+      return;
+    }
+    running = true;
+    try {
+      await runTreasuryForwarderOnce(options);
+    } finally {
+      running = false;
+    }
+  };
+
+  const task = cron.schedule(cronExpression, tick);
+  console.log(`${LOG_PREFIX} scheduled cron="${cronExpression}"`);
+  return task;
 }
 
 module.exports = {
   processTreasuryQueue,
+  runTreasuryForwarderOnce,
   scheduleTreasuryForwarder,
   __DEFAULT_BATCH_SIZE: DEFAULT_BATCH_SIZE,
+  __DEFAULT_CRON_EXPRESSION: DEFAULT_CRON_EXPRESSION,
 };

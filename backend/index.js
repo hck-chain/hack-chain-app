@@ -196,10 +196,13 @@ let server;
     });
 
 
-    // DS Section 13 — schedule the Treasury -> Harjoot settlement worker here
-    // once implemented (mirrors the session-purge cron above):
-    //   require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
-    // See documents/harjoot-integration-handoff.md.
+    // DS Section 13 — async Treasury -> Harjoot settlement worker.
+    // Drains `treasury_transfers_queue` every 10 minutes. The launch
+    // strategy is `manual` (env: TREASURY_CONVERSION_MODE), which parks
+    // each batch as `awaiting_manual_conversion` for the CTO/ops to
+    // settle out of band — no on-chain action is taken automatically.
+    // See backend/workers/treasuryForwarder.js + harjoot/strategies/.
+    require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
 
   } catch (err) {
     console.error("Failed to start server:", err);
