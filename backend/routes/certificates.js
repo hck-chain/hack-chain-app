@@ -1,4 +1,6 @@
 const express = require("express");
+const multer = require("multer");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const { PinataSDK } = require("pinata");
 const router = express.Router();
 
@@ -11,10 +13,66 @@ const { body, validationResult } = require("express-validator");
 const db = require("../models");
 const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { authenticate } = require("../middleware/auth");
+const { requireHarjootAccess } = require("../middleware/harjootAccess");
 const emailService = require("../services/emailService");
 const paymentService = require("../services/paymentService");
+const ipfsCertificateUploader = require("../services/ipfsCertificateUploader");
 const { inviteTalent } = require("../harjoot/usecases/inviteTalent");
 const { precheckCertificate } = require("../harjoot/usecases/precheckCertificate");
+const { issueCertificate } = require("../harjoot/usecases/issueCertificate");
+const { createHarjootClient } = require("../harjoot/client");
+const { createPolygonProvider } = require("../harjoot/adapters/polygonProvider");
+const { createNftMintAdapter } = require("../harjoot/adapters/nftMintAdapter");
+
+// PDF certificates are larger than profile images. 10 MB matches a typical
+// printer-resolution single-page PDF with embedded fonts and one image.
+const ISSUE_MAX_FILE_SIZE = 10 * 1024 * 1024;
+const issueUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: ISSUE_MAX_FILE_SIZE },
+});
+
+// Per the Phase 9 plan: 10/hour per wallet. Wallets cannot bypass by
+// rotating IPs because we key on the authenticated identity, not req.ip.
+const issueLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many issuance attempts. Try again in an hour." },
+  // Key by the authenticated wallet so rotating IPs cannot bypass the
+  // limit. Pre-auth requests (none reach here today, but defense in depth)
+  // fall back to the IPv6-safe ip helper from express-rate-limit.
+  keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+});
+
+const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/;
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+// Reasons surfaced by issueCertificate -> HTTP status. Kept as a flat
+// lookup so the route handler stays a short switch. Default falls through
+// to 500 which is the safe choice for any unexpected reason.
+const ISSUE_REASON_HTTP = {
+  EDUCATOR_NOT_APPROVED: 403,
+  TALENT_NOT_FOUND: 404,
+  // Payment input the issuer can correct (wrong tx, wrong amount).
+  TX_NOT_FOUND: 422,
+  TX_REVERTED: 422,
+  NO_HACK_TRANSFER: 422,
+  WRONG_RECIPIENT: 422,
+  WRONG_SENDER: 422,
+  INSUFFICIENT_AMOUNT: 422,
+  // Conflict: this tx_hash already funded a previous certificate.
+  REPLAY: 409,
+  // Upstream / infra.
+  RPC_ERROR: 503,
+  IPFS_FAILED: 502,
+  HARJOOT_UPLOAD_FAILED: 502,
+  MINT_FAILED: 502,
+  // Persist after a successful mint = our bug. Should never happen in
+  // normal operation; ops alert + reconciliation expected.
+  PERSIST_FAILED: 500,
+};
 
 // Lowercased 0x-prefixed Ethereum address.
 function isHexWallet(value) {
@@ -106,18 +164,82 @@ router.post(
  * Flow: verify HACK payment -> hash PDF -> pin to IPFS -> Harjoot upload
  *       (hash_only) -> mint soulbound NFT -> persist -> queue treasury transfer.
  */
-router.post("/issue", authenticate, (req, res) => {
-  if (req.auth.role !== "issuer") {
-    return res.status(403).json({ error: "Only issuers can issue certificates" });
-  }
-  // TODO(impl): DS Section 4 issuance. Requires the harjootAccess middleware,
-  //  multer for the PDF upload, paymentService.verifyHackPayment(),
-  //  harjootService.uploadCertificate(), the on-chain mint adapter, and an
-  //  INSERT into `treasury_transfers_queue`.
-  return res
-    .status(501)
-    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
-});
+router.post(
+  "/issue",
+  authenticate,
+  requireHarjootAccess,    // Section 3 — cache-aside membership refresh; non-blocking.
+  issueLimiter,
+  issueUpload.single("pdfFile"),
+  [
+    body("studentWallet").custom(isHexWallet)
+      .withMessage("studentWallet must be a 0x-prefixed 40-hex address"),
+    body("title").isString().trim().isLength({ min: 1, max: 255 })
+      .withMessage("title is required (<= 255 chars)"),
+    body("description").optional({ nullable: true }).isString().isLength({ max: 2000 }),
+    body("issue_date").matches(ISO_DATE_REGEX)
+      .withMessage("issue_date must be YYYY-MM-DD"),
+    body("paymentTxHash").matches(TX_HASH_REGEX)
+      .withMessage("paymentTxHash must be 0x-prefixed 32-byte hash"),
+  ],
+  async (req, res) => {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only issuers can issue certificates" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "pdfFile is required (multipart/form-data)" });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ error: "validation_failed", details: errors.array() });
+    }
+
+    try {
+      const educator = await User.findByPk(req.auth.sub);
+      if (!educator || educator.role !== "issuer") {
+        return res.status(403).json({ error: "Only issuers can issue certificates" });
+      }
+
+      const result = await issueCertificate({
+        models: db,
+        paymentService,
+        harjootClient: createHarjootClient(),
+        mintAdapter: createNftMintAdapter(),
+        ipfsUpload: ipfsCertificateUploader.uploadCertificate,
+        provider: createPolygonProvider(),
+        educator,
+        studentWallet: req.body.studentWallet,
+        title: req.body.title,
+        description: req.body.description || null,
+        issueDate: req.body.issue_date,
+        paymentTxHash: req.body.paymentTxHash,
+        pdfBuffer: req.file.buffer,
+        pdfFileName: req.file.originalname || "certificate.pdf",
+      });
+
+      if (result.ok) {
+        return res.status(200).json({ ok: true, certificate: result.certificate });
+      }
+
+      const status = ISSUE_REASON_HTTP[result.reason] || 500;
+      const body = { error: result.reason || "ISSUE_FAILED" };
+      // Pass through useful context without leaking internals like stack
+      // traces. paymentId / verificationId / tokenId let the frontend show
+      // accurate UX or build a "contact support" CTA.
+      if (result.paymentId)       body.paymentId       = result.paymentId;
+      if (result.verificationId)  body.verificationId  = result.verificationId;
+      if (result.tokenId)         body.tokenId         = result.tokenId;
+      if (result.txHash)          body.txHash          = result.txHash;
+      if (result.existingPaymentId) body.existingPaymentId = result.existingPaymentId;
+      return res.status(status).json(body);
+    } catch (err) {
+      if (err && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "pdfFile exceeds the 10 MB limit" });
+      }
+      console.error("[/issue] unexpected error:", err && err.message);
+      return res.status(500).json({ error: "ISSUE_FAILED" });
+    }
+  },
+);
 
 /**
  * POST /api/certificates/invite-talent
