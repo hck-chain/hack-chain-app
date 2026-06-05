@@ -110,6 +110,12 @@ const config = Object.freeze({
   chain: Object.freeze({
     treasuryAddress:  validateAddress("TREASURY_ADDRESS", process.env.TREASURY_ADDRESS),
     hackTokenAddress: validateAddress("HACK_TOKEN_ADDRESS", process.env.HACK_TOKEN_ADDRESS),
+    // ERC-20 decimals for the HACK token. Default 18 (standard). Override
+    // via HACK_TOKEN_DECIMALS if the deployed token uses a non-standard
+    // value. Used to convert between "whole HACK" (what calculateMintPrice
+    // returns and what `payments.amount_hack` stores) and on-chain base
+    // units in Transfer event values.
+    hackTokenDecimals: parseIntWithDefault(process.env.HACK_TOKEN_DECIMALS, 18, "HACK_TOKEN_DECIMALS"),
   }),
 
   // Runtime flags

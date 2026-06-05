@@ -85,11 +85,6 @@ describe("harjoot/config address validation", () => {
   });
 });
 
-describe("paymentService.verifyHackPayment", () => {
-  // Phase 7c will implement this. Until then assert the stub explicitly so
-  // we don't ship a silent no-op by accident.
-  test("is still a stub (Phase 7c)", async () => {
-    const { verifyHackPayment } = loadFresh();
-    await expect(verifyHackPayment("0x00", "0x00", 0n)).rejects.toThrow(/not implemented/i);
-  });
-});
+// Note: paymentService.verifyHackPayment has its own dedicated suite
+// at services/__tests__/verifyHackPayment.test.js — receipt decoding,
+// replay protection, and persistence are exercised there with SQLite.
