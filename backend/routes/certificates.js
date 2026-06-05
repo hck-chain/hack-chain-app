@@ -12,7 +12,9 @@ const db = require("../models");
 const { Certificate, Student, Issuer, User, sequelize } = require("../models");
 const { authenticate } = require("../middleware/auth");
 const emailService = require("../services/emailService");
+const paymentService = require("../services/paymentService");
 const { inviteTalent } = require("../harjoot/usecases/inviteTalent");
+const { precheckCertificate } = require("../harjoot/usecases/precheckCertificate");
 
 // Lowercased 0x-prefixed Ethereum address.
 function isHexWallet(value) {
@@ -38,18 +40,61 @@ function isHexWallet(value) {
  * Treasury / HACK token addresses, or an error code the form can act on.
  * Error codes: EDUCATOR_NOT_APPROVED | TALENT_NOT_FOUND.
  */
-router.post("/precheck", authenticate, (req, res) => {
-  if (req.auth.role !== "issuer") {
-    return res.status(403).json({ error: "Only issuers can issue certificates" });
-  }
-  // TODO(impl): DS Section 4 precheck.
-  //  - SELECT educator_approval_status; if not 'approved' -> EDUCATOR_NOT_APPROVED.
-  //  - SELECT user by studentWallet with role 'student'; if none -> TALENT_NOT_FOUND.
-  //  - paymentService.calculateMintPrice() -> { amountHack, ... }.
-  return res
-    .status(501)
-    .json({ error: "Not implemented — see documents/harjoot-integration-handoff.md" });
-});
+router.post(
+  "/precheck",
+  authenticate,
+  [body("studentWallet").custom(isHexWallet).withMessage("studentWallet must be a 0x-prefixed 40-hex address")],
+  async (req, res) => {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only issuers can issue certificates" });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ error: "validation_failed", details: errors.array() });
+    }
+
+    try {
+      const educator = await User.findByPk(req.auth.sub);
+      if (!educator || educator.role !== "issuer") {
+        // Token says issuer but DB disagrees — treat as auth failure rather than 500.
+        return res.status(403).json({ error: "Only issuers can issue certificates" });
+      }
+
+      const result = await precheckCertificate({
+        models: db,
+        paymentService,
+        educator,
+        studentWallet: req.body.studentWallet,
+      });
+
+      if (!result.ok) {
+        if (result.reason === "EDUCATOR_NOT_APPROVED") {
+          return res.status(403).json({ error: "EDUCATOR_NOT_APPROVED" });
+        }
+        if (result.reason === "TALENT_NOT_FOUND") {
+          return res.status(404).json({ error: "TALENT_NOT_FOUND" });
+        }
+        return res.status(400).json({ error: result.reason || "PRECHECK_FAILED" });
+      }
+
+      // bigint cannot be serialized by JSON.stringify; expose the decimal
+      // string and let the frontend reconstruct a BigInt if it needs to.
+      return res.status(200).json({
+        ok: true,
+        price: {
+          amountHack: result.price.amountHackString,
+          userPriceUsdCents: result.price.userPriceUsdCents,
+          treasuryAddress: result.price.treasuryAddress,
+          hackTokenAddress: result.price.hackTokenAddress,
+        },
+        talent: result.talent,
+      });
+    } catch (err) {
+      console.error("[/precheck] error:", err && err.message);
+      return res.status(500).json({ error: "PRECHECK_FAILED" });
+    }
+  },
+);
 
 /**
  * POST /api/certificates/issue

@@ -40,6 +40,29 @@ if (!USE_MOCK) {
         "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
     );
   }
+
+  if (!process.env.TREASURY_ADDRESS) {
+    throw new Error(
+      "TREASURY_ADDRESS environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
+
+  if (!process.env.HACK_TOKEN_ADDRESS) {
+    throw new Error(
+      "HACK_TOKEN_ADDRESS environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
+}
+
+// Validate address format when present (real or mock). 0x followed by 40 hex.
+function validateAddress(name, value) {
+  if (!value) return null;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+    throw new Error(`${name} must be a 0x-prefixed 40-hex-char address (got "${value}")`);
+  }
+  return value.toLowerCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -80,6 +103,13 @@ const config = Object.freeze({
     harjootCostUsdCents:  parseIntWithDefault(process.env.HARJOOT_PRICE_USD_CENTS, 20, "HARJOOT_PRICE_USD_CENTS"),
     userPriceUsdCents:    parseIntWithDefault(process.env.USER_PRICE_USD_CENTS, 69, "USER_PRICE_USD_CENTS"),
     hackPriceUsdMicros:   parseIntWithDefault(process.env.HACK_PRICE_USD_MICROS, 100, "HACK_PRICE_USD_MICROS"),
+  }),
+
+  // On-chain addresses. Stored lowercased so equality checks against decoded
+  // transfer logs are consistent regardless of input casing.
+  chain: Object.freeze({
+    treasuryAddress:  validateAddress("TREASURY_ADDRESS", process.env.TREASURY_ADDRESS),
+    hackTokenAddress: validateAddress("HACK_TOKEN_ADDRESS", process.env.HACK_TOKEN_ADDRESS),
   }),
 
   // Runtime flags
