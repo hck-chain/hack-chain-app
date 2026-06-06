@@ -21,6 +21,8 @@ const { rejectEducator } = require("../harjoot/usecases/rejectEducator");
 const { listEducators, __ALLOWED_STATUSES } = require("../harjoot/usecases/listEducators");
 const { adminStats } = require("../harjoot/usecases/adminStats");
 const { listPayments } = require("../harjoot/usecases/listPayments");
+const { listTreasuryQueue, __ALLOWED_STATUSES: TQ_STATUSES } = require("../harjoot/usecases/listTreasuryQueue");
+const { markTreasurySent } = require("../harjoot/usecases/markTreasurySent");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -55,6 +57,9 @@ const STATUS_BY_REASON = {
   USER_NOT_FOUND: 404,
   NOT_AN_ISSUER: 400,
   ALREADY_APPROVED: 409,
+  NOT_FOUND: 404,
+  ALREADY_SENT: 409,
+  WRONG_STATE: 409,
 };
 
 function handleValidation(req, res) {
@@ -256,6 +261,79 @@ router.get(
       }
       console.error("GET /api/admin/payments error:", err);
       return res.status(500).json({ error: "Failed to list payments" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/treasury-queue
+ * Lists treasury queue rows for the admin manual-settlement page.
+ * Defaults to status=awaiting_manual_conversion (the worklist).
+ */
+router.get(
+  "/treasury-queue",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [
+    query("status").optional().isIn([...TQ_STATUSES]).withMessage("invalid status"),
+    query("page").optional().isInt({ min: 1 }).toInt(),
+    query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await listTreasuryQueue({
+        models: db,
+        status: req.query.status,
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("GET /api/admin/treasury-queue error:", err);
+      return res.status(500).json({ error: "Failed to list treasury queue" });
+    }
+  },
+);
+
+/**
+ * POST /api/admin/treasury-queue/:id/mark-sent
+ * Operator records that a manual USDT settlement has gone out.
+ * Body: { usdtTxHash }
+ */
+router.post(
+  "/treasury-queue/:id/mark-sent",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }).toInt(),
+    body("usdtTxHash").matches(/^0x[a-fA-F0-9]{64}$/)
+      .withMessage("usdtTxHash must be 0x-prefixed 32-byte hash"),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await markTreasurySent({
+        models: db,
+        transferId: req.params.id,
+        usdtTxHash: req.body.usdtTxHash,
+        adminId: req.auth.sub,
+      });
+      if (!result.ok) {
+        return res
+          .status(STATUS_BY_REASON[result.reason] || 400)
+          .json({
+            error: result.reason,
+            ...(result.existingUsdtTxHash ? { existingUsdtTxHash: result.existingUsdtTxHash } : {}),
+            ...(result.currentStatus ? { currentStatus: result.currentStatus } : {}),
+          });
+      }
+      return res.json({ message: "Treasury transfer marked as sent", transfer: result.transfer });
+    } catch (err) {
+      console.error("POST /api/admin/treasury-queue/:id/mark-sent error:", err);
+      return res.status(500).json({ error: "Failed to mark transfer as sent" });
     }
   },
 );
