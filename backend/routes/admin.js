@@ -2,9 +2,9 @@
 //
 // HackChain admin routes — DS Section 2.5 educator approval workflow.
 //
-// Auth model: reuses the ADMIN_WALLET env-var pattern from
-// routes/issuers.js POST /authorize. Whether HackChain needs a proper admin
-// role instead is an OPEN DECISION (see documents/harjoot-integration-handoff.md).
+// Auth model: requireAdmin middleware (backend/middleware/requireAdmin.js)
+// accepts both the new comma-separated ADMIN_WALLETS env (preferred for
+// CTO + founder multi-admin) and the legacy ADMIN_WALLET single value.
 
 const express = require("express");
 const router = express.Router();
@@ -13,6 +13,7 @@ const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const buildRateLimitStore = require("../lib/rateLimitStore");
 
 const { authenticate } = require("../middleware/auth");
+const { requireAdmin } = require("../middleware/requireAdmin");
 const db = require("../models");
 const emailService = require("../services/emailService");
 const { approveEducator } = require("../harjoot/usecases/approveEducator");
@@ -33,17 +34,6 @@ const adminEducatorLimiter = rateLimit({
   keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
   store: buildRateLimitStore("/api/admin/educators"),
 });
-
-// Guard — restrict a route to the configured admin wallet. Mirrors the
-// pattern used by routes/issuers.js POST /authorize.
-function requireAdmin(req, res, next) {
-  const callerWallet = (req.auth && req.auth.wallet ? req.auth.wallet : "").toLowerCase();
-  const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
-  if (!adminWallet || callerWallet !== adminWallet) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-  return next();
-}
 
 // Map a Result `reason` from the use cases to an HTTP status.
 const STATUS_BY_REASON = {
