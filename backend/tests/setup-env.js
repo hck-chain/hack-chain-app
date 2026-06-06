@@ -15,3 +15,10 @@ process.env.JWT_SECRET              ||= "test_jwt_secret";
 process.env.REFRESH_SECRET          ||= "test_refresh_secret";
 process.env.HARJOOT_API_BASE_URL    ||= "https://test.harjoot.local";
 process.env.HARJOOT_PARTNER_API_KEY ||= "test-partner-key";
+process.env.TREASURY_ADDRESS        ||= "0x0000000000000000000000000000000000000bee";
+process.env.HACK_TOKEN_ADDRESS      ||= "0x0000000000000000000000000000000000000ace";
+// Chain reads default to mock in test so anything that incidentally calls
+// the polygonProvider factory gets an in-process stub instead of trying to
+// hit a real RPC. Tests that exercise the real branch must opt in by
+// resetting modules and unsetting this var explicitly.
+process.env.CHAIN_USE_MOCK          ||= "true";

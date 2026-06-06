@@ -38,6 +38,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Correlation ID — accepts incoming X-Correlation-ID or generates a fresh
+// req-<uuid>. Echoes on the response and runs the rest of the request
+// inside the AsyncLocalStorage context so downstream modules (Harjoot
+// client, use cases, the treasury worker) can read it without explicit
+// plumbing. See backend/middleware/correlationId.js.
+const correlationId = require("./middleware/correlationId");
+app.use(correlationId());
+
 // ---------- Global rate limiter ----------
 // Covers all /api/ routes. Specific limiters (login: 8/min, upload: 10/hr)
 // apply on top of this for their own endpoints.
@@ -134,6 +142,35 @@ app.get("/health", async (req, res) => {
   }
 });
 
+// Reports the most recent state from the Harjoot partner-health check
+// (runs at startup; non-blocking). Used by external monitors to alert
+// when the partner integration has degraded WITHOUT having to retry the
+// upstream call themselves. Response shape:
+//   { ok, hasCache, lastCheckedAt, lastError, partner: { name?, status? } }
+// Sensitive partner fields (api keys, internal ids) are NOT echoed.
+app.get("/health/harjoot", (req, res) => {
+  try {
+    const { getHealthState, getCachedPartnerInfo } =
+      require("./harjoot/usecases/checkPartnerHealth");
+    const state = getHealthState();
+    const cached = getCachedPartnerInfo();
+    // Echo only a curated subset of the cached partner payload.
+    const partner = cached
+      ? { name: cached.name || null, status: cached.status || null }
+      : null;
+    return res.json({
+      ok: state.hasCache && !state.lastError,
+      hasCache: state.hasCache,
+      lastCheckedAt: state.lastCheckedAt,
+      lastError: state.lastError,
+      partner,
+    });
+  } catch (err) {
+    console.error("Health check - Harjoot error:", err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ---------- 404 ----------
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not found" });
@@ -168,13 +205,14 @@ let server;
     console.log("Email verification columns ensured.");
 
     // ----------------------------------------------------------------------
-    // DS Section 0 — Harjoot partner health check (SKELETON / pending).
-    // On startup, confirm the Harjoot partner API key is valid and cache the
-    // partner config in memory:
-    //   const info = await require("./services/harjootService").getPartnerInfo();
-    // If the call fails, log it and alert ops — do NOT block server startup.
-    // See documents/harjoot-integration-handoff.md.
+    // DS Section 0 — Harjoot partner health check.
+    // Confirms the partner API key is valid and caches the partner config in
+    // memory. The use case never throws — Harjoot being unreachable must NOT
+    // block server startup. See backend/harjoot/usecases/checkPartnerHealth.js.
     // ----------------------------------------------------------------------
+    const { createHarjootClient } = require("./harjoot/client");
+    const { checkPartnerHealth } = require("./harjoot/usecases/checkPartnerHealth");
+    await checkPartnerHealth(createHarjootClient());
 
     server = app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
@@ -195,10 +233,13 @@ let server;
     });
 
 
-    // DS Section 13 — schedule the Treasury -> Harjoot settlement worker here
-    // once implemented (mirrors the session-purge cron above):
-    //   require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
-    // See documents/harjoot-integration-handoff.md.
+    // DS Section 13 — async Treasury -> Harjoot settlement worker.
+    // Drains `treasury_transfers_queue` every 10 minutes. The launch
+    // strategy is `manual` (env: TREASURY_CONVERSION_MODE), which parks
+    // each batch as `awaiting_manual_conversion` for the CTO/ops to
+    // settle out of band — no on-chain action is taken automatically.
+    // See backend/workers/treasuryForwarder.js + harjoot/strategies/.
+    require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
 
   } catch (err) {
     console.error("Failed to start server:", err);

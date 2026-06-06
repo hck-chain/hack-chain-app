@@ -13,15 +13,56 @@
 require("dotenv").config();
 
 // ---------------------------------------------------------------------------
-// Required variables — server must not start without these
+// Mock mode — checked first because it gates the credential requirement.
+// In production this should NEVER be true; in dev/test it lets the backend
+// boot without real Harjoot credentials (uses the in-process mock client).
 // ---------------------------------------------------------------------------
 
-if (!process.env.HARJOOT_API_BASE_URL) {
-  throw new Error("HARJOOT_API_BASE_URL environment variable is required");
+const USE_MOCK = (process.env.HARJOOT_USE_MOCK === "true" || process.env.HARJOOT_USE_MOCK === "1");
+
+// ---------------------------------------------------------------------------
+// Required variables — only when talking to the REAL Harjoot API.
+// When HARJOOT_USE_MOCK=true the in-process mock client takes over and these
+// values are never read, so we skip validation to keep dev frictionless.
+// ---------------------------------------------------------------------------
+
+if (!USE_MOCK) {
+  if (!process.env.HARJOOT_API_BASE_URL) {
+    throw new Error(
+      "HARJOOT_API_BASE_URL environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
+
+  if (!process.env.HARJOOT_PARTNER_API_KEY) {
+    throw new Error(
+      "HARJOOT_PARTNER_API_KEY environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
+
+  if (!process.env.TREASURY_ADDRESS) {
+    throw new Error(
+      "TREASURY_ADDRESS environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
+
+  if (!process.env.HACK_TOKEN_ADDRESS) {
+    throw new Error(
+      "HACK_TOKEN_ADDRESS environment variable is required " +
+        "(or set HARJOOT_USE_MOCK=true to run the backend with the mock client)",
+    );
+  }
 }
 
-if (!process.env.HARJOOT_PARTNER_API_KEY) {
-  throw new Error("HARJOOT_PARTNER_API_KEY environment variable is required");
+// Validate address format when present (real or mock). 0x followed by 40 hex.
+function validateAddress(name, value) {
+  if (!value) return null;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+    throw new Error(`${name} must be a 0x-prefixed 40-hex-char address (got "${value}")`);
+  }
+  return value.toLowerCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -64,8 +105,21 @@ const config = Object.freeze({
     hackPriceUsdMicros:   parseIntWithDefault(process.env.HACK_PRICE_USD_MICROS, 100, "HACK_PRICE_USD_MICROS"),
   }),
 
+  // On-chain addresses. Stored lowercased so equality checks against decoded
+  // transfer logs are consistent regardless of input casing.
+  chain: Object.freeze({
+    treasuryAddress:  validateAddress("TREASURY_ADDRESS", process.env.TREASURY_ADDRESS),
+    hackTokenAddress: validateAddress("HACK_TOKEN_ADDRESS", process.env.HACK_TOKEN_ADDRESS),
+    // ERC-20 decimals for the HACK token. Default 18 (standard). Override
+    // via HACK_TOKEN_DECIMALS if the deployed token uses a non-standard
+    // value. Used to convert between "whole HACK" (what calculateMintPrice
+    // returns and what `payments.amount_hack` stores) and on-chain base
+    // units in Transfer event values.
+    hackTokenDecimals: parseIntWithDefault(process.env.HACK_TOKEN_DECIMALS, 18, "HACK_TOKEN_DECIMALS"),
+  }),
+
   // Runtime flags
-  useMock: parseBool(process.env.HARJOOT_USE_MOCK, false),
+  useMock: USE_MOCK,
 });
 
 module.exports = config;

@@ -4,10 +4,15 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 
+const db = require("../models");
 const { User, Student, Issuer, Recruiter, UserSession, sequelize } = require("../models");
 const { signToken, signRefreshToken, setAuthCookies, authenticate } = require("../middleware/auth");
 const { cacheSession } = require("../services/redis");
 const { authorizeIssuer } = require("../services/authorizeIssuer");
+const emailService = require("../services/emailService");
+const { createHarjootClient } = require("../harjoot/client");
+const { activateMembership } = require("../harjoot/usecases/activateMembership");
+const { claimInvitation } = require("../harjoot/usecases/claimInvitation");
 
 const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 
@@ -67,6 +72,9 @@ router.post("/register", registerLimiter, async (req, res) => {
           email_verified: false,
           verification_token: verificationToken,
           verification_token_expires_at: verificationTokenExpiresAt,
+          // Issuers need explicit admin approval before they can issue certificates
+          // (DS Section 2.5). The status flips to "approved" via routes/admin.js.
+          educator_approval_status: role === "issuer" ? "pending_approval" : null,
         },
         { transaction: t }
       );
@@ -91,15 +99,33 @@ router.post("/register", registerLimiter, async (req, res) => {
       }
     });
 
-    // ----------------------------------------------------------------------
-    // DS Section 2 — Harjoot membership activation (SKELETON / pending).
-    // After the user + role profile are committed, register them in Harjoot:
-    //   await harjootService.activateAccess(role, newUser, roleSpecificData);
-    // Call it AFTER this transaction commits — never hold a DB transaction
-    // open on an external HTTP call. A failure here is non-fatal:
-    // middleware/harjootAccess.js lazily re-activates on the first protected
-    // request. See documents/harjoot-integration-handoff.md.
-    // ----------------------------------------------------------------------
+    // DS Section 2 — Harjoot membership activation. Runs AFTER the registration
+    // transaction commits so a Harjoot outage cannot abort the registration.
+    // The use case never throws; failures are logged and the membership
+    // middleware (Section 3) re-activates lazily on the first protected request.
+    await activateMembership({
+      client: createHarjootClient(),
+      models: { User },
+      role: newUser.role,
+      user: newUser,
+      profile: roleSpecificData,
+    });
+
+    // DS Section 5 — claim any pending educator invitations targeting this
+    // wallet. Best effort: failures here (DB or email) must not block the
+    // registration response. Only students can have claimable invites.
+    if (newUser.role === "student") {
+      try {
+        await claimInvitation({
+          models: db,
+          emailService,
+          studentWallet: newUser.wallet_address,
+          studentUser: newUser,
+        });
+      } catch (err) {
+        console.error("[register] claimInvitation failed:", err && err.message);
+      }
+    }
 
     const payload = { sub: newUser.id, role: newUser.role, wallet: newUser.wallet_address };
     const token = signToken(payload);

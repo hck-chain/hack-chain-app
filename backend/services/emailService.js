@@ -243,4 +243,172 @@ async function sendVerificationEmail({ to, name, token }) {
   });
 }
 
-module.exports = { sendVerificationEmail };
+// ---------------------------------------------------------------------------
+// Educator approval notifications (DS Section 2.5)
+// ---------------------------------------------------------------------------
+
+// Lightweight HTML template shared by both approve/reject emails. Keeps the
+// branded look without copying the 200-line verification template above.
+function renderEducatorEmail({ title, headline, body, ctaUrl, ctaLabel, accentColor }) {
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f9f9f9;font-family:'Cabin',Arial,sans-serif;color:#222;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9f9f9;padding:40px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
+        <tr><td style="background-color:${accentColor};padding:24px;text-align:center;color:#ffffff;">
+          <h1 style="margin:0;font-size:22px;line-height:1.3;">${headline}</h1>
+        </td></tr>
+        <tr><td style="padding:32px 40px;font-size:16px;line-height:1.6;">
+          ${body}
+          ${ctaUrl ? `<p style="text-align:center;margin:32px 0 8px;">
+            <a href="${ctaUrl}" style="display:inline-block;background-color:${accentColor};color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:700;">${ctaLabel}</a>
+          </p>` : ""}
+        </td></tr>
+        <tr><td style="background-color:#f1f1f5;padding:16px;text-align:center;font-size:12px;color:#888;">
+          &copy; HackChain
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+async function notifyEducatorApproved({ to, name }) {
+  console.log(`[emailService] Enviando aprobacion de educador a: ${to}`);
+  const greeting = name ? `Hola, ${name}.` : "Hola.";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "¡Tu cuenta de educador en HackChain fue aprobada!",
+    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya podés emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator-dashboard\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Cuenta de educador aprobada",
+      headline: "¡Cuenta aprobada!",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 12px;">Tu cuenta de educador en HackChain fue <strong>aprobada</strong>. Ya podés emitir certificados desde tu dashboard.</p>`,
+      ctaUrl: `${FRONTEND_URL}/educator-dashboard`,
+      ctaLabel: "Ir al dashboard",
+    }),
+  });
+}
+
+async function notifyEducatorRejected({ to, name, reason }) {
+  console.log(`[emailService] Enviando rechazo de educador a: ${to}`);
+  const greeting = name ? `Hola, ${name}.` : "Hola.";
+  const safeReason = String(reason || "").trim() || "No se especificó motivo.";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Tu solicitud de educador en HackChain fue rechazada",
+    text: `${greeting}\n\nTu solicitud para ser educador en HackChain fue rechazada.\n\nMotivo: ${safeReason}\n\nSi creés que esto es un error, escribinos a contacto@hackchain.app.\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Solicitud de educador rechazada",
+      headline: "Solicitud rechazada",
+      accentColor: "#a13c3c",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 12px;">Tu solicitud para ser educador en HackChain fue <strong>rechazada</strong>.</p>
+             <p style="margin:0 0 12px;"><strong>Motivo:</strong> ${safeReason}</p>
+             <p style="margin:0 0 12px;">Si creés que esto es un error, escribinos a <a href="mailto:contacto@hackchain.app" style="color:#680099;">contacto@hackchain.app</a>.</p>`,
+      ctaUrl: null,
+      ctaLabel: null,
+    }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Talent invitation notifications (DS Section 5)
+// ---------------------------------------------------------------------------
+
+function shortenWallet(wallet) {
+  if (!wallet || typeof wallet !== "string") return wallet;
+  return wallet.length > 10 ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : wallet;
+}
+
+async function sendInvite({ to, walletAddress, educatorName, message }) {
+  console.log(`[emailService] Enviando invitación de talento a: ${to}`);
+  const inviter = educatorName || "Un educador";
+  const registerUrl = `${FRONTEND_URL}/register?wallet=${encodeURIComponent(walletAddress || "")}`;
+  const safeMessage = typeof message === "string" && message.trim() ? message.trim() : null;
+  const shortWallet = shortenWallet(walletAddress);
+
+  const textParts = [
+    `Hola.`,
+    "",
+    `${inviter} te invitó a HackChain para emitirte un certificado verificado.`,
+    `Tu billetera (${shortWallet}) ya está identificada en la invitación.`,
+  ];
+  if (safeMessage) {
+    textParts.push("", `Mensaje del educador:`, `"${safeMessage}"`);
+  }
+  textParts.push(
+    "",
+    `Registrate y conectá esa misma billetera acá: ${registerUrl}`,
+    "",
+    `— Equipo HackChain`,
+  );
+
+  const htmlBody = `
+    <p style="margin:0 0 12px;">Hola.</p>
+    <p style="margin:0 0 12px;"><strong>${inviter}</strong> te invitó a HackChain para emitirte un certificado verificado.</p>
+    <p style="margin:0 0 12px;">Tu billetera <code style="background:#f1f1f5;padding:2px 6px;border-radius:4px;">${shortWallet || "—"}</code> ya está identificada en la invitación.</p>
+    ${safeMessage ? `<blockquote style="margin:16px 0;padding:12px 16px;border-left:4px solid #680099;background:#f9f4ff;color:#333;">${safeMessage}</blockquote>` : ""}
+    <p style="margin:0 0 12px;">Registrate y conectá esa misma billetera para reclamar tu certificado.</p>
+  `;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${inviter} te invitó a HackChain`,
+    text: textParts.join("\n"),
+    html: renderEducatorEmail({
+      title: "Invitación a HackChain",
+      headline: "Te invitaron a HackChain",
+      accentColor: "#680099",
+      body: htmlBody,
+      ctaUrl: registerUrl,
+      ctaLabel: "Registrate ahora",
+    }),
+  });
+}
+
+async function notifyEducatorClaimed({ to, educatorName, studentWallet, studentName }) {
+  console.log(`[emailService] Notificando claim a educador: ${to}`);
+  const greeting = educatorName ? `Hola, ${educatorName}.` : "Hola.";
+  const who = studentName ? `${studentName} (${shortenWallet(studentWallet)})` : shortenWallet(studentWallet);
+  const dashboardUrl = `${FRONTEND_URL}/educator-dashboard`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "El talento que invitaste se registró en HackChain",
+    text: `${greeting}\n\nEl talento que invitaste a HackChain ya se registró (${who}).\nYa podés reintentar la emisión del certificado desde tu dashboard.\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Tu invitación fue reclamada",
+      headline: "Tu invitación fue reclamada",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 12px;">El talento que invitaste a HackChain (<strong>${who}</strong>) ya se registró.</p>
+             <p style="margin:0 0 12px;">Ya podés reintentar la emisión del certificado desde tu dashboard.</p>`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ir al dashboard",
+    }),
+  });
+}
+
+module.exports = {
+  sendVerificationEmail,
+  notifyEducatorApproved,
+  notifyEducatorRejected,
+  sendInvite,
+  notifyEducatorClaimed,
+};

@@ -12,8 +12,20 @@
 const axios = require("axios");
 const defaultConfig = require("../config");
 const { HarjootError, mapAxiosErrorToHarjootError } = require("./errors");
+const { getCorrelationId } = require("../../lib/correlationContext");
 
 const LOG_PREFIX = "[harjoot]";
+const CORRELATION_HEADER = "X-Correlation-ID";
+
+// Emit a single-line JSON event behind the [harjoot] prefix. Designed for
+// log shippers (Loki, Datadog, CloudWatch) that index structured fields
+// while staying readable for humans grepping the terminal.
+function logEvent(level, fields) {
+  const line = `${LOG_PREFIX} ${JSON.stringify(fields)}`;
+  if (level === "error") console.error(line);
+  else if (level === "warn") console.warn(line);
+  else console.log(line);
+}
 
 // HackChain stores roles as student/issuer/recruiter; Harjoot expects the
 // user-facing segment talent/educator/recruiter.
@@ -65,21 +77,46 @@ function buildAxiosInstance(config) {
   });
 
   instance.interceptors.request.use((reqConfig) => {
-    console.log(
-      `${LOG_PREFIX} ${(reqConfig.method || "get").toUpperCase()} ${reqConfig.url}`,
-      { headers: sanitizeHeaders(reqConfig.headers) },
-    );
+    // Propagate the current correlation ID to Harjoot so they can join their
+    // logs to ours when reconciling an incident.
+    const correlationId = getCorrelationId();
+    if (correlationId) {
+      reqConfig.headers = reqConfig.headers || {};
+      reqConfig.headers[CORRELATION_HEADER] = correlationId;
+    }
+    // Stamp the start time on the request so the response interceptor can
+    // compute latency without juggling closures.
+    reqConfig._startMs = Date.now();
+    logEvent("info", {
+      event: "harjoot_request",
+      method: (reqConfig.method || "get").toUpperCase(),
+      url: reqConfig.url,
+      correlation_id: correlationId || null,
+      retry_count: reqConfig._retryCount || 0,
+      headers: sanitizeHeaders(reqConfig.headers),
+    });
     return reqConfig;
   });
 
   instance.interceptors.response.use(
     (response) => {
-      console.log(`${LOG_PREFIX} ${response.status} ${response.config.url}`);
+      const reqConfig = response.config || {};
+      const latency = reqConfig._startMs ? Date.now() - reqConfig._startMs : null;
+      logEvent("info", {
+        event: "harjoot_response",
+        method: (reqConfig.method || "get").toUpperCase(),
+        url: reqConfig.url,
+        status: response.status,
+        latency_ms: latency,
+        correlation_id: getCorrelationId() || null,
+        retry_count: reqConfig._retryCount || 0,
+      });
       return response;
     },
     async (axiosError) => {
       const reqConfig = axiosError.config || {};
       reqConfig._retryCount = reqConfig._retryCount || 0;
+      const latency = reqConfig._startMs ? Date.now() - reqConfig._startMs : null;
 
       const isNetworkError = !axiosError.response;
       const isServerError = axiosError.response && axiosError.response.status >= 500;
@@ -88,16 +125,34 @@ function buildAxiosInstance(config) {
       if (retryable && reqConfig._retryCount < config.api.maxRetries) {
         reqConfig._retryCount += 1;
         const delay = config.api.retryBaseDelayMs * reqConfig._retryCount;
-        console.warn(
-          `${LOG_PREFIX} retry ${reqConfig._retryCount}/${config.api.maxRetries}` +
-            ` in ${delay}ms — ${axiosError.message}`,
-        );
+        logEvent("warn", {
+          event: "harjoot_retry",
+          method: (reqConfig.method || "get").toUpperCase(),
+          url: reqConfig.url,
+          status: axiosError.response ? axiosError.response.status : null,
+          latency_ms: latency,
+          correlation_id: getCorrelationId() || null,
+          retry_count: reqConfig._retryCount,
+          max_retries: config.api.maxRetries,
+          delay_ms: delay,
+          error: axiosError.message,
+        });
         await new Promise((resolve) => setTimeout(resolve, delay));
         return instance(reqConfig);
       }
 
       const mapped = mapAxiosErrorToHarjootError(axiosError);
-      console.error(`${LOG_PREFIX} ${mapped.name} — ${mapped.message}`);
+      logEvent("error", {
+        event: "harjoot_error",
+        method: (reqConfig.method || "get").toUpperCase(),
+        url: reqConfig.url,
+        status: axiosError.response ? axiosError.response.status : null,
+        latency_ms: latency,
+        correlation_id: getCorrelationId() || null,
+        retry_count: reqConfig._retryCount,
+        error_name: mapped.name,
+        error: mapped.message,
+      });
       throw mapped;
     },
   );
