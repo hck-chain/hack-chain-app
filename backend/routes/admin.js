@@ -10,6 +10,7 @@ const express = require("express");
 const router = express.Router();
 const { body, param, validationResult } = require("express-validator");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const buildRateLimitStore = require("../lib/rateLimitStore");
 
 const { authenticate } = require("../middleware/auth");
 const db = require("../models");
@@ -20,7 +21,9 @@ const { rejectEducator } = require("../harjoot/usecases/rejectEducator");
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
 // throttled rather than smash the DB + email provider. Keyed by the
-// authenticated wallet; ipKeyGenerator is the IPv6-safe fallback.
+// authenticated wallet; ipKeyGenerator is the IPv6-safe fallback. The
+// store is shared via Redis when REDIS_URL is set so multi-instance
+// deployments enforce a single effective limit.
 const adminEducatorLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 100,
@@ -28,6 +31,7 @@ const adminEducatorLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many admin actions. Try again in an hour." },
   keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+  store: buildRateLimitStore("/api/admin/educators"),
 });
 
 // Guard — restrict a route to the configured admin wallet. Mirrors the

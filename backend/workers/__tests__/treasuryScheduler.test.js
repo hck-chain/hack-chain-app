@@ -90,6 +90,7 @@ describe("runTreasuryForwarderOnce", () => {
         }),
       },
       Payment: {}, Certificate: {},
+      sequelize: { getDialect: () => "sqlite" },
     };
     const result = await runTreasuryForwarderOnce({
       models,
@@ -112,6 +113,7 @@ describe("runTreasuryForwarderOnce", () => {
         }),
       },
       Payment: {}, Certificate: {},
+      sequelize: { getDialect: () => "sqlite" },
     };
     const result = await runTreasuryForwarderOnce({
       models,
@@ -184,11 +186,14 @@ describe("scheduleTreasuryForwarder", () => {
   }
 
   // Empty-queue models so the underlying tick is cheap.
+  // Includes a fake sequelize so the withPgAdvisoryLock wrap sees a non-
+  // postgres dialect and no-ops the lock.
   function emptyModels() {
     return {
       TreasuryTransfer: { findAll: jest.fn().mockResolvedValue([]) },
       Payment: {},
       Certificate: {},
+      sequelize: { getDialect: () => "sqlite" },
     };
   }
 
@@ -242,6 +247,7 @@ describe("scheduleTreasuryForwarder", () => {
         findAll: jest.fn().mockImplementation(() => blocking.then(() => [])),
       },
       Payment: {}, Certificate: {},
+      sequelize: { getDialect: () => "sqlite" },
     };
 
     scheduleTreasuryForwarder({
@@ -266,6 +272,61 @@ describe("scheduleTreasuryForwarder", () => {
     // Subsequent tick after #1 finished can run normally again.
     await tick();
     expect(models.TreasuryTransfer.findAll).toHaveBeenCalledTimes(2);
+  });
+
+  test("postgres dialect: tick issues pg_try_advisory_lock + pg_advisory_unlock around the work", async () => {
+    const cron = makeFakeCron();
+    const sqlCalls = [];
+    const sequelize = {
+      getDialect: () => "postgres",
+      query: jest.fn().mockImplementation(async (sql) => {
+        sqlCalls.push(sql);
+        if (sql.includes("pg_try_advisory_lock")) return [[{ acquired: true }], {}];
+        if (sql.includes("pg_advisory_unlock"))    return [[{ pg_advisory_unlock: true }], {}];
+        return [[], {}];
+      }),
+    };
+    const models = {
+      TreasuryTransfer: { findAll: jest.fn().mockResolvedValue([]) },
+      Payment: {}, Certificate: {},
+      sequelize,
+    };
+    scheduleTreasuryForwarder({
+      cron, models,
+      selectStrategy: () => ({ mode: "manual", strategy: { convert: jest.fn() } }),
+      harjootClient: { notifyPayment: jest.fn() },
+    });
+
+    await cron.ticks[0].fn();
+
+    expect(sqlCalls.some((s) => s.includes("pg_try_advisory_lock"))).toBe(true);
+    expect(sqlCalls.some((s) => s.includes("pg_advisory_unlock"))).toBe(true);
+    expect(models.TreasuryTransfer.findAll).toHaveBeenCalledTimes(1);
+  });
+
+  test("postgres dialect: when another instance holds the lock, the tick skips the work", async () => {
+    const cron = makeFakeCron();
+    const sequelize = {
+      getDialect: () => "postgres",
+      query: jest.fn().mockImplementation(async (sql) => {
+        if (sql.includes("pg_try_advisory_lock")) return [[{ acquired: false }], {}];
+        return [[], {}];
+      }),
+    };
+    const models = {
+      TreasuryTransfer: { findAll: jest.fn().mockResolvedValue([]) },
+      Payment: {}, Certificate: {},
+      sequelize,
+    };
+    scheduleTreasuryForwarder({
+      cron, models,
+      selectStrategy: () => ({ mode: "manual", strategy: { convert: jest.fn() } }),
+      harjootClient: { notifyPayment: jest.fn() },
+    });
+
+    await cron.ticks[0].fn();
+    // Work NOT executed because the advisory lock was already held.
+    expect(models.TreasuryTransfer.findAll).not.toHaveBeenCalled();
   });
 
   test("tick swallows runTreasuryForwarderOnce rejection so the cron loop survives", async () => {

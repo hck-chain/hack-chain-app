@@ -9,6 +9,7 @@
 
 const crypto = require("crypto");
 const { runWithCorrelationId } = require("../lib/correlationContext");
+const { withPgAdvisoryLock, LOCK_KEYS } = require("../lib/dbLock");
 //
 // State machine for `treasury_transfers_queue.status`:
 //   pending
@@ -316,6 +317,19 @@ function scheduleTreasuryForwarder(options = {}) {
   // rather than queue up and stampede the chain.
   let running = false;
 
+  // SECURITY: in addition to the in-process flag above, a Postgres
+  // advisory lock prevents TWO INSTANCES of this process running on
+  // separate boxes from both fetching the same pending rows. Critical
+  // for non-manual conversion modes where the worker actually sends
+  // USDT — without the lock, two boxes would both transfer for the
+  // same batch. Manual mode is idempotent so it's fine either way,
+  // but we wrap unconditionally so flipping the mode is safe.
+  const getSequelize = () => {
+    if (options.sequelize) return options.sequelize;
+    const models = options.models || require("../models");
+    return models.sequelize;
+  };
+
   const tick = async () => {
     if (running) {
       console.log(`${LOG_PREFIX} previous tick still running; skipping`);
@@ -323,7 +337,17 @@ function scheduleTreasuryForwarder(options = {}) {
     }
     running = true;
     try {
-      await runTreasuryForwarderOnce(options);
+      const sequelize = getSequelize();
+      await withPgAdvisoryLock(
+        sequelize,
+        LOCK_KEYS.TREASURY_FORWARDER,
+        () => runTreasuryForwarderOnce(options),
+        {
+          onSkip: () => console.log(
+            `${LOG_PREFIX} another instance holds the lock; skipping this tick`,
+          ),
+        },
+      );
     } finally {
       running = false;
     }

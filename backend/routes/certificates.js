@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const buildRateLimitStore = require("../lib/rateLimitStore");
 const { PinataSDK } = require("pinata");
 const router = express.Router();
 
@@ -34,6 +35,8 @@ const issueUpload = multer({
 
 // Per the Phase 9 plan: 10/hour per wallet. Wallets cannot bypass by
 // rotating IPs because we key on the authenticated identity, not req.ip.
+// `store` is shared via Redis when REDIS_URL is set so multi-instance
+// deployments enforce a single effective limit.
 const issueLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
@@ -44,6 +47,7 @@ const issueLimiter = rateLimit({
   // limit. Pre-auth requests (none reach here today, but defense in depth)
   // fall back to the IPv6-safe ip helper from express-rate-limit.
   keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+  store: buildRateLimitStore("/api/certificates/issue"),
 });
 
 // Per the Phase 9 plan: 20/day per educator wallet. Sending invites is
@@ -56,6 +60,7 @@ const inviteTalentLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many invitations. Try again tomorrow." },
   keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+  store: buildRateLimitStore("/api/certificates/invite-talent"),
 });
 
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/;
