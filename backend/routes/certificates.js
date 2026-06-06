@@ -46,6 +46,18 @@ const issueLimiter = rateLimit({
   keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
 });
 
+// Per the Phase 9 plan: 20/day per educator wallet. Sending invites is
+// an email side effect; we want to throttle the case where an issuer
+// scripts a CSV import and accidentally spams a hundred talents.
+const inviteTalentLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many invitations. Try again tomorrow." },
+  keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+});
+
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -254,6 +266,7 @@ router.post(
 router.post(
   "/invite-talent",
   authenticate,
+  inviteTalentLimiter,
   [
     body("studentWallet").custom(isHexWallet).withMessage("studentWallet must be a valid 0x-prefixed Ethereum address"),
     body("email").isEmail().withMessage("email must be a valid address").isLength({ max: 255 }),

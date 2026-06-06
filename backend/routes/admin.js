@@ -9,12 +9,26 @@
 const express = require("express");
 const router = express.Router();
 const { body, param, validationResult } = require("express-validator");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const { authenticate } = require("../middleware/auth");
 const db = require("../models");
 const emailService = require("../services/emailService");
 const { approveEducator } = require("../harjoot/usecases/approveEducator");
 const { rejectEducator } = require("../harjoot/usecases/rejectEducator");
+
+// Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
+// today, a runaway script that loops over a list of educator IDs should be
+// throttled rather than smash the DB + email provider. Keyed by the
+// authenticated wallet; ipKeyGenerator is the IPv6-safe fallback.
+const adminEducatorLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many admin actions. Try again in an hour." },
+  keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+});
 
 // Guard — restrict a route to the configured admin wallet. Mirrors the
 // pattern used by routes/issuers.js POST /authorize.
@@ -52,6 +66,7 @@ router.post(
   "/educators/:userId/approve",
   authenticate,
   requireAdmin,
+  adminEducatorLimiter,
   [param("userId").isInt({ min: 1 }).withMessage("userId must be a positive integer")],
   async (req, res) => {
     if (handleValidation(req, res)) return;
@@ -87,6 +102,7 @@ router.post(
   "/educators/:userId/reject",
   authenticate,
   requireAdmin,
+  adminEducatorLimiter,
   [
     param("userId").isInt({ min: 1 }).withMessage("userId must be a positive integer"),
     body("reason")

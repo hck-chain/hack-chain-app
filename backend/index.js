@@ -142,6 +142,35 @@ app.get("/health", async (req, res) => {
   }
 });
 
+// Reports the most recent state from the Harjoot partner-health check
+// (runs at startup; non-blocking). Used by external monitors to alert
+// when the partner integration has degraded WITHOUT having to retry the
+// upstream call themselves. Response shape:
+//   { ok, hasCache, lastCheckedAt, lastError, partner: { name?, status? } }
+// Sensitive partner fields (api keys, internal ids) are NOT echoed.
+app.get("/health/harjoot", (req, res) => {
+  try {
+    const { getHealthState, getCachedPartnerInfo } =
+      require("./harjoot/usecases/checkPartnerHealth");
+    const state = getHealthState();
+    const cached = getCachedPartnerInfo();
+    // Echo only a curated subset of the cached partner payload.
+    const partner = cached
+      ? { name: cached.name || null, status: cached.status || null }
+      : null;
+    return res.json({
+      ok: state.hasCache && !state.lastError,
+      hasCache: state.hasCache,
+      lastCheckedAt: state.lastCheckedAt,
+      lastError: state.lastError,
+      partner,
+    });
+  } catch (err) {
+    console.error("Health check - Harjoot error:", err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ---------- 404 ----------
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not found" });
