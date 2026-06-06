@@ -19,6 +19,7 @@ const emailService = require("../services/emailService");
 const { approveEducator } = require("../harjoot/usecases/approveEducator");
 const { rejectEducator } = require("../harjoot/usecases/rejectEducator");
 const { listEducators, __ALLOWED_STATUSES } = require("../harjoot/usecases/listEducators");
+const { adminStats } = require("../harjoot/usecases/adminStats");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -186,6 +187,27 @@ router.get(
     } catch (err) {
       console.error("GET /api/admin/educators error:", err);
       return res.status(500).json({ error: "Failed to list educators" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/stats
+ * Dashboard cards: educator counts, certificate volume, revenue,
+ * outstanding USDT debt, treasury queue snapshot.
+ */
+router.get(
+  "/stats",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  async (req, res) => {
+    try {
+      const result = await adminStats({ models: db });
+      return res.json(result);
+    } catch (err) {
+      console.error("GET /api/admin/stats error:", err);
+      return res.status(500).json({ error: "Failed to load stats" });
     }
   },
 );
