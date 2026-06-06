@@ -20,6 +20,7 @@ const { approveEducator } = require("../harjoot/usecases/approveEducator");
 const { rejectEducator } = require("../harjoot/usecases/rejectEducator");
 const { listEducators, __ALLOWED_STATUSES } = require("../harjoot/usecases/listEducators");
 const { adminStats } = require("../harjoot/usecases/adminStats");
+const { listPayments } = require("../harjoot/usecases/listPayments");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -208,6 +209,53 @@ router.get(
     } catch (err) {
       console.error("GET /api/admin/stats error:", err);
       return res.status(500).json({ error: "Failed to load stats" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/payments
+ * Lists payments with filters for the dashboard.
+ *
+ * Query:
+ *   from:       ISO date — inclusive lower bound on created_at
+ *   to:         ISO date — exclusive upper bound on created_at
+ *   fromWallet: 0x-prefixed educator wallet
+ *   status:     Payment.status or "all" (default "confirmed")
+ *   page, limit (default 1, 25 — max 100)
+ */
+router.get(
+  "/payments",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [
+    query("from").optional().isISO8601().withMessage("from must be ISO 8601"),
+    query("to").optional().isISO8601().withMessage("to must be ISO 8601"),
+    query("fromWallet").optional().isString().matches(/^0x[a-fA-F0-9]{40}$/),
+    query("status").optional().isString().isLength({ max: 32 }),
+    query("page").optional().isInt({ min: 1 }).toInt(),
+    query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await listPayments({
+        models: db,
+        from: req.query.from,
+        to: req.query.to,
+        fromWallet: req.query.fromWallet,
+        status: req.query.status,
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return res.json(result);
+    } catch (err) {
+      if (err instanceof TypeError) {
+        return res.status(422).json({ error: err.message });
+      }
+      console.error("GET /api/admin/payments error:", err);
+      return res.status(500).json({ error: "Failed to list payments" });
     }
   },
 );
