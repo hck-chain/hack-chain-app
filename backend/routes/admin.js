@@ -8,7 +8,7 @@
 
 const express = require("express");
 const router = express.Router();
-const { body, param, validationResult } = require("express-validator");
+const { body, param, query, validationResult } = require("express-validator");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const buildRateLimitStore = require("../lib/rateLimitStore");
 
@@ -18,6 +18,7 @@ const db = require("../models");
 const emailService = require("../services/emailService");
 const { approveEducator } = require("../harjoot/usecases/approveEducator");
 const { rejectEducator } = require("../harjoot/usecases/rejectEducator");
+const { listEducators, __ALLOWED_STATUSES } = require("../harjoot/usecases/listEducators");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -33,6 +34,18 @@ const adminEducatorLimiter = rateLimit({
   message: { error: "Too many admin actions. Try again in an hour." },
   keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
   store: buildRateLimitStore("/api/admin/educators"),
+});
+
+// Read-only limiter — separate from the write limiter so a busy listing
+// page in the dashboard doesn't eat the approve/reject budget.
+const adminReadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Slow down." },
+  keyGenerator: (req) => (req.auth && req.auth.wallet) || ipKeyGenerator(req),
+  store: buildRateLimitStore("/api/admin/read"),
 });
 
 // Map a Result `reason` from the use cases to an HTTP status.
@@ -130,6 +143,49 @@ router.post(
     } catch (err) {
       console.error("POST /api/admin/educators/:userId/reject error:", err);
       return res.status(500).json({ error: "Failed to reject educator" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/educators
+ * Lists issuers with pagination + filters for the admin dashboard.
+ *
+ * Query:
+ *   status: "pending_approval" | "approved" | "rejected" | "all" (default "all")
+ *   search: free-text substring, <=80 chars
+ *   page:   1-based, default 1
+ *   limit:  default 25, max 100
+ *
+ * Returns: { items, total, page, limit, totalPages }
+ */
+router.get(
+  "/educators",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [
+    query("status").optional().isIn([...__ALLOWED_STATUSES])
+      .withMessage("invalid status"),
+    query("search").optional().isString().isLength({ max: 80 }),
+    query("page").optional().isInt({ min: 1 }).toInt(),
+    query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+
+    try {
+      const result = await listEducators({
+        models: db,
+        status: req.query.status,
+        search: req.query.search,
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("GET /api/admin/educators error:", err);
+      return res.status(500).json({ error: "Failed to list educators" });
     }
   },
 );
