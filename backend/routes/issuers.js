@@ -411,15 +411,9 @@ router.delete("/me", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/issuers/authorize — admin only (ADMIN_WALLET env var)
-router.post("/authorize", authenticate, async (req, res) => {
+// POST /api/issuers/authorize — admin only (ADMIN_WALLETS / ADMIN_WALLET env)
+router.post("/authorize", authenticate, requireAdmin, async (req, res) => {
   try {
-    const callerWallet = req.auth.wallet.toLowerCase();
-    const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
-    if (!adminWallet || callerWallet !== adminWallet) {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-
     const { issuer } = req.body;
     if (!issuer) return res.status(400).json({ error: "Issuer address required" });
 
