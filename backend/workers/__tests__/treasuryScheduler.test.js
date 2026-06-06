@@ -12,6 +12,7 @@ const {
   scheduleTreasuryForwarder,
   __DEFAULT_CRON_EXPRESSION,
 } = require("../treasuryForwarder");
+const { getCorrelationId } = require("../../lib/correlationContext");
 
 beforeAll(() => {
   jest.spyOn(console, "log").mockImplementation(() => {});
@@ -49,7 +50,9 @@ describe("runTreasuryForwarderOnce", () => {
     expect(models.TreasuryTransfer.findAll).toHaveBeenCalledTimes(1);
     // Empty queue -> strategy.convert never invoked.
     expect(strategy.convert).not.toHaveBeenCalled();
-    expect(result).toEqual({ processed: 0, mode: null });
+    expect(result).toMatchObject({ processed: 0, mode: null });
+    // 9a adds correlation_id propagation; just sanity-check it's a string.
+    expect(typeof result.correlationId).toBe("string");
   });
 
   test("strategy factory throws (unknown mode) -> soft fail, no crash", async () => {
@@ -75,6 +78,49 @@ describe("runTreasuryForwarderOnce", () => {
 
     expect(result.failed).toBe(true);
     expect(result.error).toMatch(/convert/);
+  });
+
+  test("generates a cron-<uuid> correlation id and makes it readable from getCorrelationId during the tick", async () => {
+    let observedDuringTick;
+    const models = {
+      TreasuryTransfer: {
+        findAll: jest.fn().mockImplementation(async () => {
+          observedDuringTick = getCorrelationId();
+          return [];
+        }),
+      },
+      Payment: {}, Certificate: {},
+    };
+    const result = await runTreasuryForwarderOnce({
+      models,
+      selectStrategy: () => ({ mode: "manual", strategy: { convert: jest.fn() } }),
+      harjootClient: { notifyPayment: jest.fn() },
+    });
+    expect(observedDuringTick).toMatch(/^cron-[0-9a-f-]{36}$/);
+    expect(result.correlationId).toBe(observedDuringTick);
+    // Context is cleared after the tick ends.
+    expect(getCorrelationId()).toBeUndefined();
+  });
+
+  test("honors an explicit options.correlationId for ops-triggered runs", async () => {
+    let observed;
+    const models = {
+      TreasuryTransfer: {
+        findAll: jest.fn().mockImplementation(async () => {
+          observed = getCorrelationId();
+          return [];
+        }),
+      },
+      Payment: {}, Certificate: {},
+    };
+    const result = await runTreasuryForwarderOnce({
+      models,
+      correlationId: "ops-manual-drain-2026-06-05",
+      selectStrategy: () => ({ mode: "manual", strategy: { convert: jest.fn() } }),
+      harjootClient: { notifyPayment: jest.fn() },
+    });
+    expect(observed).toBe("ops-manual-drain-2026-06-05");
+    expect(result.correlationId).toBe("ops-manual-drain-2026-06-05");
   });
 
   test("forwards usdtTransfer + harjootWallet + batchSize to processTreasuryQueue", async () => {

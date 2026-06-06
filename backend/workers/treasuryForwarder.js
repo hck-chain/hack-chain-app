@@ -6,6 +6,9 @@
 //
 // Runs on a cron schedule from index.js. NEVER call this inside an HTTP
 // request handler — long-running tx waits would tie up Express workers.
+
+const crypto = require("crypto");
+const { runWithCorrelationId } = require("../lib/correlationContext");
 //
 // State machine for `treasury_transfers_queue.status`:
 //   pending
@@ -245,39 +248,51 @@ const DEFAULT_CRON_EXPRESSION = "*/10 * * * *";
  * @param {number}   [options.batchSize]     Forwarded to processTreasuryQueue.
  */
 async function runTreasuryForwarderOnce(options = {}) {
-  // Lazy requires so this module stays cheap to import (mirrors the
-  // pattern in harjoot/client/index.js).
-  const models = options.models || require("../models");
-  const harjootClient = options.harjootClient
-    || require("../harjoot/client").createHarjootClient();
-  const selectStrategy = options.selectStrategy
-    || require("../harjoot/strategies/factory").selectStrategy;
+  // Mint a fresh correlation ID for this tick. Every downstream Harjoot
+  // call inherits it via AsyncLocalStorage so log lines from one cron
+  // run cluster together regardless of how many endpoints they touch.
+  const correlationId = options.correlationId || `cron-${crypto.randomUUID()}`;
 
-  let strategy;
-  let mode;
-  try {
-    ({ strategy, mode } = selectStrategy());
-  } catch (err) {
-    console.error(`${LOG_PREFIX} strategy selection failed: ${err.message || err}`);
-    return { processed: 0, mode: null, failed: true, error: err.message || String(err) };
-  }
+  return runWithCorrelationId(correlationId, async () => {
+    // Lazy requires so this module stays cheap to import (mirrors the
+    // pattern in harjoot/client/index.js).
+    const models = options.models || require("../models");
+    const harjootClient = options.harjootClient
+      || require("../harjoot/client").createHarjootClient();
+    const selectStrategy = options.selectStrategy
+      || require("../harjoot/strategies/factory").selectStrategy;
 
-  console.log(`${LOG_PREFIX} tick mode=${mode}`);
-  try {
-    return await processTreasuryQueue({
-      models,
-      strategy,
-      harjootClient,
-      usdtTransfer: options.usdtTransfer,
-      harjootWallet: options.harjootWallet,
-      batchSize: options.batchSize,
-    });
-  } catch (err) {
-    // processTreasuryQueue throws only on programmer-error dep issues.
-    // Surface the error in logs but never let it crash the cron.
-    console.error(`${LOG_PREFIX} tick aborted: ${err.message || err}`);
-    return { processed: 0, mode, failed: true, error: err.message || String(err) };
-  }
+    let strategy;
+    let mode;
+    try {
+      ({ strategy, mode } = selectStrategy());
+    } catch (err) {
+      console.error(
+        `${LOG_PREFIX} strategy selection failed correlation_id=${correlationId}: ${err.message || err}`,
+      );
+      return { processed: 0, mode: null, failed: true, error: err.message || String(err), correlationId };
+    }
+
+    console.log(`${LOG_PREFIX} tick mode=${mode} correlation_id=${correlationId}`);
+    try {
+      const result = await processTreasuryQueue({
+        models,
+        strategy,
+        harjootClient,
+        usdtTransfer: options.usdtTransfer,
+        harjootWallet: options.harjootWallet,
+        batchSize: options.batchSize,
+      });
+      return { ...result, correlationId };
+    } catch (err) {
+      // processTreasuryQueue throws only on programmer-error dep issues.
+      // Surface the error in logs but never let it crash the cron.
+      console.error(
+        `${LOG_PREFIX} tick aborted correlation_id=${correlationId}: ${err.message || err}`,
+      );
+      return { processed: 0, mode, failed: true, error: err.message || String(err), correlationId };
+    }
+  });
 }
 
 /**

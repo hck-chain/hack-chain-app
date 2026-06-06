@@ -38,6 +38,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Correlation ID — accepts incoming X-Correlation-ID or generates a fresh
+// req-<uuid>. Echoes on the response and runs the rest of the request
+// inside the AsyncLocalStorage context so downstream modules (Harjoot
+// client, use cases, the treasury worker) can read it without explicit
+// plumbing. See backend/middleware/correlationId.js.
+const correlationId = require("./middleware/correlationId");
+app.use(correlationId());
+
 // ---------- Global rate limiter ----------
 // Covers all /api/ routes. Specific limiters (login: 8/min, upload: 10/hr)
 // apply on top of this for their own endpoints.
