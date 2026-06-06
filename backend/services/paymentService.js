@@ -91,6 +91,12 @@ async function verifyHackPayment(params) {
   }
 
   const normalizedFrom = expectedFrom.toLowerCase();
+  // SECURITY: tx_hash is persisted and used as the replay-protection key.
+  // Postgres VARCHAR is case-sensitive, so without normalization "0xAB..."
+  // and "0xab..." (same hash on-chain) would both pass the UNIQUE
+  // constraint AND the pre-check, letting an attacker fund TWO certificates
+  // with a single on-chain payment. Always lowercase at the boundary.
+  const normalizedTxHash = txHash.toLowerCase();
   const treasury = cfg.chain.treasuryAddress;
   const hackToken = cfg.chain.hackTokenAddress;
   const decimals = cfg.chain.hackTokenDecimals;
@@ -98,17 +104,19 @@ async function verifyHackPayment(params) {
   // ---- (1) replay pre-check ---------------------------------------------------
   // Race window between this check and INSERT is closed by the unique
   // constraint on tx_hash — caught further down.
-  const existing = await models.Payment.findOne({ where: { tx_hash: txHash } });
+  const existing = await models.Payment.findOne({ where: { tx_hash: normalizedTxHash } });
   if (existing) {
     return { ok: false, reason: "REPLAY", existingPaymentId: existing.id };
   }
 
   // ---- (2) fetch receipt ------------------------------------------------------
+  // RPC nodes accept either casing, but log with the normalized value so a
+  // single tx_hash maps to a single log trail.
   let receipt;
   try {
-    receipt = await provider.getTransactionReceipt(txHash);
+    receipt = await provider.getTransactionReceipt(normalizedTxHash);
   } catch (err) {
-    console.error(`${LOG_PREFIX} provider failure for ${txHash}: ${err.message || err}`);
+    console.error(`${LOG_PREFIX} provider failure for ${normalizedTxHash}: ${err.message || err}`);
     return { ok: false, reason: "RPC_ERROR", soft_failed: true, error: err.message || String(err) };
   }
   if (!receipt) {
@@ -179,7 +187,7 @@ async function verifyHackPayment(params) {
   // ---- (5) persist; race-safe via unique constraint on tx_hash ----------------
   try {
     const payment = await models.Payment.create({
-      tx_hash: txHash,
+      tx_hash: normalizedTxHash,
       from_wallet: normalizedFrom,
       amount_hack: actualAmountHack.toString(),
       harjoot_price_usd: (pricing.harjootCostUsdCents / 100).toFixed(4),
@@ -189,14 +197,14 @@ async function verifyHackPayment(params) {
     });
 
     console.log(
-      `${LOG_PREFIX} confirmed payment_id=${payment.id} tx=${txHash} ` +
+      `${LOG_PREFIX} confirmed payment_id=${payment.id} tx=${normalizedTxHash} ` +
         `from=${normalizedFrom} amount=${actualAmountHack} purpose=${purpose}`,
     );
     return {
       ok: true,
       payment: {
         id: payment.id,
-        txHash,
+        txHash: normalizedTxHash,
         fromWallet: normalizedFrom,
         amountHack: actualAmountHack,
       },
@@ -205,7 +213,7 @@ async function verifyHackPayment(params) {
     // SequelizeUniqueConstraintError — somebody else inserted the same
     // tx_hash between our pre-check and INSERT. Treat as replay.
     if (err && (err.name === "SequelizeUniqueConstraintError" || err.original?.code === "SQLITE_CONSTRAINT")) {
-      const conflict = await models.Payment.findOne({ where: { tx_hash: txHash } });
+      const conflict = await models.Payment.findOne({ where: { tx_hash: normalizedTxHash } });
       return {
         ok: false,
         reason: "REPLAY",

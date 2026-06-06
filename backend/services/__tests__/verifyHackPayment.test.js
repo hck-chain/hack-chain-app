@@ -484,6 +484,112 @@ describe("paymentService.verifyHackPayment", () => {
   });
 
   // -------------------------------------------------------------------------
+  // SECURITY: tx_hash case-sensitivity replay protection
+  // -------------------------------------------------------------------------
+
+  describe("tx_hash case-sensitivity replay protection", () => {
+    // Same hash bytes, different ASCII casing. Without normalization Postgres
+    // treats these as two distinct rows -> double-spend vulnerability.
+    const MIXED_CASE_TX = "0x" + "AbCdEf1234567890".repeat(4);
+    const LOWER_CASE_TX = MIXED_CASE_TX.toLowerCase();
+
+    function happyReceipt() {
+      return makeReceipt({
+        logs: [
+          makeTransferLog({
+            tokenAddress: HACK_TOKEN,
+            from: EDUCATOR,
+            to: TREASURY,
+            value: EXPECTED_BASE,
+          }),
+        ],
+      });
+    }
+
+    test("persists tx_hash in lowercase regardless of input casing", async () => {
+      const result = await verifyHackPayment({
+        models,
+        provider: makeProvider({ receipt: happyReceipt() }),
+        txHash: MIXED_CASE_TX,
+        expectedFrom: EDUCATOR,
+        expectedAmountHack: EXPECTED_HACK,
+        purpose: "certificate_issuance",
+        pricing: DEFAULT_PRICING,
+        config: STUB_CONFIG,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.payment.txHash).toBe(LOWER_CASE_TX);
+
+      const stored = await Payment.findOne({ where: { tx_hash: LOWER_CASE_TX } });
+      expect(stored).not.toBeNull();
+      // Nothing slipped through with the mixed casing.
+      const mixedStored = await Payment.findOne({ where: { tx_hash: MIXED_CASE_TX } });
+      expect(mixedStored).toBeNull();
+    });
+
+    test("REPLAY when a payment with the lowercase hash already exists", async () => {
+      // Insert the lowercase hash first, then try to verify with mixed case.
+      await Payment.create({
+        tx_hash: LOWER_CASE_TX,
+        from_wallet: EDUCATOR,
+        amount_hack: EXPECTED_HACK.toString(),
+        harjoot_price_usd: "0.2000",
+        user_price_usd: "0.6900",
+        status: "confirmed",
+        purpose: "certificate_issuance",
+      });
+
+      const result = await verifyHackPayment({
+        models,
+        provider: makeProvider({ receipt: null }),
+        txHash: MIXED_CASE_TX,
+        expectedFrom: EDUCATOR,
+        expectedAmountHack: EXPECTED_HACK,
+        purpose: "certificate_issuance",
+        pricing: DEFAULT_PRICING,
+        config: STUB_CONFIG,
+      });
+
+      expect(result.reason).toBe("REPLAY");
+      expect(await Payment.count()).toBe(1);
+    });
+
+    test("two verifications with different casings of the same hash hit REPLAY on the second", async () => {
+      // First call wins.
+      const first = await verifyHackPayment({
+        models,
+        provider: makeProvider({ receipt: happyReceipt() }),
+        txHash: MIXED_CASE_TX,
+        expectedFrom: EDUCATOR,
+        expectedAmountHack: EXPECTED_HACK,
+        purpose: "certificate_issuance",
+        pricing: DEFAULT_PRICING,
+        config: STUB_CONFIG,
+      });
+      expect(first.ok).toBe(true);
+
+      // Second call with the OPPOSITE casing must NOT mint a duplicate.
+      const second = await verifyHackPayment({
+        models,
+        provider: makeProvider({ receipt: happyReceipt() }),
+        txHash: LOWER_CASE_TX, // would have been a different string in DB without the fix
+        expectedFrom: EDUCATOR,
+        expectedAmountHack: EXPECTED_HACK,
+        purpose: "certificate_issuance",
+        pricing: DEFAULT_PRICING,
+        config: STUB_CONFIG,
+      });
+      expect(second.ok).toBe(false);
+      expect(second.reason).toBe("REPLAY");
+      expect(second.existingPaymentId).toBe(first.payment.id);
+
+      // Exactly one row, never two.
+      expect(await Payment.count()).toBe(1);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Programmer errors
   // -------------------------------------------------------------------------
 
