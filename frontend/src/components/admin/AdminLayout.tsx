@@ -5,7 +5,8 @@
 // Layout (background animation + footer) so the admin section feels
 // part of the same product, not a side console.
 
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import {
@@ -14,11 +15,13 @@ import {
   Receipt,
   Banknote,
   LogOut,
+  Menu,
 } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
-const HackChainLogo = '/images/logoHackchain2.webp';
+const HackChainLogo = '/favicon.ico';
 
 type NavItem = { to: string; label: string; icon: React.ReactNode };
 
@@ -29,11 +32,12 @@ const NAV: NavItem[] = [
   { to: '/admin/treasury',  label: 'Treasury',  icon: <Banknote        className="h-4 w-4" /> },
 ];
 
-function SidebarLink({ item }: { item: NavItem }) {
+function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   return (
     <NavLink
       to={item.to}
       end={item.to === '/admin'}
+      onClick={onNavigate}
       className={({ isActive }) =>
         [
           'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-body transition-colors',
@@ -49,9 +53,31 @@ function SidebarLink({ item }: { item: NavItem }) {
   );
 }
 
-export default function AdminLayout() {
-  const { logout } = useAuth();
+function BrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`${compact ? 'h-8 w-8' : 'h-10 w-10'} rounded-md bg-primary/10 ring-1 ring-primary/30 flex items-center justify-center`}>
+        <img src={HackChainLogo} alt="HackChain" className={compact ? 'h-5 w-5' : 'h-7 w-7'} />
+      </div>
+      <div>
+        <p className={`font-title leading-none text-primary ${compact ? 'text-base' : 'text-lg'}`}>HackChain</p>
+        <p className="text-xs text-muted-foreground tracking-wider uppercase">Admin</p>
+      </div>
+    </div>
+  );
+}
+
+function backDashboardFor(role: string | undefined | null): { to: string; label: string } | null {
+  if (role === 'student')   return { to: '/dashboard/talent',    label: 'Mi cuenta (talent)' };
+  if (role === 'issuer')    return { to: '/educator/dashboard',  label: 'Mi cuenta (educator)' };
+  if (role === 'recruiter') return { to: '/dashboard/recruiter', label: 'Mi cuenta (recruiter)' };
+  return null;
+}
+
+function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const back = backDashboardFor(user?.role);
 
   async function handleLogout() {
     await logout();
@@ -59,40 +85,71 @@ export default function AdminLayout() {
   }
 
   return (
+    <div className="space-y-6">
+      <nav className="flex flex-col gap-1">
+        {NAV.map((item) => (
+          <SidebarLink key={item.to} item={item} onNavigate={onNavigate} />
+        ))}
+      </nav>
+
+      {back && (
+        <div className="pt-4 border-t border-border/60">
+          <NavLink
+            to={back.to}
+            onClick={onNavigate}
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-body text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+          >
+            <LayoutDashboard className="h-4 w-4 rotate-180" />
+            <span>{back.label}</span>
+          </NavLink>
+        </div>
+      )}
+
+      <div className="pt-4 border-t border-border/60 space-y-2">
+        <LanguageToggle />
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminLayout() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const currentLabel = NAV.find((n) => (n.to === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(n.to)))?.label ?? 'Admin';
+
+  return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        {/* ---- Mobile top bar (sticky) ---- */}
+        <div className="lg:hidden sticky top-0 z-30 -mx-4 px-4 py-3 mb-4 bg-background/85 backdrop-blur-md border-b border-border/60 flex items-center justify-between">
+          <BrandMark compact />
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Menu className="h-4 w-4" />
+                <span className="text-xs">{currentLabel}</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-72 sm:w-80">
+              <div className="mt-2 mb-6"><BrandMark /></div>
+              <SidebarBody onNavigate={() => setMobileOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
-          {/* ---- Sidebar ---- */}
-          <aside className="lg:sticky lg:top-8 self-start space-y-6">
-            <div className="flex items-center gap-3">
-              <img
-                src={HackChainLogo}
-                alt="HackChain"
-                className="h-10 w-10 rounded-md"
-              />
-              <div>
-                <p className="font-title text-lg leading-none">HackChain</p>
-                <p className="text-xs text-muted-foreground">Admin</p>
-              </div>
-            </div>
-
-            <nav className="flex flex-col gap-1">
-              {NAV.map((item) => (
-                <SidebarLink key={item.to} item={item} />
-              ))}
-            </nav>
-
-            <div className="pt-4 border-t border-border/60 space-y-2">
-              <LanguageToggle />
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                Cerrar sesión
-              </button>
-            </div>
+          {/* ---- Desktop sidebar ---- */}
+          <aside className="hidden lg:block lg:sticky lg:top-8 self-start space-y-6">
+            <BrandMark />
+            <SidebarBody />
           </aside>
 
           {/* ---- Page slot ---- */}

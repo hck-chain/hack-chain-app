@@ -13,7 +13,7 @@ const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const buildRateLimitStore = require("../lib/rateLimitStore");
 
 const { authenticate } = require("../middleware/auth");
-const { requireAdmin } = require("../middleware/requireAdmin");
+const { requireAdmin, isAdmin } = require("../middleware/requireAdmin");
 const db = require("../models");
 const emailService = require("../services/emailService");
 const { approveEducator } = require("../harjoot/usecases/approveEducator");
@@ -153,6 +153,18 @@ router.post(
     }
   },
 );
+
+/**
+ * GET /api/admin/access
+ * Lightweight self-check: tells the authenticated caller whether their
+ * wallet is in ADMIN_WALLETS. ALWAYS 200 (no admin gate) so the SPA can
+ * decide where to redirect after login + whether to show admin entry
+ * points in the regular dashboards, WITHOUT exposing the admin list.
+ */
+router.get("/access", authenticate, (req, res) => {
+  const wallet = req.auth && req.auth.wallet;
+  return res.json({ isAdmin: isAdmin(wallet) });
+});
 
 /**
  * GET /api/admin/educators

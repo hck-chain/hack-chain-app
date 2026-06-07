@@ -16,11 +16,9 @@
 //   - backend says 5xx      -> render an inline error with a retry CTA
 //                              (do NOT silently 200; ops might be down)
 
-import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApi } from '@/services/admin';
-import { ApiServiceError } from '@/services/api';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -36,18 +34,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 export default function AdminRoute({ children }: AdminRouteProps) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-
-  // The lightest admin endpoint we have. A 200 here proves the wallet is in
-  // ADMIN_WALLETS on the backend without us having to expose the list to
-  // the frontend.
-  const probe = useQuery({
-    queryKey: ['admin-access-probe'],
-    queryFn: () => adminApi.stats(),
-    enabled: isAuthenticated && !authLoading,
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
-  });
+  const { isAdmin, isLoading: probeLoading, isError } = useAdminAccess();
 
   if (authLoading) {
     return (
@@ -59,7 +46,7 @@ export default function AdminRoute({ children }: AdminRouteProps) {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  if (probe.isLoading) {
+  if (probeLoading) {
     return (
       <Centered>
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto" />
@@ -68,9 +55,7 @@ export default function AdminRoute({ children }: AdminRouteProps) {
     );
   }
 
-  if (probe.error) {
-    const status = probe.error instanceof ApiServiceError ? probe.error.status : null;
-    if (status === 403) return <Navigate to="/" replace />;
+  if (isError) {
     return (
       <Centered>
         <h2 className="text-xl font-title">No se pudo verificar el acceso</h2>
@@ -79,7 +64,7 @@ export default function AdminRoute({ children }: AdminRouteProps) {
         </p>
         <button
           type="button"
-          onClick={() => probe.refetch()}
+          onClick={() => window.location.reload()}
           className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-90"
         >
           Reintentar
@@ -87,6 +72,8 @@ export default function AdminRoute({ children }: AdminRouteProps) {
       </Centered>
     );
   }
+
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
