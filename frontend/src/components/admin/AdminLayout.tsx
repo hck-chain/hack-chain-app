@@ -8,7 +8,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { LanguageToggle } from '@/components/LanguageToggle';
 import {
   LayoutDashboard,
   Users,
@@ -20,6 +19,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+// LanguageToggle removido a pedido — el admin queda en español para launch.
 
 const HackChainLogo = '/favicon.ico';
 
@@ -56,9 +56,11 @@ function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className={`${compact ? 'h-8 w-8' : 'h-10 w-10'} rounded-md bg-primary/10 ring-1 ring-primary/30 flex items-center justify-center`}>
-        <img src={HackChainLogo} alt="HackChain" className={compact ? 'h-5 w-5' : 'h-7 w-7'} />
-      </div>
+      <img
+        src={HackChainLogo}
+        alt="HackChain"
+        className={compact ? 'h-8 w-8' : 'h-10 w-10'}
+      />
       <div>
         <p className={`font-title leading-none text-primary ${compact ? 'text-base' : 'text-lg'}`}>HackChain</p>
         <p className="text-xs text-muted-foreground tracking-wider uppercase">Admin</p>
@@ -105,8 +107,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       )}
 
-      <div className="pt-4 border-t border-border/60 space-y-2">
-        <LanguageToggle />
+      <div className="pt-4 border-t border-border/60">
         <button
           type="button"
           onClick={handleLogout}
