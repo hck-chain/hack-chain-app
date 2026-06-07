@@ -7,10 +7,11 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle, Copy, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 const HackChainLogo = '/images/logoHackchain2.webp';
@@ -94,6 +95,7 @@ const RecruiterDashboard = () => {
 
     const queryClient = useQueryClient();
     const { logout } = useAuth();
+    const { isAdmin } = useAdminAccess();
     const handleLogout = async () => {
         logout();
         queryClient.clear();
@@ -210,6 +212,16 @@ const RecruiterDashboard = () => {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
+                                                {isAdmin && (
+                                                    <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-blue-500/5 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-colors">
+                                                        <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] mt-0.5 flex-shrink-0" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs uppercase text-slate-500 font-semibold font-body">Admin</p>
+                                                            <p className="text-sm text-slate-200 font-title">Panel de Administración</p>
+                                                        </div>
+                                                    </Link>
+                                                )}
 
                                                 <div className="pt-4 border-t border-white/10">
                                                     <Button

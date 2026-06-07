@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Award, Briefcase, Wallet, LogOut, ChevronDown, ExternalLink, GraduationCap, Users, Mail, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { LanguageToggle } from '@/components/LanguageToggle';
 
@@ -182,6 +183,7 @@ const TalentDashboard = () => {
   const queryClient = useQueryClient();
   const [talent, setTalent] = useState<TalentInfo | null>(null);
   const [copiedWallet, setCopiedWallet] = useState(false);
+  const { isAdmin } = useAdminAccess();
 
   const { logout } = useAuth();
 
@@ -348,6 +350,16 @@ const TalentDashboard = () => {
                             </p>
                           </div>
                         </div>
+                      )}
+                      
+                      {isAdmin && (
+                        <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                          <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">Admin</p>
+                            <p className="text-sm text-slate-200">Panel de Administración</p>
+                          </div>
+                        </Link>
                       )}
                     </div>
 

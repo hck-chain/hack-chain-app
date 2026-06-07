@@ -134,9 +134,8 @@ export default function AdminLayout() {
           <BrandMark compact />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="icon" className="h-9 w-9">
                 <Menu className="h-4 w-4" />
-                <span className="text-xs">{currentLabel}</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-72 sm:w-80">

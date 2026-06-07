@@ -46,10 +46,18 @@ export default function AdminAccessBadge({ variant = 'pill', className = '' }: A
   return (
     <Link
       to="/admin"
-      className={`inline-flex items-center gap-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold px-3 py-1 ring-1 ring-primary/30 transition-colors ${className}`}
+      className={`group relative inline-flex items-center gap-2 rounded-full bg-background/60 backdrop-blur-xl border border-white/10 hover:border-primary/50 px-4 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] overflow-hidden ${className}`}
     >
-      <Shield className="h-3.5 w-3.5" />
-      Admin
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+      
+      <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-primary/20">
+        <div className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-75" />
+        <Shield className="h-3.5 w-3.5 text-primary relative z-10" />
+      </div>
+      
+      <span className="relative z-10 text-sm font-semibold tracking-wide text-white/90 group-hover:text-white transition-colors">
+        Admin
+      </span>
     </Link>
   );
 }
