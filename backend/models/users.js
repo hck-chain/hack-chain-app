@@ -28,7 +28,10 @@ module.exports = (sequelize, DataTypes) => {
     educator_approval_status:      { type: DataTypes.STRING, allowNull: true },
     approved_at:                   { type: DataTypes.DATE, allowNull: true },
     approved_by:                   { type: DataTypes.INTEGER, allowNull: true },
-    rejection_reason:              { type: DataTypes.TEXT, allowNull: true }
+    rejection_reason:              { type: DataTypes.TEXT, allowNull: true },
+
+    // ---- Phase 1 (Referrals) ----
+    referral_code: { type: DataTypes.STRING(8), unique: true, allowNull: true }
   }, {
     tableName: 'users',
     underscored: true,

@@ -7,7 +7,8 @@
     "dev": "nodemon index.js",
     "test": "jest --runInBand --detectOpenHandles",
     "migrate:issuer-profile": "node scripts/migrate-issuer-profile.js",
-    "migrate:harjoot-phase1": "node scripts/migrate-harjoot-phase1.js"
+    "migrate:harjoot-phase1": "node scripts/migrate-harjoot-phase1.js",
+    "migrate:referrals-phase1": "node scripts/migrate-referrals-phase1.js"
   },
   "keywords": [],
   "author": "",

@@ -80,6 +80,10 @@ db.Payment = require("./payments")(sequelize, DataTypes);
 db.TalentInvitation = require("./talentInvitations")(sequelize, DataTypes);
 db.TreasuryTransfer = require("./treasuryTransfers")(sequelize, DataTypes);
 
+// Phase 1 — Referrals system
+db.Referral = require("./referrals")(sequelize, DataTypes);
+db.IncentivesPoolLedger = require("./incentivesPoolLedger")(sequelize, DataTypes);
+
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
