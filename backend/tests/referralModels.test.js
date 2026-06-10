@@ -13,25 +13,32 @@ describe("Referrals Models", () => {
 
   let referrer, referred;
 
+  const TEST_WALLETS = ["0x_test_referrer_1", "0x_test_referred_1", "0x_test_extra_1"];
+
   beforeEach(async () => {
-    // Clear tables
     await IncentivesPoolLedger.destroy({ where: {} });
     await Referral.destroy({ where: {} });
-    await User.destroy({ where: {} });
+    await User.destroy({ where: { wallet_address: TEST_WALLETS } });
 
     referrer = await User.create({
-      wallet_address: "0x123",
+      wallet_address: "0x_test_referrer_1",
       role: "student",
       nonce: "nonce1",
-      referral_code: "REF12345"
+      referral_code: "TREF0001"
     });
 
     referred = await User.create({
-      wallet_address: "0x456",
+      wallet_address: "0x_test_referred_1",
       role: "student",
       nonce: "nonce2",
-      referral_code: "REF67890"
+      referral_code: "TREF0002"
     });
+  });
+
+  afterEach(async () => {
+    await IncentivesPoolLedger.destroy({ where: {} });
+    await Referral.destroy({ where: {} });
+    await User.destroy({ where: { wallet_address: TEST_WALLETS } });
   });
 
   it("should create a referral with default status", async () => {
@@ -82,7 +89,7 @@ describe("Referrals Models", () => {
     });
 
     const anotherReferred = await User.create({
-      wallet_address: "0x789",
+      wallet_address: "0x_test_extra_1",
       role: "student",
       nonce: "nonce3"
     });
