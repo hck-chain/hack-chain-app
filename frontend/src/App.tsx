@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 import CookieBanner from "./components/CookieBanner";
@@ -37,6 +38,15 @@ const BlockchainDisclaimer = lazy(() => import("./pages/legal/BlockchainDisclaim
 const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
 const EditEducatorProfile = lazy(() => import("./pages/EditEducatorProfile"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+
+// Admin dashboard — lazy-loaded shell + 4 sub-pages. AdminRoute pings the
+// backend on mount to verify the wallet is in ADMIN_WALLETS; failed probe
+// redirects out before any sub-page hydrates.
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminStatsPage = lazy(() => import("./pages/admin/AdminStatsPage"));
+const AdminEducatorsPage = lazy(() => import("./pages/admin/AdminEducatorsPage"));
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
 
 const queryClient = new QueryClient();
 
@@ -110,6 +120,22 @@ const App = () => {
 
                 {/* Email verification */}
                 <Route path="/verify-email" element={<VerifyEmail />} />
+
+                {/* Admin dashboard — gated by AdminRoute which probes the
+                    backend for ADMIN_WALLETS membership. */}
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminRoute>
+                      <AdminLayout />
+                    </AdminRoute>
+                  }
+                >
+                  <Route index element={<AdminStatsPage />} />
+                  <Route path="educators" element={<AdminEducatorsPage />} />
+                  <Route path="payments"  element={<AdminPaymentsPage />} />
+                  <Route path="treasury"  element={<AdminTreasuryPage />} />
+                </Route>
 
                 {/* Educator public profile */}
                 <Route path="/educator/:wallet" element={<EducatorProfile />} />

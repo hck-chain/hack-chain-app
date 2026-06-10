@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require("crypto");
 const { UserSession, User } = require("../models");
 const { authenticate } = require("../middleware/auth");
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 // POST /api/sessions - Create new session
 router.post("/", authenticate, async (req, res) => {
@@ -149,11 +150,7 @@ router.delete("/user/:wallet_address", authenticate, async (req, res) => {
 });
 
 // DELETE /api/sessions/cleanup/expired - Clean up expired sessions (admin only)
-router.delete("/cleanup/expired", authenticate, async (req, res) => {
-  const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
-  if (!adminWallet || req.auth.wallet.toLowerCase() !== adminWallet) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
+router.delete("/cleanup/expired", authenticate, requireAdmin, async (req, res) => {
   try {
     const now = new Date();
 

@@ -5,6 +5,7 @@ const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { authenticate } = require("../middleware/auth");
+const { requireAdmin } = require("../middleware/requireAdmin");
 
 // Normalize a social/website URL field. Accepts empty string or null (clears the field).
 // Returns { ok: true, value } on success, or { ok: false, error } on failure.
@@ -243,15 +244,9 @@ router.delete("/me", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/issuers/authorize — admin only (ADMIN_WALLET env var)
-router.post("/authorize", authenticate, async (req, res) => {
+// POST /api/issuers/authorize — admin only (ADMIN_WALLETS / ADMIN_WALLET env)
+router.post("/authorize", authenticate, requireAdmin, async (req, res) => {
   try {
-    const callerWallet = req.auth.wallet.toLowerCase();
-    const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
-    if (!adminWallet || callerWallet !== adminWallet) {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-
     const { issuer } = req.body;
     if (!issuer) return res.status(400).json({ error: "Issuer address required" });
 

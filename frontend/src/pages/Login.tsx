@@ -9,6 +9,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import Footer from "@/components/Footer";
 import hackChainLogo from "/images/logoHackchain.webp";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { appKit } from "@/config/walletConfig";
 
 export default function Login() {
@@ -75,9 +76,15 @@ export default function Login() {
       }, '-=400');
   }, []);
 
+  // Admin entry: if the wallet is in ADMIN_WALLETS the backend tells us
+  // here so we can deep-link straight to /admin instead of dumping the
+  // operator onto their role dashboard first.
+  const { isAdmin, isLoading: adminLoading } = useAdminAccess();
+
   // Redirect already-authenticated users directly to their dashboard.
   // All hooks are declared above — safe to return early here.
-  if (!isLoading && isAuthenticated && user) {
+  if (!isLoading && !adminLoading && isAuthenticated && user) {
+    if (isAdmin) return <Navigate to="/admin" replace />;
     if (user.role === 'student') return <Navigate to="/dashboard/talent" replace />;
     if (user.role === 'issuer') return <Navigate to="/educator/dashboard" replace />;
     if (user.role === 'recruiter') return <Navigate to="/dashboard/recruiter" replace />;
