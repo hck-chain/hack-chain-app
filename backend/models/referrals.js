@@ -22,7 +22,10 @@ module.exports = (sequelize, DataTypes) => {
     status: {
       type: DataTypes.STRING(32),
       allowNull: false,
-      defaultValue: 'pending_stake'
+      defaultValue: 'pending_stake',
+      validate: {
+        isIn: [['pending_stake', 'staking', 'eligible', 'queued_next_month', 'claimed', 'expired', 'cancelled']]
+      }
     },
     staking_started_at: { type: DataTypes.DATE, allowNull: true },
     eligible_at: { type: DataTypes.DATE, allowNull: true },
@@ -39,7 +42,14 @@ module.exports = (sequelize, DataTypes) => {
     underscored: true,
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    validate: {
+      noSelfReferral() {
+        if (this.referrer_user_id === this.referred_user_id) {
+          throw new Error('referrer_user_id must differ from referred_user_id');
+        }
+      }
+    }
   });
 
   Referral.associate = (models) => {

@@ -1,5 +1,5 @@
 const { payoutReferralRewards } = require("../payoutReferralRewards");
-const { createMockAdapter } = require("../../adapters/incentivesPayoutAdapter");
+const { createMockAdapter } = require("../../../adapters/incentivesPayoutAdapter");
 
 describe("payoutReferralRewards", () => {
   let models;
@@ -9,7 +9,7 @@ describe("payoutReferralRewards", () => {
 
   beforeEach(() => {
     adapter = createMockAdapter();
-    config = { referrals: { rewardHackWei: "1000", monthlyCap: 5, dailyPayoutCap: 50 } };
+    config = { rewardHackWei: "1000", monthlyCap: 5, dailyPayoutCap: 50 };
     
     transactionFn = jest.fn(async (cb) => cb({}));
 

@@ -25,36 +25,36 @@ describe("validateReferralCode", () => {
   it("should return valid=false if code not found", async () => {
     models.User.findOne.mockResolvedValue(null);
     
-    const result = await validateReferralCode({ models, code: "VALID123" });
+    const result = await validateReferralCode({ models, code: "AB3D5678" });
     expect(result).toEqual({ valid: false });
     expect(models.User.findOne).toHaveBeenCalledWith({
-      where: { referral_code: "VALID123" },
+      where: { referral_code: "AB3D5678" },
       attributes: ['name']
     });
   });
 
   it("should return valid=true and referrerName if found", async () => {
     models.User.findOne.mockResolvedValue({ name: "Hector" });
-    
-    const result = await validateReferralCode({ models, code: "VALID123" });
+
+    const result = await validateReferralCode({ models, code: "AB3D5678" });
     expect(result).toEqual({ valid: true, referrerName: "Hector" });
   });
 
   it("should clean and uppercase the code before querying", async () => {
     models.User.findOne.mockResolvedValue({ name: "Alice" });
-    
-    await validateReferralCode({ models, code: " valid123 " });
-    
+
+    await validateReferralCode({ models, code: " ab3d5678 " });
+
     expect(models.User.findOne).toHaveBeenCalledWith({
-      where: { referral_code: "VALID123" },
+      where: { referral_code: "AB3D5678" },
       attributes: ['name']
     });
   });
 
   it("should default to 'Usuario' if referrer has no name", async () => {
     models.User.findOne.mockResolvedValue({ name: null }); // user with no name
-    
-    const result = await validateReferralCode({ models, code: "VALID123" });
+
+    const result = await validateReferralCode({ models, code: "AB3D5678" });
     expect(result).toEqual({ valid: true, referrerName: "Usuario" });
   });
 });

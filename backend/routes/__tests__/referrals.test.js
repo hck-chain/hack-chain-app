@@ -3,9 +3,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 jest.mock("../../models", () => {
+  const { Op } = require('sequelize');
   return {
     User: { findByPk: jest.fn(), findOne: jest.fn() },
-    Referral: { findAndCountAll: jest.fn(), findAll: jest.fn(), count: jest.fn(), findByPk: jest.fn() }
+    Referral: { findAndCountAll: jest.fn(), findAll: jest.fn(), count: jest.fn(), findByPk: jest.fn() },
+    Sequelize: { Op }
   };
 });
 
@@ -41,14 +43,14 @@ describe("Referrals Routes", () => {
 
     it("should return 404 if code not found", async () => {
       require("../../models").User.findOne.mockResolvedValue(null);
-      const res = await request(app).get("/api/referrals/validate/VALID123");
+      const res = await request(app).get("/api/referrals/validate/AB3D5678");
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ valid: false, error: "not_found" });
     });
 
     it("should return valid and referrerName if found", async () => {
       require("../../models").User.findOne.mockResolvedValue({ name: "Hector" });
-      const res = await request(app).get("/api/referrals/validate/VALID123");
+      const res = await request(app).get("/api/referrals/validate/AB3D5678");
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ valid: true, referrerName: "Hector" });
     });

@@ -4,28 +4,43 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 jest.mock("../../models", () => {
+  const { Op } = require('sequelize');
   return {
     User: { create: jest.fn(), findOne: jest.fn() },
     Student: { create: jest.fn() },
     Issuer: { create: jest.fn() },
     Recruiter: { create: jest.fn() },
     UserSession: { create: jest.fn(), destroy: jest.fn() },
+    Sequelize: { Op },
     sequelize: {
-      transaction: jest.fn(cb => cb({})) // dummy transaction object
+      transaction: jest.fn(cb => cb({}))
     }
   };
 });
 
+jest.mock("../../middleware/auth", () => {
+  const jwt = require('jsonwebtoken');
+  const secret = 'test-secret-for-unit-tests';
+  return {
+    authenticate: (req, res, next) => { req.auth = { sub: 1, wallet: "0xTEST" }; next(); },
+    signToken: jest.fn((payload) => jwt.sign({ ...payload, exp: Math.floor(Date.now() / 1000) + 3600 }, secret)),
+    signRefreshToken: jest.fn((payload) => jwt.sign({ ...payload, exp: Math.floor(Date.now() / 1000) + 86400 }, secret)),
+    setAuthCookies: jest.fn()
+  };
+});
+
 jest.mock("../../services/redis", () => ({ cacheSession: jest.fn() }));
+jest.mock("../../services/emailService", () => ({ sendEmail: jest.fn().mockResolvedValue({ id: "mock" }) }));
+jest.mock("../../services/authorizeIssuer", () => ({ authorizeIssuer: jest.fn().mockResolvedValue({ ok: true }) }));
 jest.mock("../../harjoot/client", () => ({ createHarjootClient: jest.fn() }));
 jest.mock("../../harjoot/usecases/activateMembership", () => ({ activateMembership: jest.fn() }));
 jest.mock("../../harjoot/usecases/claimInvitation", () => ({ claimInvitation: jest.fn() }));
-jest.mock("../../harjoot/usecases/attachReferralOnRegister", () => ({
+jest.mock("../../usecases/referrals/attachReferralOnRegister", () => ({
   attachReferralOnRegister: jest.fn().mockResolvedValue({ attached: true })
 }));
 
 const usersRoute = require("../users");
-const { attachReferralOnRegister } = require("../../harjoot/usecases/attachReferralOnRegister");
+const { attachReferralOnRegister } = require("../../usecases/referrals/attachReferralOnRegister");
 const { User } = require("../../models");
 
 describe("POST /api/users/register - Referrals integration", () => {

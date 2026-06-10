@@ -368,7 +368,7 @@ router.post(
   async (req, res) => {
     if (handleValidation(req, res)) return;
     try {
-      const result = await cancelReferral({ models: db, referralId: req.params.id, reason: req.body.reason });
+      const result = await cancelReferral({ models: db, referralId: req.params.id, reason: req.body?.reason });
       if (!result.ok) return res.status(404).json({ error: result.reason });
       return res.json({ message: "Referral cancelled", referral: result.referral });
     } catch (err) {

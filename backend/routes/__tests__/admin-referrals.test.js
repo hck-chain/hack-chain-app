@@ -20,6 +20,10 @@ jest.mock("../../middleware/requireAdmin", () => ({
   isAdmin: () => true
 }));
 
+jest.mock("../../services/emailService", () => ({
+  sendEmail: jest.fn().mockResolvedValue({ id: "mock-email-id" })
+}));
+
 const adminRoute = require("../admin");
 
 describe("Admin Referrals Routes", () => {
