@@ -61,7 +61,7 @@ async function getReferralStats({ models, userId, now = new Date(), config }) {
     }
   });
 
-  const monthlyCap = config && config.? config.monthlyCap : 5;
+  const monthlyCap = config && config.monthlyCap ? config.monthlyCap : 5;
   stats.monthlyCapRemaining = Math.max(0, monthlyCap - monthlyClaimedCount);
 
   return stats;

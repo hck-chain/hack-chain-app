@@ -744,5 +744,41 @@
     "talentsListLabel": "Talentos formados",
     "talentsListHint": "Pronto vas a poder explorar los talentos certificados por este educador.",
     "comingSoon": "Próximamente"
+  },
+  "referrals": {
+    "title": "Referidos",
+    "viewAll": "Ver todos",
+    "comingSoon": {
+      "title": "¡El Staking llega pronto!",
+      "desc": "Pronto tus referidos podrán hacer staking y empezarás a ganar recompensas reales. Empieza a referir ahora y construye tu red de cara a la Fase 2."
+    },
+    "shareCode": "Comparte tu código",
+    "instructions": "Comparte este link. Tu amigo se registra y hace stake de 1000 HACK por 30 días. Tú te llevas 1000 HACK.",
+    "yourCode": "Tu Código",
+    "inviteLink": "Enlace de invitación",
+    "stats": {
+      "totalEarned": "Total Ganado",
+      "monthly": "Mensual",
+      "paymentsThisMonth": "Pagos este mes",
+      "pending": "Pendientes",
+      "paid": "Pagados",
+      "queued": "En cola"
+    },
+    "list": {
+      "title": "Mis Referidos",
+      "total": "Total:"
+    },
+    "empty": {
+      "title": "Aún no tienes referidos",
+      "desc": "Comparte tu código de invitación para construir tu red y empezar a ganar recompensas."
+    },
+    "table": {
+      "referred": "Referido",
+      "status": "Estado",
+      "progress": "Progreso",
+      "date": "Fecha",
+      "days": "días"
+    },
+    "pagination": "Página {{page}} de {{totalPages}}"
   }
 }

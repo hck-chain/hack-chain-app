@@ -24,6 +24,7 @@ import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
+import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
@@ -784,6 +785,8 @@ const EducatorDashboard = () => {
               </motion.div>
 
             </div>
+
+            <ReferralsSection />
           </motion.main>
         </div>
       </Layout>

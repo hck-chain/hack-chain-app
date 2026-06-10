@@ -12,6 +12,7 @@ import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 import { appKit } from '@/config/walletConfig';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 const HackChainLogo = '/images/logoHackchain2.webp';
@@ -281,6 +282,8 @@ const RecruiterDashboard = () => {
                             </motion.div>
                         ))}
                     </div>
+
+                    <ReferralsSection />
                 </motion.main>
             </div>
         </Layout >

@@ -21,6 +21,7 @@ import { useTalentCertificates } from '@/hooks/useTalentCertificates';
 import { useTalentEducators } from '@/hooks/useTalentEducators';
 import { api } from '@/services/api';
 import type { TalentInfo } from '@/types/dashboard';
+import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -434,6 +435,8 @@ const TalentDashboard = () => {
               </div>
             </section>
           </div>
+
+          <ReferralsSection />
 
           {/* ── Descubrir Educadores ── */}
           <div className="mt-8">

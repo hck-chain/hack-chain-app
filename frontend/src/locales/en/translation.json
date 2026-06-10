@@ -744,5 +744,41 @@
     "talentsListLabel": "Talents trained",
     "talentsListHint": "Soon you'll be able to explore the talents certified by this educator.",
     "comingSoon": "Coming soon"
+  },
+  "referrals": {
+    "title": "Referrals",
+    "viewAll": "View all",
+    "comingSoon": {
+      "title": "Staking is coming soon!",
+      "desc": "Soon your referrals will be able to stake and you'll start earning real rewards. Start referring now and build your network for Phase 2."
+    },
+    "shareCode": "Share your code",
+    "instructions": "Share this link. Your friend registers and stakes 1000 HACK for 30 days. You get 1000 HACK.",
+    "yourCode": "Your Code",
+    "inviteLink": "Invite Link",
+    "stats": {
+      "totalEarned": "Total Earned",
+      "monthly": "Monthly Limit",
+      "paymentsThisMonth": "Payments this month",
+      "pending": "Pending",
+      "paid": "Paid",
+      "queued": "Queued"
+    },
+    "list": {
+      "title": "My Referrals",
+      "total": "Total:"
+    },
+    "empty": {
+      "title": "You have no referrals yet",
+      "desc": "Share your invitation code to build your network and start earning rewards."
+    },
+    "table": {
+      "referred": "Referred",
+      "status": "Status",
+      "progress": "Progress",
+      "date": "Date",
+      "days": "days"
+    },
+    "pagination": "Page {{page}} of {{totalPages}}"
   }
 }

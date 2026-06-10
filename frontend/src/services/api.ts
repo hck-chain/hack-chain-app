@@ -96,6 +96,15 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   }));
 }
 
+async function getPublic<T>(path: string): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...FETCH_OPTS,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return handleResponse<T>(response);
+}
+
 async function postPublic<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     ...FETCH_OPTS,
@@ -147,6 +156,7 @@ export const api = {
   patch,
   del,
   postPublic,
+  getPublic,
   upload,
   uploadPublic,
 } as const;

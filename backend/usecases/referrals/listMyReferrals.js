@@ -35,7 +35,7 @@ async function listMyReferrals({ models, userId, page = 1, pageSize = 10, config
     }
   });
 
-  const monthlyCap = config && config.? config.monthlyCap : 5;
+  const monthlyCap = config && config.monthlyCap ? config.monthlyCap : 5;
   const monthlyCapRemaining = Math.max(0, monthlyCap - monthlyClaimedCount);
 
   return {

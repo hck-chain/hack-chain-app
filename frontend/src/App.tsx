@@ -38,6 +38,7 @@ const BlockchainDisclaimer = lazy(() => import("./pages/legal/BlockchainDisclaim
 const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
 const EditEducatorProfile = lazy(() => import("./pages/EditEducatorProfile"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const Referrals = lazy(() => import("./pages/Referrals"));
 
 // Admin dashboard — lazy-loaded shell + 4 sub-pages. AdminRoute pings the
 // backend on mount to verify the wallet is in ADMIN_WALLETS; failed probe
@@ -108,6 +109,11 @@ const App = () => {
                 <Route path="/mint" element={
                   <ProtectedRoute roles={['issuer']}>
                     <MintCertificate />
+                  </ProtectedRoute>
+                } />
+                <Route path="/referrals" element={
+                  <ProtectedRoute roles={['student', 'issuer', 'recruiter']}>
+                    <Referrals />
                   </ProtectedRoute>
                 } />
 

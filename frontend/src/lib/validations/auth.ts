@@ -23,6 +23,7 @@ export const userRegistrationSchema = z.object({
         .min(1, "Email is required")
         .email("Please enter a valid email address")
         .max(100, "Email must be at most 100 characters long"),
+    referral_code: z.string().regex(/^[0-9A-HJ-NP-TV-Z]{8}$/i, "Invalid referral code").optional(),
 });
 
 //schema for sending data to the backend
@@ -30,6 +31,7 @@ export const userRegistrationRequestSchema = z.object({
     name: z.string(),
     lastname: z.string(),
     email: z.string().email(),
+    referral_code: z.string().optional(),
 });
 
 //recruiter registration schema
@@ -62,6 +64,7 @@ export const recruiterRegistrationSchema = z.object({
         .min(1, "Email is required")
         .email("Please enter a valid email address")
         .max(100, "Email must be at most 100 characters long"),
+    referral_code: z.string().regex(/^[0-9A-HJ-NP-TV-Z]{8}$/i, "Invalid referral code").optional(),
 });
 
 //schema for sending data to the backend
@@ -70,6 +73,7 @@ export const recruiterRegistrationRequestSchema = z.object({
     lastname: z.string(),
     company_name: z.string(),
     email: z.string().email(),
+    referral_code: z.string().optional(),
 });
 
 //educator registration schema
@@ -86,12 +90,14 @@ export const educatorRegistrationSchema = z.object({
         .min(1, "Email is required")
         .email("Please enter a valid email address")
         .max(100, "Email must be at most 100 characters long"),
+    referral_code: z.string().regex(/^[0-9A-HJ-NP-TV-Z]{8}$/i, "Invalid referral code").optional(),
 });
 
 //schema for sending educator data to the backend
 export const educatorRegistrationRequestSchema = z.object({
     organization_name: z.string(),
     email: z.string().email(),
+    referral_code: z.string().optional(),
 });
 
 export type UserRegistrationFormData = z.infer<typeof userRegistrationSchema>;
@@ -109,6 +115,7 @@ export const transformFormDataToRequest = (
         name: formData.name,
         lastname: formData.lastName,
         email: formData.email,
+        referral_code: formData.referral_code,
     };
 };
 
@@ -121,6 +128,7 @@ export const transformRecruiterFormDataToRequest = (
         lastname: formData.lastName,
         company_name: formData.companyName,
         email: formData.email,
+        referral_code: formData.referral_code,
     };
 };
 
@@ -131,5 +139,6 @@ export const transformEducatorFormDataToRequest = (
     return {
         organization_name: formData.organizationName,
         email: formData.email,
+        referral_code: formData.referral_code,
     };
 };

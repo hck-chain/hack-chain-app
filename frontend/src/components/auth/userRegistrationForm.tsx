@@ -24,6 +24,8 @@ import "./autofill-fix.css";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useReferralCodeFromUrl } from "../../hooks/useReferralCodeFromUrl";
+import { useValidateReferralCode } from "../../hooks/useReferrals";
 
 export function UserRegistrationForm() {
   const { t } = useTranslation();
@@ -34,12 +36,16 @@ export function UserRegistrationForm() {
   const mutation = useUserRegistration();
   const { mutate: register, isPending: isLoading, isError, error } = mutation;
 
+  const referralCode = useReferralCodeFromUrl();
+  const { data: validation } = useValidateReferralCode(referralCode);
+
   const form = useForm<UserRegistrationFormData>({
     resolver: zodResolver(userRegistrationSchema),
     defaultValues: {
       name: "",
       lastName: "",
       email: "",
+      referral_code: referralCode || undefined,
     },
   });
 
@@ -78,6 +84,15 @@ export function UserRegistrationForm() {
         <Alert variant="destructive" className="border-red-500/30 bg-red-500/10">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      )}
+
+      {validation && validation.valid && (
+        <Alert className="border-primary/50 bg-primary/10">
+          <CheckCircle className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary-foreground">
+            Referido por <strong>{validation.referrerName}</strong>. Si te registrás y stakeás 1000 HACK por 30 días, ganas 1000 HACK.
+          </AlertDescription>
         </Alert>
       )}
 
