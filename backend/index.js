@@ -243,6 +243,10 @@ let server;
     // See backend/workers/treasuryForwarder.js + harjoot/strategies/.
     require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
 
+    // DS Section 14 — async Referral Payout worker.
+    // Drains eligible referrals and pays them via Incentives Pool.
+    require("./workers/referralPayoutForwarder").schedulePayoutForwarder();
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

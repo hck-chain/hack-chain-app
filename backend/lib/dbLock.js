@@ -33,6 +33,7 @@ const LOG_PREFIX = "[dbLock]";
 // with other apps sharing the same DB are extremely unlikely.
 const LOCK_KEYS = Object.freeze({
   TREASURY_FORWARDER: 0x48414b43_5452_5357n, // "HACKTRSW" — TReasury SWorker
+  REFERRAL_PAYOUT_FORWARDER: 0x48414b43_5245_4650n, // "HACKREFP" — REFerral Payout
 });
 
 function getDialect(sequelize) {
