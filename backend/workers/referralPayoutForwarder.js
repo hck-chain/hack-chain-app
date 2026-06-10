@@ -1,14 +1,14 @@
 // backend/workers/referralPayoutForwarder.js
 const cron = require("node-cron");
 const { withPgAdvisoryLock, LOCK_KEYS } = require("../lib/dbLock");
-const config = require("../harjoot/config");
+const config = require("../config/referrals");
 
 const LOG_PREFIX = "[referralPayoutForwarder]";
 
 async function runPayoutOnce(options = {}) {
   const models = options.models || require("../models");
-  const { createIncentivesPayoutAdapter } = require("../harjoot/adapters/incentivesPayoutAdapter");
-  const { payoutReferralRewards } = require("../harjoot/usecases/payoutReferralRewards");
+  const { createIncentivesPayoutAdapter } = require("../adapters/incentivesPayoutAdapter");
+  const { payoutReferralRewards } = require("../usecases/referrals/payoutReferralRewards");
   
   let adapter;
   try {
@@ -36,7 +36,7 @@ async function runPayoutOnce(options = {}) {
 
 function schedulePayoutForwarder(options = {}) {
   const cronLib = options.cron || cron;
-  const cronExpression = options.cronExpression || config.referrals.payoutCron || "*/10 * * * *";
+  const cronExpression = options.cronExpression || config.payoutCron || "*/10 * * * *";
 
   let running = false;
 

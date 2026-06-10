@@ -1,13 +1,13 @@
 // backend/workers/referralQueueFlusher.js
 const cron = require("node-cron");
 const { withPgAdvisoryLock, LOCK_KEYS } = require("../lib/dbLock");
-const config = require("../harjoot/config");
+const config = require("../config/referrals");
 
 const LOG_PREFIX = "[referralQueueFlusher]";
 
 async function runFlushOnce(options = {}) {
   const models = options.models || require("../models");
-  const { flushQueuedReferrals } = require("../harjoot/usecases/flushQueuedReferrals");
+  const { flushQueuedReferrals } = require("../usecases/referrals/flushQueuedReferrals");
 
   try {
     const result = await flushQueuedReferrals({ models });
@@ -24,7 +24,7 @@ async function runFlushOnce(options = {}) {
 function scheduleQueueFlusher(options = {}) {
   const cronLib = options.cron || cron;
   // Default to 1st of every month at midnight
-  const cronExpression = options.cronExpression || config.referrals.queueFlushCron || "0 0 1 * *";
+  const cronExpression = options.cronExpression || config.queueFlushCron || "0 0 1 * *";
 
   let running = false;
 

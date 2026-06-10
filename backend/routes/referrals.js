@@ -4,10 +4,10 @@ const rateLimit = require("express-rate-limit");
 const db = require("../models");
 const config = require("../harjoot/config");
 const { authenticate } = require("../middleware/auth");
-const { ensureReferralCode } = require("../harjoot/usecases/ensureReferralCode");
-const { validateReferralCode } = require("../harjoot/usecases/validateReferralCode");
-const { listMyReferrals } = require("../harjoot/usecases/listMyReferrals");
-const { getReferralStats } = require("../harjoot/usecases/getReferralStats");
+const { ensureReferralCode } = require("../usecases/referrals/ensureReferralCode");
+const { validateReferralCode } = require("../usecases/referrals/validateReferralCode");
+const { listMyReferrals } = require("../usecases/referrals/listMyReferrals");
+const { getReferralStats } = require("../usecases/referrals/getReferralStats");
 
 // Rate limit for public validate endpoint: 30/min/IP
 const validateLimiter = rateLimit({

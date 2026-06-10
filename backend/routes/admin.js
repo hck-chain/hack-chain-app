@@ -23,8 +23,8 @@ const { adminStats } = require("../harjoot/usecases/adminStats");
 const { listPayments } = require("../harjoot/usecases/listPayments");
 const { listTreasuryQueue, __ALLOWED_STATUSES: TQ_STATUSES } = require("../harjoot/usecases/listTreasuryQueue");
 const { markTreasurySent } = require("../harjoot/usecases/markTreasurySent");
-const { cancelReferral } = require("../harjoot/usecases/cancelReferral");
-const { approveReferralReview } = require("../harjoot/usecases/approveReferralReview");
+const { cancelReferral } = require("../usecases/referrals/cancelReferral");
+const { approveReferralReview } = require("../usecases/referrals/approveReferralReview");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be

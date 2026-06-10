@@ -13,8 +13,9 @@ const emailService = require("../services/emailService");
 const { createHarjootClient } = require("../harjoot/client");
 const { activateMembership } = require("../harjoot/usecases/activateMembership");
 const { claimInvitation } = require("../harjoot/usecases/claimInvitation");
-const { attachReferralOnRegister } = require("../harjoot/usecases/attachReferralOnRegister");
+const { attachReferralOnRegister } = require("../usecases/referrals/attachReferralOnRegister");
 const config = require("../harjoot/config");
+const configReferrals = require("../config/referrals");
 
 const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 
@@ -101,7 +102,7 @@ router.post("/register", registerLimiter, async (req, res) => {
       }
 
       // Referral attachment
-      const ipHash = crypto.createHash('sha256').update((req.ip || '') + config.referrals.ipSaltPepper).digest('hex');
+      const ipHash = crypto.createHash('sha256').update((req.ip || '') + configReferrals.ipSaltPepper).digest('hex');
       const uaHash = crypto.createHash('sha256').update(req.headers['user-agent'] || '').digest('hex');
       
       const referralAttach = await attachReferralOnRegister({
