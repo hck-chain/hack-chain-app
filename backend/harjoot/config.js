@@ -120,6 +120,19 @@ const config = Object.freeze({
 
   // Runtime flags
   useMock: USE_MOCK,
+
+  // Referrals
+  referrals: Object.freeze({
+    poolAddress: validateAddress("INCENTIVES_POOL_ADDRESS", process.env.INCENTIVES_POOL_ADDRESS),
+    poolPrivateKey: process.env.INCENTIVES_POOL_PRIVATE_KEY,
+    rewardHackWei: process.env.REFERRAL_REWARD_HACK_WEI || "1000000000000000000000",
+    monthlyCap: parseIntWithDefault(process.env.REFERRAL_MONTHLY_CAP, 5, "REFERRAL_MONTHLY_CAP"),
+    dailyPayoutCap: parseIntWithDefault(process.env.REFERRAL_DAILY_PAYOUT_CAP, 50, "REFERRAL_DAILY_PAYOUT_CAP"),
+    ipSaltPepper: process.env.REFERRAL_IP_SALT_PEPPER || "default_pepper_change_in_prod",
+    payoutCron: process.env.REFERRAL_PAYOUT_CRON || "*/10 * * * *",
+    queueFlushCron: process.env.REFERRAL_QUEUE_FLUSH_CRON || "0 0 1 * *",
+    stakingEnabled: parseBool(process.env.REFERRAL_STAKING_ENABLED, false)
+  }),
 });
 
 module.exports = config;

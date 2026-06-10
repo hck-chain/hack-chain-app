@@ -13,6 +13,8 @@ const emailService = require("../services/emailService");
 const { createHarjootClient } = require("../harjoot/client");
 const { activateMembership } = require("../harjoot/usecases/activateMembership");
 const { claimInvitation } = require("../harjoot/usecases/claimInvitation");
+const { attachReferralOnRegister } = require("../harjoot/usecases/attachReferralOnRegister");
+const config = require("../harjoot/config");
 
 const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 
@@ -96,6 +98,20 @@ router.post("/register", registerLimiter, async (req, res) => {
           { wallet_address: normalizedWallet, company_name },
           { transaction: t }
         );
+      }
+
+      // Referral attachment
+      const ipHash = crypto.createHash('sha256').update((req.ip || '') + config.referrals.ipSaltPepper).digest('hex');
+      const uaHash = crypto.createHash('sha256').update(req.headers['user-agent'] || '').digest('hex');
+      
+      const referralAttach = await attachReferralOnRegister({
+        models: db, transaction: t,
+        referrerCode: req.body.referral_code,
+        referredUser: newUser,
+        ipHash, userAgentHash: uaHash, now: new Date(),
+      });
+      if (!referralAttach.attached && referralAttach.reason !== 'no_code') {
+        console.warn('[register] referral attach skipped:', referralAttach.reason);
       }
     });
 
