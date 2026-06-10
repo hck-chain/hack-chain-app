@@ -247,6 +247,10 @@ let server;
     // Drains eligible referrals and pays them via Incentives Pool.
     require("./workers/referralPayoutForwarder").schedulePayoutForwarder();
 
+    // DS Section 14.1 — async Referral Queue Flusher worker.
+    // Promotes queued_next_month referrals to eligible at the start of the month.
+    require("./workers/referralQueueFlusher").scheduleQueueFlusher();
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

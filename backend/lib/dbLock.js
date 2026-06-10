@@ -34,6 +34,7 @@ const LOG_PREFIX = "[dbLock]";
 const LOCK_KEYS = Object.freeze({
   TREASURY_FORWARDER: 0x48414b43_5452_5357n, // "HACKTRSW" — TReasury SWorker
   REFERRAL_PAYOUT_FORWARDER: 0x48414b43_5245_4650n, // "HACKREFP" — REFerral Payout
+  REFERRAL_QUEUE_FLUSHER: 0x48414b43_5245_4651n, // "HACKREFQ" — REFerral Queue
 });
 
 function getDialect(sequelize) {
