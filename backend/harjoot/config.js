@@ -120,6 +120,7 @@ const config = Object.freeze({
 
   // Runtime flags
   useMock: USE_MOCK,
+
 });
 
 module.exports = config;

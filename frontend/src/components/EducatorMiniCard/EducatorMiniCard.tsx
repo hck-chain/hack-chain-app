@@ -48,7 +48,12 @@ const EducatorMiniCard = ({ educator }: Props) => {
       </Avatar>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white truncate leading-tight">{displayName}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-sm font-semibold text-white truncate leading-tight">{displayName}</p>
+          {educator.is_approved && (
+            <img src="/icons/escudoNeon.avif" alt="Verificado" className="h-3.5 w-3.5 shrink-0" />
+          )}
+        </div>
         {educator.organization_name !== displayName && (
           <p className="text-xs text-slate-400 truncate leading-tight mt-0.5">{educator.organization_name}</p>
         )}

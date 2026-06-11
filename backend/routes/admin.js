@@ -23,6 +23,8 @@ const { adminStats } = require("../harjoot/usecases/adminStats");
 const { listPayments } = require("../harjoot/usecases/listPayments");
 const { listTreasuryQueue, __ALLOWED_STATUSES: TQ_STATUSES } = require("../harjoot/usecases/listTreasuryQueue");
 const { markTreasurySent } = require("../harjoot/usecases/markTreasurySent");
+const { cancelReferral } = require("../usecases/referrals/cancelReferral");
+const { approveReferralReview } = require("../usecases/referrals/approveReferralReview");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -348,6 +350,57 @@ router.post(
       return res.status(500).json({ error: "Failed to mark transfer as sent" });
     }
   },
+);
+
+/**
+ * POST /api/admin/referrals/:id/cancel
+ * Cancels a referral that was flagged for review or pending.
+ */
+router.post(
+  "/referrals/:id/cancel",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }).toInt(),
+    body("reason").optional().isString()
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await cancelReferral({ models: db, referralId: req.params.id, reason: req.body?.reason });
+      if (!result.ok) return res.status(404).json({ error: result.reason });
+      return res.json({ message: "Referral cancelled", referral: result.referral });
+    } catch (err) {
+      console.error("POST /api/admin/referrals/:id/cancel error:", err);
+      return res.status(500).json({ error: "Failed to cancel referral" });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/referrals/:id/approve-review
+ * Approves a referral that was flagged for review, allowing it to proceed.
+ */
+router.post(
+  "/referrals/:id/approve-review",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }).toInt()
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await approveReferralReview({ models: db, referralId: req.params.id });
+      if (!result.ok) return res.status(404).json({ error: result.reason });
+      return res.json({ message: "Referral review approved", referral: result.referral });
+    } catch (err) {
+      console.error("POST /api/admin/referrals/:id/approve-review error:", err);
+      return res.status(500).json({ error: "Failed to approve review" });
+    }
+  }
 );
 
 module.exports = router;

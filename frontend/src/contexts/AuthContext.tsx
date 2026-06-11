@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { appKit } from '@/config/walletConfig';
 
@@ -41,6 +42,7 @@ interface AuthUser {
   name: string | null;
   lastName: string | null;
   walletAddress: string | null;
+  emailVerified?: boolean;
 }
 
 interface AuthContextValue {
@@ -64,6 +66,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   // 1. Rehidratar desde localStorage al montar el componente
   useEffect(() => {
@@ -88,21 +91,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 3. Función de Logout
   const logout = useCallback(() => {
-    // Intentamos avisar al backend (fire-and-forget)
     api.post('/api/auth/logout').catch(() => { });
-
-    // Desconectamos AppKit y limpiamos el storage de WalletConnect
-    // para que el modal no rehidrate la sesión y haga auto-login.
     appKit.disconnect().catch(() => {});
     clearWalletStorage();
-
-    // Limpiamos el almacenamiento local
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
-
-    // Limpiamos el estado de React
+    sessionStorage.removeItem('approval_banner_dismissed');
+    queryClient.removeQueries({ queryKey: ['admin', 'access'] });
     setUser(null);
-  }, []);
+  }, [queryClient]);
 
   const value: AuthContextValue = {
     user,

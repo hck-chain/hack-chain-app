@@ -110,6 +110,7 @@ const recruitersRouter = require("./routes/recruiters");
 const opensea = require("./routes/opensea");
 const uploadRoutes = require("./routes/upload");
 const adminRouter = require("./routes/admin");
+const referralsRouter = require("./routes/referrals");
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
@@ -121,6 +122,7 @@ app.use("/api/recruiters", recruitersRouter);
 app.use("/api/opensea", opensea);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/admin", adminRouter);
+app.use("/api/referrals", referralsRouter);
 
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -240,6 +242,14 @@ let server;
     // settle out of band — no on-chain action is taken automatically.
     // See backend/workers/treasuryForwarder.js + harjoot/strategies/.
     require("./workers/treasuryForwarder").scheduleTreasuryForwarder();
+
+    // DS Section 14 — async Referral Payout worker.
+    // Drains eligible referrals and pays them via Incentives Pool.
+    require("./workers/referralPayoutForwarder").schedulePayoutForwarder();
+
+    // DS Section 14.1 — async Referral Queue Flusher worker.
+    // Promotes queued_next_month referrals to eligible at the start of the month.
+    require("./workers/referralQueueFlusher").scheduleQueueFlusher();
 
   } catch (err) {
     console.error("Failed to start server:", err);

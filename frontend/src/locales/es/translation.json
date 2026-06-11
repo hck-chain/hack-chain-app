@@ -240,6 +240,14 @@
   "educatorDashboard": {
     "title": "Educator Dashboard",
     "subtitle": "Crea y emite credenciales verificadas en blockchain fácilmente.",
+    "pendingApproval": "Cuenta pendiente de revisión por el equipo de HackChain.",
+    "rejectedTitle": "Solicitud rechazada",
+    "reapplyBtn": "Solicitar revisión",
+    "reapplying": "Enviando…",
+    "reapplySuccess": "Solicitud enviada",
+    "reapplySuccessDesc": "Tu cuenta volvió a estado pendiente de revisión.",
+    "reapplyError": "Error",
+    "reapplyErrorDesc": "No se pudo enviar la solicitud.",
     "welcome": "Bienvenido,",
     "certificatesIssued": "Certificados Emitidos",
     "talentsAvailable": "Talentos en la Plataforma",
@@ -715,6 +723,8 @@
     "expertiseSection": "Experiencia",
     "accountSection": "Cuenta",
     "educatorRoleLabel": "Educador",
+    "verifiedLabel": "Verificado",
+    "verifiedTooltip": "Educador verificado por HackChain",
     "percentComplete": "% completado",
     "backToDashboard": "Volver al dashboard",
     "uploadNewPhoto": "Subir nueva foto",
@@ -744,5 +754,43 @@
     "talentsListLabel": "Talentos formados",
     "talentsListHint": "Pronto vas a poder explorar los talentos certificados por este educador.",
     "comingSoon": "Próximamente"
+  },
+  "referrals": {
+    "title": "Referidos",
+    "pageTitle": "Programa de Referidos",
+    "pageSubtitle": "Invita a otros usuarios a unirse a HackChain. Cuando staken HACK, ambos ganan recompensas.",
+    "viewAll": "Ver todos",
+    "comingSoon": {
+      "title": "¡El Staking llega pronto!",
+      "desc": "Pronto tus referidos podrán hacer staking y empezarás a ganar recompensas reales. Empieza a referir ahora y construye tu red de cara a la Fase 2."
+    },
+    "shareCode": "Comparte tu código",
+    "instructions": "Comparte este link. Tu amigo se registra y hace stake de 1000 HACK por 30 días. Tú te llevas 1000 HACK.",
+    "yourCode": "Tu Código",
+    "inviteLink": "Enlace de invitación",
+    "stats": {
+      "totalEarned": "Total Ganado",
+      "monthly": "Mensual",
+      "paymentsThisMonth": "Pagos este mes",
+      "pending": "Pendientes",
+      "paid": "Pagados",
+      "queued": "En cola"
+    },
+    "list": {
+      "title": "Mis Referidos",
+      "total": "Total:"
+    },
+    "empty": {
+      "title": "Aún no tienes referidos",
+      "desc": "Comparte tu código de invitación para construir tu red y empezar a ganar recompensas."
+    },
+    "table": {
+      "referred": "Referido",
+      "status": "Estado",
+      "progress": "Progreso",
+      "date": "Fecha",
+      "days": "días"
+    },
+    "pagination": "Página {{page}} de {{totalPages}}"
   }
 }

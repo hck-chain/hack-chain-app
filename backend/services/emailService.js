@@ -288,13 +288,13 @@ async function notifyEducatorApproved({ to, name }) {
     from: FROM,
     to,
     subject: "¡Tu cuenta de educador en HackChain fue aprobada!",
-    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya podés emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator-dashboard\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya puedes emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator-dashboard\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Cuenta de educador aprobada",
       headline: "¡Cuenta aprobada!",
       accentColor: "#680099",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 12px;">Tu cuenta de educador en HackChain fue <strong>aprobada</strong>. Ya podés emitir certificados desde tu dashboard.</p>`,
+             <p style="margin:0 0 12px;">Tu cuenta de educador en HackChain fue <strong>aprobada</strong>. Ya puedes emitir certificados desde tu dashboard.</p>`,
       ctaUrl: `${FRONTEND_URL}/educator-dashboard`,
       ctaLabel: "Ir al dashboard",
     }),
@@ -391,14 +391,14 @@ async function notifyEducatorClaimed({ to, educatorName, studentWallet, studentN
     from: FROM,
     to,
     subject: "El talento que invitaste se registró en HackChain",
-    text: `${greeting}\n\nEl talento que invitaste a HackChain ya se registró (${who}).\nYa podés reintentar la emisión del certificado desde tu dashboard.\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nEl talento que invitaste a HackChain ya se registró (${who}).\nYa puedes reintentar la emisión del certificado desde tu dashboard.\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Tu invitación fue reclamada",
       headline: "Tu invitación fue reclamada",
       accentColor: "#680099",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
              <p style="margin:0 0 12px;">El talento que invitaste a HackChain (<strong>${who}</strong>) ya se registró.</p>
-             <p style="margin:0 0 12px;">Ya podés reintentar la emisión del certificado desde tu dashboard.</p>`,
+             <p style="margin:0 0 12px;">Ya puedes reintentar la emisión del certificado desde tu dashboard.</p>`,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ir al dashboard",
     }),

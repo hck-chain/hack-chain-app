@@ -18,12 +18,13 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
+import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
@@ -53,9 +54,10 @@ function EducatorAvatar({ photoUrl, size = 'md' }: { photoUrl: string | null; si
       />
     );
   }
+  const imgSize = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8';
   return (
-    <div className={`${sizeClass} shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20`}>
-      <Award className={`${iconSize} text-white`} />
+    <div className={`${sizeClass} shrink-0 rounded-full bg-black border-2 border-purple-500 flex items-center justify-center shadow-[0_0_12px_rgba(168,85,247,0.5)]`}>
+      <img src="/icons/medalla.avif" alt="Educator" className={`${imgSize} object-contain`} />
     </div>
   );
 }
@@ -92,6 +94,9 @@ const EducatorDashboard = () => {
   const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
+  const [approvalStatus, setApprovalStatus] = useState<{ status: string; reason?: string } | null>(null);
+  const [reapplying, setReapplying] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
   const [talents, setTalents] = useState<Talent[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
@@ -133,6 +138,17 @@ const EducatorDashboard = () => {
           role: "Educator",
           photo_url: profile.photo_url ?? null,
         });
+
+        api.get<{ status: string; reason?: string }>('/api/issuers/me/status')
+          .then((data) => {
+            setApprovalStatus(data);
+            const dismissed = sessionStorage.getItem('approval_banner_dismissed');
+            if (!dismissed && (data.status === 'rejected' || data.status === 'pending_approval')) {
+              setBannerVisible(true);
+            }
+          })
+          .catch(() => {}); // non-blocking — dashboard still loads if status fails
+
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
       } catch (err) {
@@ -164,6 +180,17 @@ const EducatorDashboard = () => {
 
     fetchTalents();
   }, [navigate, toast]);
+
+  // Auto-dismiss the approval banner after 12 seconds and persist to sessionStorage
+  // so it doesn't reappear on navigation within the same session.
+  useEffect(() => {
+    if (!bannerVisible) return;
+    const timer = setTimeout(() => {
+      setBannerVisible(false);
+      sessionStorage.setItem('approval_banner_dismissed', '1');
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [bannerVisible]);
 
   const queryClient = useQueryClient();
   const { logout } = useAuth();
@@ -414,6 +441,69 @@ const EducatorDashboard = () => {
             transition={{ duration: 0.6 }}
             className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
           >
+            <AnimatePresence>
+              {bannerVisible && approvalStatus?.status === 'rejected' && (
+                <motion.div
+                  key="banner-rejected"
+                  initial={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8, transition: { duration: 0.6, ease: 'easeOut' } }}
+                  className="mb-8 relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/40 backdrop-blur-sm"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-950/40 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-red-500/60 via-red-400/20 to-transparent" />
+                  <div className="relative px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-red-400 font-title tracking-wide mb-1">
+                        {t('educatorDashboard.rejectedTitle')}
+                      </p>
+                      {approvalStatus.reason && (
+                        <p className="text-xs text-slate-400 leading-relaxed font-body">{approvalStatus.reason}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={reapplying}
+                      className="shrink-0 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/25 rounded-xl font-title tracking-wide text-xs h-9 px-5 transition-colors"
+                      onClick={async () => {
+                        setReapplying(true);
+                        try {
+                          await api.post('/api/issuers/me/reapply', {});
+                          setApprovalStatus({ status: 'pending_approval' });
+                          setBannerVisible(true);
+                          sessionStorage.removeItem('approval_banner_dismissed');
+                          toast({ title: t('educatorDashboard.reapplySuccess'), description: t('educatorDashboard.reapplySuccessDesc') });
+                        } catch (e) {
+                          toast({ title: t('educatorDashboard.reapplyError'), description: t('educatorDashboard.reapplyErrorDesc'), variant: 'destructive' });
+                        } finally {
+                          setReapplying(false);
+                        }
+                      }}
+                    >
+                      {reapplying ? t('educatorDashboard.reapplying') : t('educatorDashboard.reapplyBtn')}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+              {bannerVisible && approvalStatus?.status === 'pending_approval' && (
+                <motion.div
+                  key="banner-pending"
+                  initial={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8, transition: { duration: 0.6, ease: 'easeOut' } }}
+                  className="mb-8 relative overflow-hidden rounded-2xl border border-white/8 bg-black/30 backdrop-blur-sm"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-purple-500/40 via-purple-400/10 to-transparent" />
+                  <div className="relative px-6 py-4 flex items-center gap-4">
+                    <div className="shrink-0 relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400/60" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500/80" />
+                    </div>
+                    <p className="text-xs text-slate-400 font-body">
+                      {t('educatorDashboard.pendingApproval')}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ── Header ── */}
             <header className="mb-8 grid grid-cols-2 md:grid-cols-3 items-center gap-4">
@@ -444,11 +534,14 @@ const EducatorDashboard = () => {
                       variant="ghost"
                       className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-3 sm:px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
                     >
-                      <div className="flex flex-row items-baseline gap-1 overflow-hidden">
+                      <div className="flex flex-row items-center gap-1.5 overflow-hidden">
                         <span className="hidden sm:inline text-xs text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
                         <span className="text-sm font-bold text-white truncate max-w-[100px] sm:max-w-[140px]">
                           {userData.organization_name || t('educatorDashboard.roleName')}
                         </span>
+                        {approvalStatus?.status === 'approved' && (
+                          <BadgeCheck className="h-4 w-4 shrink-0 text-purple-400" />
+                        )}
                       </div>
                       <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="sm" />
                       <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
@@ -465,9 +558,14 @@ const EducatorDashboard = () => {
                       <div className="flex items-center gap-4 pb-4 border-b border-purple-500/20">
                         <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="md" />
                         <div className="flex-1 overflow-hidden">
-                          <h3 className="font-title text-base font-bold text-white truncate">
-                            {userData.organization_name || "My Organization"}
-                          </h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-title text-base font-bold text-white truncate">
+                              {userData.organization_name || "My Organization"}
+                            </h3>
+                            {approvalStatus?.status === 'approved' && (
+                              <BadgeCheck className="h-4 w-4 shrink-0 text-purple-400" />
+                            )}
+                          </div>
                           <p className="text-xs text-purple-400 font-medium">{userData.role || t('educatorDashboard.roleName')}</p>
                         </div>
                       </div>
@@ -784,6 +882,8 @@ const EducatorDashboard = () => {
               </motion.div>
 
             </div>
+
+            <ReferralsSection />
           </motion.main>
         </div>
       </Layout>

@@ -1,11 +1,23 @@
 // backend/routes/issuers.js
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { authenticate } = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/requireAdmin");
+
+// 2 re-applies per educator per week prevents approval-queue spam.
+const reapplyLimiter = rateLimit({
+  windowMs: 7 * 24 * 60 * 60 * 1000,
+  max: 2,
+  keyGenerator: (req) => String(req.auth.sub),
+  message: { error: "Too many re-apply requests. Try again next week." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !req.auth?.sub,
+});
 
 // Normalize a social/website URL field. Accepts empty string or null (clears the field).
 // Returns { ok: true, value } on success, or { ok: false, error } on failure.
@@ -91,6 +103,37 @@ router.get("/me/status", authenticate, async (req, res) => {
   } catch (err) {
     console.error("GET /api/issuers/me/status error:", err);
     return res.status(500).json({ error: "Failed to fetch status" });
+  }
+});
+
+/**
+ * POST /api/issuers/me/reapply
+ * Allows a rejected educator to re-submit for approval.
+ * Only valid when current status is "rejected".
+ */
+router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can use this endpoint" });
+  }
+  try {
+    const user = await User.findByPk(req.auth.sub, {
+      attributes: ["id", "educator_approval_status"],
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.educator_approval_status !== "rejected") {
+      return res.status(409).json({ error: "Only rejected accounts can re-apply" });
+    }
+
+    await user.update({
+      educator_approval_status: "pending_approval",
+      rejection_reason: null,
+    });
+
+    return res.json({ status: "pending_approval" });
+  } catch (err) {
+    console.error("POST /api/issuers/me/reapply error:", err);
+    return res.status(500).json({ error: "Failed to re-apply" });
   }
 });
 
@@ -343,7 +386,7 @@ router.get("/:wallet_address", async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["name", "lastname", "created_at"],
+          attributes: ["name", "lastname", "created_at", "educator_approval_status"],
         },
         {
           model: Certificate,
@@ -373,6 +416,7 @@ router.get("/:wallet_address", async (req, res) => {
         certificates_issued: issuer.certificates_issued,
         talents_formed,
         joined_at: issuer.User?.created_at || issuer.created_at,
+        is_approved: issuer.User?.educator_approval_status === 'approved',
       },
     });
 

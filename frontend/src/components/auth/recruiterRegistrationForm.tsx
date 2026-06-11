@@ -24,6 +24,8 @@ import "./autofill-fix.css";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useReferralCodeFromUrl } from "../../hooks/useReferralCodeFromUrl";
+import { useValidateReferralCode } from "../../hooks/useReferrals";
 
 export function RecruiterRegistrationForm() {
   const { t } = useTranslation();
@@ -34,6 +36,9 @@ export function RecruiterRegistrationForm() {
   const mutation = useRecruiterRegistration();
   const { mutate: register, isPending: isLoading, isError, error } = mutation;
 
+  const referralCode = useReferralCodeFromUrl();
+  const { data: validation } = useValidateReferralCode(referralCode);
+
   const form = useForm<RecruiterRegistrationFormData>({
     resolver: zodResolver(recruiterRegistrationSchema),
     defaultValues: {
@@ -41,6 +46,7 @@ export function RecruiterRegistrationForm() {
       lastName: "",
       companyName: "",
       email: "",
+      referral_code: referralCode || undefined,
     },
   });
 
@@ -79,6 +85,15 @@ export function RecruiterRegistrationForm() {
         <Alert variant="destructive" className="border-red-500/30 bg-red-500/10">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      )}
+
+      {validation && validation.valid && (
+        <Alert className="border-primary/50 bg-primary/10">
+          <CheckCircle className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary-foreground">
+            Referido por <strong>{validation.referrerName}</strong>. Si te registrás y stakeás 1000 HACK por 30 días, ganas 1000 HACK.
+          </AlertDescription>
         </Alert>
       )}
 

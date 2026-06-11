@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Loader2, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
+import { XCircle, Loader2, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { api } from '@/services/api';
@@ -58,6 +58,29 @@ export default function VerifyEmail() {
     const timer = setTimeout(() => navigate('/educator/dashboard'), 3000);
     return () => clearTimeout(timer);
   }, [status, navigate]);
+
+  // Poll GET /api/auth/me every 4s while idle — detects when the user
+  // clicks the verification link from another device/browser tab.
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (status !== 'idle') {
+      if (pollRef.current) clearInterval(pollRef.current);
+      return;
+    }
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await api.get<{ user: { email_verified?: boolean } }>('/api/auth/me');
+        if (result?.user?.email_verified) {
+          clearInterval(pollRef.current!);
+          setStatus('success');
+        }
+      } catch {
+        // session expired or network error — stop polling silently
+        clearInterval(pollRef.current!);
+      }
+    }, 4000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [status]);
 
   async function handleResend() {
     setResendLoading(true);
