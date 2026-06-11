@@ -747,6 +747,8 @@
   },
   "referrals": {
     "title": "Referrals",
+    "pageTitle": "Referral Program",
+    "pageSubtitle": "Invite other users to join HackChain. When they stake HACK, you both earn rewards.",
     "viewAll": "View all",
     "comingSoon": {
       "title": "Staking is coming soon!",

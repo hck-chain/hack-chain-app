@@ -5,11 +5,13 @@ import { Share2, Users, Coins, CheckCircle, Clock, ChevronLeft, ChevronRight } f
 import Layout from '@/components/Layout';
 import { CopyButton } from '@/components/CopyButton';
 import { useMyReferralCode, useMyReferrals, useMyReferralStats } from '@/hooks/useReferrals';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STAKING_ENABLED = false;
 
 export default function Referrals() {
   const { t } = useTranslation();
+  const { isLoading: authLoading } = useAuth();
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
@@ -17,7 +19,9 @@ export default function Referrals() {
   const { data: statsData, isLoading: statsLoading } = useMyReferralStats();
   const { data: listData, isLoading: listLoading, isFetching: listFetching } = useMyReferrals(page, pageSize);
 
-  const isLoading = codeLoading || statsLoading;
+  // authLoading must be included: in React Query v4 disabled queries report isLoading=false,
+  // so without this the page renders empty boxes while auth context is still hydrating.
+  const isLoading = authLoading || codeLoading || statsLoading;
 
   const { code, shareUrl } = codeData || { code: '', shareUrl: '' };
   const stats = statsData || { totalEarnedWei: '0', claimedCount: 0, pendingCount: 0, eligibleCount: 0, monthlyClaimedCount: 0, monthlyCapRemaining: 5 };
@@ -39,11 +43,11 @@ export default function Referrals() {
               <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2 font-title flex items-center gap-4">
                 <Share2 className="text-purple-400 h-10 w-10 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
                 <span className="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(168,85,247,0.55)]">
-                  {t('referrals.pageTitle', 'Programa de Referidos')}
+                  {t('referrals.pageTitle')}
                 </span>
               </h1>
               <p className="text-lg text-slate-400 font-light font-body max-w-2xl mt-2">
-                {t('referrals.pageSubtitle', 'Invita a otros usuarios a unirse a HackChain. Cuando staken HACK, ambos ganan recompensas.')}
+                {t('referrals.pageSubtitle')}
               </p>
             </div>
           </header>

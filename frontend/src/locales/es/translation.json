@@ -747,6 +747,8 @@
   },
   "referrals": {
     "title": "Referidos",
+    "pageTitle": "Programa de Referidos",
+    "pageSubtitle": "Invita a otros usuarios a unirse a HackChain. Cuando staken HACK, ambos ganan recompensas.",
     "viewAll": "Ver todos",
     "comingSoon": {
       "title": "¡El Staking llega pronto!",
