@@ -30,7 +30,7 @@ async function payoutReferralRewards({ models, adapter, config, now = new Date()
 
   // 2. Fetch eligible referrals (in FIFO order)
   const eligibleReferrals = await models.Referral.findAll({
-    where: { status: 'eligible' },
+    where: { status: 'eligible', requires_review: false },
     include: [
       { model: models.User, as: 'referrer', attributes: ['id', 'wallet_address'] }
     ],

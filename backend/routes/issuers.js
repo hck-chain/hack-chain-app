@@ -1,11 +1,22 @@
 // backend/routes/issuers.js
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { authenticate } = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/requireAdmin");
+
+// 2 re-applies per educator per week prevents approval-queue spam.
+const reapplyLimiter = rateLimit({
+  windowMs: 7 * 24 * 60 * 60 * 1000,
+  max: 2,
+  keyGenerator: (req) => String(req.auth?.sub ?? req.ip),
+  message: { error: "Too many re-apply requests. Try again next week." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Normalize a social/website URL field. Accepts empty string or null (clears the field).
 // Returns { ok: true, value } on success, or { ok: false, error } on failure.
@@ -99,7 +110,7 @@ router.get("/me/status", authenticate, async (req, res) => {
  * Allows a rejected educator to re-submit for approval.
  * Only valid when current status is "rejected".
  */
-router.post("/me/reapply", authenticate, async (req, res) => {
+router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
   if (req.auth.role !== "issuer") {
     return res.status(403).json({ error: "Only educator accounts can use this endpoint" });
   }

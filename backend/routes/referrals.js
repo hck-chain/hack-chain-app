@@ -68,8 +68,8 @@ router.get("/me/code", async (req, res) => {
 // GET /api/referrals/me
 router.get("/me", async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const pageSize = parseInt(req.query.pageSize) || 10;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize) || 10));
     
     const result = await listMyReferrals({ 
       models: db, 
