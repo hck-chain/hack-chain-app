@@ -343,8 +343,23 @@ router.post("/refresh", async (req, res) => {
       return res.status(401).json({ error: "Session expired" });
     }
 
-    const { type, iat, exp, ...tokenPayload } = payload;
-    const newAccessToken = signToken(tokenPayload);
+    // Re-fetch the user's current ID from the DB so a stale refresh token
+    // (issued before a data migration or account re-creation) never injects
+    // a non-existent sub into the new access token.
+    const currentUser = await User.findOne({
+      where: { wallet_address: wallet },
+      attributes: ['id', 'role'],
+    });
+    if (!currentUser) {
+      clearAuthCookies(res);
+      return res.status(401).json({ error: "User no longer exists" });
+    }
+
+    const newAccessToken = signToken({
+      sub: currentUser.id,
+      role: currentUser.role,
+      wallet,
+    });
 
     const ttl = Math.floor((new Date(jwt.decode(newAccessToken).exp * 1000) - Date.now()) / 1000);
     await cacheSession(wallet, ttl).catch(() => {});
