@@ -12,10 +12,11 @@ const { requireAdmin } = require("../middleware/requireAdmin");
 const reapplyLimiter = rateLimit({
   windowMs: 7 * 24 * 60 * 60 * 1000,
   max: 2,
-  keyGenerator: (req) => String(req.auth?.sub ?? req.ip),
+  keyGenerator: (req) => String(req.auth.sub),
   message: { error: "Too many re-apply requests. Try again next week." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => !req.auth?.sub,
 });
 
 // Normalize a social/website URL field. Accepts empty string or null (clears the field).
