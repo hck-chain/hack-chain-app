@@ -386,7 +386,7 @@ router.get("/:wallet_address", async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["name", "lastname", "created_at"],
+          attributes: ["name", "lastname", "created_at", "educator_approval_status"],
         },
         {
           model: Certificate,
@@ -416,6 +416,7 @@ router.get("/:wallet_address", async (req, res) => {
         certificates_issued: issuer.certificates_issued,
         talents_formed,
         joined_at: issuer.User?.created_at || issuer.created_at,
+        is_approved: issuer.User?.educator_approval_status === 'approved',
       },
     });
 

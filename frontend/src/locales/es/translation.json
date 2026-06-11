@@ -723,6 +723,8 @@
     "expertiseSection": "Experiencia",
     "accountSection": "Cuenta",
     "educatorRoleLabel": "Educador",
+    "verifiedLabel": "Verificado",
+    "verifiedTooltip": "Educador verificado por HackChain",
     "percentComplete": "% completado",
     "backToDashboard": "Volver al dashboard",
     "uploadNewPhoto": "Subir nueva foto",

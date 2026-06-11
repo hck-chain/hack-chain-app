@@ -429,12 +429,28 @@ const EducatorProfile = () => {
                         >
                           {t('educatorProfile.educatorRoleLabel')}
                         </div>
-                        <h1
-                          className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
-                          style={{ color: P.textPrimary }}
-                        >
-                          {displayName}
-                        </h1>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h1
+                            className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
+                            style={{ color: P.textPrimary }}
+                          >
+                            {displayName}
+                          </h1>
+                          {educator.is_approved && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border"
+                              style={{
+                                background: 'rgba(168,85,247,0.12)',
+                                borderColor: 'rgba(168,85,247,0.35)',
+                                color: '#c084fc',
+                              }}
+                              title={t('educatorProfile.verifiedTooltip', 'Educador verificado por HackChain')}
+                            >
+                              <img src="/icons/escudoNeon.avif" alt="" className="h-3 w-3" />
+                              {t('educatorProfile.verifiedLabel', 'Verificado')}
+                            </span>
+                          )}
+                        </div>
                         {educator.organization_name !== displayName && (
                           <p
                             className="text-sm font-medium mt-1"
