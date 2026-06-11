@@ -96,7 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearWalletStorage();
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
-    // Clear admin access cache so the next account doesn't inherit it
+    sessionStorage.removeItem('approval_banner_dismissed');
     queryClient.removeQueries({ queryKey: ['admin', 'access'] });
     setUser(null);
   }, [queryClient]);

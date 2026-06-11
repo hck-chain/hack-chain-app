@@ -19,7 +19,7 @@ import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
@@ -96,6 +96,7 @@ const EducatorDashboard = () => {
   const [userData, setUserData] = useState<any>(null);
   const [approvalStatus, setApprovalStatus] = useState<{ status: string; reason?: string } | null>(null);
   const [reapplying, setReapplying] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
   const [talents, setTalents] = useState<Talent[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
@@ -139,8 +140,14 @@ const EducatorDashboard = () => {
         });
 
         api.get<{ status: string; reason?: string }>('/api/issuers/me/status')
-          .then(setApprovalStatus)
-          .catch(() => {}); // non-blocking — dashboard still loads if status fails
+          .then((data) => {
+            setApprovalStatus(data);
+            const dismissed = sessionStorage.getItem('approval_banner_dismissed');
+            if (!dismissed && (data.status === 'rejected' || data.status === 'pending_approval')) {
+              setBannerVisible(true);
+            }
+          })
+          .catch(() {}); // non-blocking — dashboard still loads if status fails
 
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
@@ -173,6 +180,17 @@ const EducatorDashboard = () => {
 
     fetchTalents();
   }, [navigate, toast]);
+
+  // Auto-dismiss the approval banner after 12 seconds and persist to sessionStorage
+  // so it doesn't reappear on navigation within the same session.
+  useEffect(() => {
+    if (!bannerVisible) return;
+    const timer = setTimeout(() => {
+      setBannerVisible(false);
+      sessionStorage.setItem('approval_banner_dismissed', '1');
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [bannerVisible]);
 
   const queryClient = useQueryClient();
   const { logout } = useAuth();
@@ -423,55 +441,69 @@ const EducatorDashboard = () => {
             transition={{ duration: 0.6 }}
             className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
           >
-            {approvalStatus?.status === 'rejected' && (
-              <div className="mb-8 relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/40 backdrop-blur-sm">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-950/40 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-red-500/60 via-red-400/20 to-transparent" />
-                <div className="relative px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-red-400 font-title tracking-wide mb-1">
-                      {t('educatorDashboard.rejectedTitle', 'Solicitud rechazada')}
+            <AnimatePresence>
+              {bannerVisible && approvalStatus?.status === 'rejected' && (
+                <motion.div
+                  key="banner-rejected"
+                  initial={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8, transition: { duration: 0.6, ease: 'easeOut' } }}
+                  className="mb-8 relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/40 backdrop-blur-sm"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-950/40 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-red-500/60 via-red-400/20 to-transparent" />
+                  <div className="relative px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-red-400 font-title tracking-wide mb-1">
+                        {t('educatorDashboard.rejectedTitle')}
+                      </p>
+                      {approvalStatus.reason && (
+                        <p className="text-xs text-slate-400 leading-relaxed font-body">{approvalStatus.reason}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={reapplying}
+                      className="shrink-0 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/25 rounded-xl font-title tracking-wide text-xs h-9 px-5 transition-colors"
+                      onClick={async () => {
+                        setReapplying(true);
+                        try {
+                          await api.post('/api/issuers/me/reapply', {});
+                          setApprovalStatus({ status: 'pending_approval' });
+                          setBannerVisible(true);
+                          sessionStorage.removeItem('approval_banner_dismissed');
+                          toast({ title: t('educatorDashboard.reapplySuccess'), description: t('educatorDashboard.reapplySuccessDesc') });
+                        } catch (e) {
+                          toast({ title: t('educatorDashboard.reapplyError'), description: t('educatorDashboard.reapplyErrorDesc'), variant: 'destructive' });
+                        } finally {
+                          setReapplying(false);
+                        }
+                      }}
+                    >
+                      {reapplying ? t('educatorDashboard.reapplying') : t('educatorDashboard.reapplyBtn')}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+              {bannerVisible && approvalStatus?.status === 'pending_approval' && (
+                <motion.div
+                  key="banner-pending"
+                  initial={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8, transition: { duration: 0.6, ease: 'easeOut' } }}
+                  className="mb-8 relative overflow-hidden rounded-2xl border border-white/8 bg-black/30 backdrop-blur-sm"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-purple-500/40 via-purple-400/10 to-transparent" />
+                  <div className="relative px-6 py-4 flex items-center gap-4">
+                    <div className="shrink-0 relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400/60" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500/80" />
+                    </div>
+                    <p className="text-xs text-slate-400 font-body">
+                      {t('educatorDashboard.pendingApproval')}
                     </p>
-                    {approvalStatus.reason && (
-                      <p className="text-xs text-slate-400 leading-relaxed font-body">{approvalStatus.reason}</p>
-                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    disabled={reapplying}
-                    className="shrink-0 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/25 rounded-xl font-title tracking-wide text-xs h-9 px-5 transition-colors"
-                    onClick={async () => {
-                      setReapplying(true);
-                      try {
-                        await api.post('/api/issuers/me/reapply', {});
-                        setApprovalStatus({ status: 'pending_approval' });
-                        toast({ title: t('educatorDashboard.reapplySuccess', 'Solicitud enviada'), description: t('educatorDashboard.reapplySuccessDesc', 'Tu cuenta volvió a estado pendiente de revisión.') });
-                      } catch (e) {
-                        toast({ title: t('educatorDashboard.reapplyError', 'Error'), description: t('educatorDashboard.reapplyErrorDesc', 'No se pudo enviar la solicitud.'), variant: 'destructive' });
-                      } finally {
-                        setReapplying(false);
-                      }
-                    }}
-                  >
-                    {reapplying ? t('educatorDashboard.reapplying', 'Enviando…') : t('educatorDashboard.reapplyBtn', 'Solicitar revisión')}
-                  </Button>
-                </div>
-              </div>
-            )}
-            {approvalStatus?.status === 'pending_approval' && (
-              <div className="mb-8 relative overflow-hidden rounded-2xl border border-white/8 bg-black/30 backdrop-blur-sm">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-purple-500/40 via-purple-400/10 to-transparent" />
-                <div className="relative px-6 py-4 flex items-center gap-4">
-                  <div className="shrink-0 relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400/60" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500/80" />
-                  </div>
-                  <p className="text-xs text-slate-400 font-body">
-                    {t('educatorDashboard.pendingApproval', 'Cuenta pendiente de revisión por el equipo de HackChain.')}
-                  </p>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ── Header ── */}
             <header className="mb-8 grid grid-cols-2 md:grid-cols-3 items-center gap-4">
