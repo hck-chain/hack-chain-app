@@ -93,6 +93,8 @@ const EducatorDashboard = () => {
   const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
   const [userData, setUserData] = useState<any>(null);
+  const [approvalStatus, setApprovalStatus] = useState<{ status: string; reason?: string } | null>(null);
+  const [reapplying, setReapplying] = useState(false);
   const [talents, setTalents] = useState<Talent[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
@@ -134,6 +136,10 @@ const EducatorDashboard = () => {
           role: "Educator",
           photo_url: profile.photo_url ?? null,
         });
+
+        const statusData = await api.get<{ status: string; reason?: string }>('/api/issuers/me/status');
+        setApprovalStatus(statusData);
+
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
       } catch (err) {
@@ -415,6 +421,38 @@ const EducatorDashboard = () => {
             transition={{ duration: 0.6 }}
             className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
           >
+            {approvalStatus?.status === 'rejected' && (
+              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
+                <p className="text-sm font-semibold text-red-400 mb-1">Tu solicitud fue rechazada</p>
+                {approvalStatus.reason && (
+                  <p className="text-xs text-red-300/80 mb-3">{approvalStatus.reason}</p>
+                )}
+                <Button
+                  size="sm"
+                  disabled={reapplying}
+                  className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
+                  onClick={async () => {
+                    setReapplying(true);
+                    try {
+                      await api.post('/api/issuers/me/reapply', {});
+                      setApprovalStatus({ status: 'pending_approval' });
+                      toast({ title: 'Solicitud enviada', description: 'Tu cuenta volvió a estado pendiente de revisión.' });
+                    } catch (e) {
+                      toast({ title: 'Error', description: 'No se pudo enviar la solicitud.', variant: 'destructive' });
+                    } finally {
+                      setReapplying(false);
+                    }
+                  }}
+                >
+                  {reapplying ? 'Enviando…' : 'Volver a solicitar aprobación'}
+                </Button>
+              </div>
+            )}
+            {approvalStatus?.status === 'pending_approval' && (
+              <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-5 py-3">
+                <p className="text-sm text-yellow-300">⏳ Tu cuenta está pendiente de aprobación por el equipo de HackChain.</p>
+              </div>
+            )}
 
             {/* ── Header ── */}
             <header className="mb-8 grid grid-cols-2 md:grid-cols-3 items-center gap-4">

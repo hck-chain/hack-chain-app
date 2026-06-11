@@ -81,10 +81,9 @@ export default function Login() {
   // operator onto their role dashboard first.
   const { isAdmin, isLoading: adminLoading } = useAdminAccess();
 
-  // Redirect already-authenticated users directly to their dashboard.
-  // All hooks are declared above — safe to return early here.
-  if (!isLoading && !adminLoading && isAuthenticated && user) {
-    if (isAdmin) return <Navigate to="/admin" replace />;
+  // Redirect already-authenticated users to their role dashboard.
+  // Admin panel is opt-in via the badge — never auto-redirect to /admin on login.
+  if (!isLoading && isAuthenticated && user) {
     if (user.role === 'student') return <Navigate to="/dashboard/talent" replace />;
     if (user.role === 'issuer') return <Navigate to="/educator/dashboard" replace />;
     if (user.role === 'recruiter') return <Navigate to="/dashboard/recruiter" replace />;

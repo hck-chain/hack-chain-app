@@ -94,6 +94,37 @@ router.get("/me/status", authenticate, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/issuers/me/reapply
+ * Allows a rejected educator to re-submit for approval.
+ * Only valid when current status is "rejected".
+ */
+router.post("/me/reapply", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can use this endpoint" });
+  }
+  try {
+    const user = await User.findByPk(req.auth.sub, {
+      attributes: ["id", "educator_approval_status"],
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.educator_approval_status !== "rejected") {
+      return res.status(409).json({ error: "Only rejected accounts can re-apply" });
+    }
+
+    await user.update({
+      educator_approval_status: "pending_approval",
+      rejection_reason: null,
+    });
+
+    return res.json({ status: "pending_approval" });
+  } catch (err) {
+    console.error("POST /api/issuers/me/reapply error:", err);
+    return res.status(500).json({ error: "Failed to re-apply" });
+  }
+});
+
 // GET /api/issuers  — public, paginated educator discovery
 // Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
 router.get("/", async (req, res) => {
