@@ -41,6 +41,7 @@ interface AuthUser {
   name: string | null;
   lastName: string | null;
   walletAddress: string | null;
+  emailVerified?: boolean;
 }
 
 interface AuthContextValue {

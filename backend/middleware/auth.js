@@ -113,7 +113,7 @@ async function authenticate(req, res, next) {
   }
 }
 
-const USER_INCLUDE = [{ model: User, attributes: ['name', 'email', 'wallet_address'] }];
+const USER_INCLUDE = [{ model: User, attributes: ['name', 'email', 'wallet_address', 'email_verified'] }];
 
 async function queryIssuer(wallet) {
   const issuer = await Issuer.findOne({ where: { wallet_address: wallet }, include: USER_INCLUDE });
@@ -125,6 +125,7 @@ async function queryIssuer(wallet) {
       name: issuer.User?.name,
       organization_name: issuer.organization_name,
       email: issuer.User?.email || issuer.email || null,
+      email_verified: issuer.User?.email_verified ?? false,
     },
   };
 }
@@ -138,6 +139,7 @@ async function queryStudent(wallet) {
       wallet_address: student.wallet_address,
       name: student.User?.name,
       email: student.User?.email || null,
+      email_verified: student.User?.email_verified ?? false,
     },
   };
 }
@@ -152,6 +154,7 @@ async function queryRecruiter(wallet) {
       name: recruiter.User?.name || recruiter.company_name || null,
       company_name: recruiter.company_name,
       email: recruiter.User?.email || recruiter.email || null,
+      email_verified: recruiter.User?.email_verified ?? false,
     },
   };
 }
