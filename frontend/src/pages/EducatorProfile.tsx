@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BadgeCheck } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -429,7 +429,7 @@ const EducatorProfile = () => {
                         >
                           {t('educatorProfile.educatorRoleLabel')}
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
                           <h1
                             className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
                             style={{ color: P.textPrimary }}
@@ -437,18 +437,12 @@ const EducatorProfile = () => {
                             {displayName}
                           </h1>
                           {educator.is_approved && (
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border"
-                              style={{
-                                background: 'rgba(168,85,247,0.12)',
-                                borderColor: 'rgba(168,85,247,0.35)',
-                                color: '#c084fc',
-                              }}
-                              title={t('educatorProfile.verifiedTooltip', 'Educador verificado por HackChain')}
-                            >
-                              <img src="/icons/escudoNeon.avif" alt="" className="h-3 w-3" />
-                              {t('educatorProfile.verifiedLabel', 'Verificado')}
-                            </span>
+                            <BadgeCheck
+                              className="h-6 w-6 shrink-0"
+                              style={{ color: '#a855f7' }}
+                              title={t('educatorProfile.verifiedTooltip')}
+                              aria-label={t('educatorProfile.verifiedTooltip')}
+                            />
                           )}
                         </div>
                         {educator.organization_name !== displayName && (
