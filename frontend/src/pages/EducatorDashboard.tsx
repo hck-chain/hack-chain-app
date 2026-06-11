@@ -18,7 +18,7 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Award, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users } from 'lucide-react';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
@@ -54,9 +54,10 @@ function EducatorAvatar({ photoUrl, size = 'md' }: { photoUrl: string | null; si
       />
     );
   }
+  const imgSize = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8';
   return (
-    <div className={`${sizeClass} shrink-0 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20`}>
-      <Award className={`${iconSize} text-white`} />
+    <div className={`${sizeClass} shrink-0 rounded-full bg-black border-2 border-purple-500 flex items-center justify-center shadow-[0_0_12px_rgba(168,85,247,0.5)]`}>
+      <img src="/icons/medalla.avif" alt="Educator" className={`${imgSize} object-contain`} />
     </div>
   );
 }
@@ -137,8 +138,9 @@ const EducatorDashboard = () => {
           photo_url: profile.photo_url ?? null,
         });
 
-        const statusData = await api.get<{ status: string; reason?: string }>('/api/issuers/me/status');
-        setApprovalStatus(statusData);
+        api.get<{ status: string; reason?: string }>('/api/issuers/me/status')
+          .then(setApprovalStatus)
+          .catch(() => {}); // non-blocking — dashboard still loads if status fails
 
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);

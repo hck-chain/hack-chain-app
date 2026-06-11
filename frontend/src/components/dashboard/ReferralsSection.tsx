@@ -13,10 +13,6 @@ export function ReferralsSection() {
 
   const STAKING_ENABLED = false;
 
-  if (codeLoading || statsLoading || listLoading) {
-    return <div className="animate-pulse h-64 bg-white/5 rounded-xl border border-white/10"></div>;
-  }
-
   const { code, shareUrl } = codeData || { code: '', shareUrl: '' };
   const stats = statsData || { totalEarnedWei: '0', claimedCount: 0, pendingCount: 0, eligibleCount: 0, monthlyClaimedCount: 0, monthlyCapRemaining: 5 };
   const referrals = listData?.referrals || [];
@@ -63,47 +59,67 @@ export function ReferralsSection() {
           <div className="space-y-5 relative">
             <div>
               <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">{t('referrals.yourCode', 'Tu Código')}</label>
-              <div className="flex items-center gap-2 bg-black/40 rounded-2xl p-2 pl-4 border border-white/5">
-                <span className="font-mono text-xl text-purple-400 font-bold tracking-[0.25em]">{code}</span>
-                <CopyButton value={code} className="ml-auto bg-white/5 hover:bg-white/10 text-white rounded-xl" />
+              <div className="flex items-center gap-2 bg-black/40 rounded-2xl p-2 pl-4 border border-white/5 min-h-[48px]">
+                {codeLoading
+                  ? <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
+                  : <><span className="font-mono text-xl text-purple-400 font-bold tracking-[0.25em]">{code}</span>
+                     <CopyButton value={code} className="ml-auto bg-white/5 hover:bg-white/10 text-white rounded-xl" /></>
+                }
               </div>
             </div>
-            
             <div>
               <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">{t('referrals.inviteLink', 'Link de invitación')}</label>
-              <div className="flex items-center gap-2 bg-black/40 rounded-2xl p-2 pl-4 border border-white/5">
-                <span className="truncate text-sm text-slate-300 font-mono flex-1">{shareUrl}</span>
-                <CopyButton value={shareUrl} className="bg-white/5 hover:bg-white/10 text-white rounded-xl" />
+              <div className="flex items-center gap-2 bg-black/40 rounded-2xl p-2 pl-4 border border-white/5 min-h-[48px]">
+                {codeLoading
+                  ? <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
+                  : <><span className="truncate text-sm text-slate-300 font-mono flex-1">{shareUrl}</span>
+                     <CopyButton value={shareUrl} className="bg-white/5 hover:bg-white/10 text-white rounded-xl" /></>
+                }
               </div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 border border-white/5 rounded-3xl bg-white/[0.02] p-5 shadow-2xl">
-          <div className="bg-gradient-to-br from-purple-900/20 to-fuchsia-900/10 rounded-2xl p-5 border border-white/10 shadow-xl flex flex-col justify-center transition-transform hover:scale-[1.02]">
-            <span className="font-title text-[10px] uppercase tracking-[0.2em] text-white/50 font-bold flex items-center gap-2 mb-2"><Coins size={14}/> {t('referrals.stats.totalEarned', 'Total Ganado')}</span>
-            <span className="text-3xl font-title font-black text-white">
-              {stats.totalEarnedWei !== '0' ? (BigInt(stats.totalEarnedWei) / 10n**18n).toString() : '0'} <span className="text-lg text-purple-400 font-bold ml-1">HACK</span>
-            </span>
-          </div>
-
-          <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl p-5 border border-white/5 shadow-lg flex flex-col justify-center transition-transform hover:scale-[1.02]">
-            <span className="font-title text-[10px] uppercase tracking-[0.15em] text-white/50 font-bold flex items-center gap-2 mb-2"><CheckCircle size={14}/> {t('referrals.stats.monthly', 'Mensual')}</span>
-            <span className="text-2xl font-title font-bold text-white">
-              {stats.monthlyClaimedCount} <span className="text-sm text-slate-500">/ {stats.monthlyClaimedCount + stats.monthlyCapRemaining}</span>
-            </span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">{t('referrals.stats.paymentsThisMonth', 'Pagos este mes')}</span>
-          </div>
-
-          <div className="col-span-2 flex gap-6 text-xs text-slate-400 bg-white/[0.04] backdrop-blur-sm rounded-2xl px-5 py-4 border border-white/5 font-title font-bold uppercase tracking-wider">
-            <div className="flex items-center gap-2"><Users size={14} className="text-blue-400"/> <span className="text-white">{stats.pendingCount}</span> {t('referrals.stats.pending', 'Pendientes')}</div>
-            <div className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400"/> <span className="text-white">{stats.claimedCount}</span> {t('referrals.stats.paid', 'Pagados')}</div>
-            <div className="flex items-center gap-2"><Clock size={14} className="text-yellow-400"/> <span className="text-white">{stats.eligibleCount}</span> {t('referrals.stats.queued', 'En cola')}</div>
-          </div>
+          {statsLoading ? (
+            <>
+              <div className="rounded-2xl p-5 border border-white/10 bg-white/5 animate-pulse h-24" />
+              <div className="rounded-2xl p-5 border border-white/5 bg-white/5 animate-pulse h-24" />
+              <div className="col-span-2 rounded-2xl px-5 py-4 border border-white/5 bg-white/5 animate-pulse h-12" />
+            </>
+          ) : (
+            <>
+              <div className="bg-gradient-to-br from-purple-900/20 to-fuchsia-900/10 rounded-2xl p-5 border border-white/10 shadow-xl flex flex-col justify-center transition-transform hover:scale-[1.02]">
+                <span className="font-title text-[10px] uppercase tracking-[0.2em] text-white/50 font-bold flex items-center gap-2 mb-2"><Coins size={14}/> {t('referrals.stats.totalEarned', 'Total Ganado')}</span>
+                <span className="text-3xl font-title font-black text-white">
+                  {stats.totalEarnedWei !== '0' ? (BigInt(stats.totalEarnedWei) / 10n**18n).toString() : '0'} <span className="text-lg text-purple-400 font-bold ml-1">HACK</span>
+                </span>
+              </div>
+              <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl p-5 border border-white/5 shadow-lg flex flex-col justify-center transition-transform hover:scale-[1.02]">
+                <span className="font-title text-[10px] uppercase tracking-[0.15em] text-white/50 font-bold flex items-center gap-2 mb-2"><CheckCircle size={14}/> {t('referrals.stats.monthly', 'Mensual')}</span>
+                <span className="text-2xl font-title font-bold text-white">
+                  {stats.monthlyClaimedCount} <span className="text-sm text-slate-500">/ {stats.monthlyClaimedCount + stats.monthlyCapRemaining}</span>
+                </span>
+                <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">{t('referrals.stats.paymentsThisMonth', 'Pagos este mes')}</span>
+              </div>
+              <div className="col-span-2 flex gap-6 text-xs text-slate-400 bg-white/[0.04] backdrop-blur-sm rounded-2xl px-5 py-4 border border-white/5 font-title font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2"><Users size={14} className="text-blue-400"/> <span className="text-white">{stats.pendingCount}</span> {t('referrals.stats.pending', 'Pendientes')}</div>
+                <div className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400"/> <span className="text-white">{stats.claimedCount}</span> {t('referrals.stats.paid', 'Pagados')}</div>
+                <div className="flex items-center gap-2"><Clock size={14} className="text-yellow-400"/> <span className="text-white">{stats.eligibleCount}</span> {t('referrals.stats.queued', 'En cola')}</div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {referrals.length > 0 && (
+      {listLoading && (
+        <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-6 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-10 bg-white/5 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      )}
+      {!listLoading && referrals.length > 0 && (
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative">
           <table className="w-full text-sm text-left">
             <thead className="font-body text-[10px] uppercase tracking-[0.2em] text-white/40 bg-black/20 border-b border-white/10 font-bold">
