@@ -152,8 +152,8 @@ export default function AdminStatsPage() {
           >
             <Users className="h-5 w-5 text-primary" />
             <div>
-              <p className="font-semibold text-sm">Tenés {educators.pending} educator{educators.pending === 1 ? '' : 's'} pendiente{educators.pending === 1 ? '' : 's'} de revisión.</p>
-              <p className="text-xs text-muted-foreground">Andá a la pestaña Educators para resolverlas.</p>
+              <p className="font-semibold text-sm">Tienes {educators.pending} educator{educators.pending === 1 ? '' : 's'} pendiente{educators.pending === 1 ? '' : 's'} de revisión.</p>
+              <p className="text-xs text-muted-foreground">Ve a la pestaña Educators para resolverlas.</p>
             </div>
           </Link>
         )}
