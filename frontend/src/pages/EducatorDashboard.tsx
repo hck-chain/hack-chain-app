@@ -424,35 +424,52 @@ const EducatorDashboard = () => {
             className="relative z-10 px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 pb-20 max-w-[1600px] mx-auto"
           >
             {approvalStatus?.status === 'rejected' && (
-              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
-                <p className="text-sm font-semibold text-red-400 mb-1">Tu solicitud fue rechazada</p>
-                {approvalStatus.reason && (
-                  <p className="text-xs text-red-300/80 mb-3">{approvalStatus.reason}</p>
-                )}
-                <Button
-                  size="sm"
-                  disabled={reapplying}
-                  className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
-                  onClick={async () => {
-                    setReapplying(true);
-                    try {
-                      await api.post('/api/issuers/me/reapply', {});
-                      setApprovalStatus({ status: 'pending_approval' });
-                      toast({ title: 'Solicitud enviada', description: 'Tu cuenta volvió a estado pendiente de revisión.' });
-                    } catch (e) {
-                      toast({ title: 'Error', description: 'No se pudo enviar la solicitud.', variant: 'destructive' });
-                    } finally {
-                      setReapplying(false);
-                    }
-                  }}
-                >
-                  {reapplying ? 'Enviando…' : 'Volver a solicitar aprobación'}
-                </Button>
+              <div className="mb-8 relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/40 backdrop-blur-sm">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-950/40 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-red-500/60 via-red-400/20 to-transparent" />
+                <div className="relative px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-red-400 font-title tracking-wide mb-1">
+                      {t('educatorDashboard.rejectedTitle', 'Solicitud rechazada')}
+                    </p>
+                    {approvalStatus.reason && (
+                      <p className="text-xs text-slate-400 leading-relaxed font-body">{approvalStatus.reason}</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={reapplying}
+                    className="shrink-0 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/25 rounded-xl font-title tracking-wide text-xs h-9 px-5 transition-colors"
+                    onClick={async () => {
+                      setReapplying(true);
+                      try {
+                        await api.post('/api/issuers/me/reapply', {});
+                        setApprovalStatus({ status: 'pending_approval' });
+                        toast({ title: t('educatorDashboard.reapplySuccess', 'Solicitud enviada'), description: t('educatorDashboard.reapplySuccessDesc', 'Tu cuenta volvió a estado pendiente de revisión.') });
+                      } catch (e) {
+                        toast({ title: t('educatorDashboard.reapplyError', 'Error'), description: t('educatorDashboard.reapplyErrorDesc', 'No se pudo enviar la solicitud.'), variant: 'destructive' });
+                      } finally {
+                        setReapplying(false);
+                      }
+                    }}
+                  >
+                    {reapplying ? t('educatorDashboard.reapplying', 'Enviando…') : t('educatorDashboard.reapplyBtn', 'Solicitar revisión')}
+                  </Button>
+                </div>
               </div>
             )}
             {approvalStatus?.status === 'pending_approval' && (
-              <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-5 py-3">
-                <p className="text-sm text-yellow-300">⏳ Tu cuenta está pendiente de aprobación por el equipo de HackChain.</p>
+              <div className="mb-8 relative overflow-hidden rounded-2xl border border-white/8 bg-black/30 backdrop-blur-sm">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-purple-500/40 via-purple-400/10 to-transparent" />
+                <div className="relative px-6 py-4 flex items-center gap-4">
+                  <div className="shrink-0 relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400/60" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500/80" />
+                  </div>
+                  <p className="text-xs text-slate-400 font-body">
+                    {t('educatorDashboard.pendingApproval', 'Cuenta pendiente de revisión por el equipo de HackChain.')}
+                  </p>
+                </div>
               </div>
             )}
 
