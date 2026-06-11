@@ -49,6 +49,15 @@ const AdminEducatorsPage = lazy(() => import("./pages/admin/AdminEducatorsPage")
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
 
+// Admin dashboard — lazy-loaded shell + 4 sub-pages. AdminRoute pings the
+// backend on mount to verify the wallet is in ADMIN_WALLETS; failed probe
+// redirects out before any sub-page hydrates.
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminStatsPage = lazy(() => import("./pages/admin/AdminStatsPage"));
+const AdminEducatorsPage = lazy(() => import("./pages/admin/AdminEducatorsPage"));
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
+
 const queryClient = new QueryClient();
 
 // Loading fallback for lazy-loaded routes
