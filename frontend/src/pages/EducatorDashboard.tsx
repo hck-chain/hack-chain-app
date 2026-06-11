@@ -147,7 +147,7 @@ const EducatorDashboard = () => {
               setBannerVisible(true);
             }
           })
-          .catch(() {}); // non-blocking — dashboard still loads if status fails
+          .catch(() => {}); // non-blocking — dashboard still loads if status fails
 
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
