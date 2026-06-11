@@ -18,7 +18,7 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users } from 'lucide-react';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
@@ -534,11 +534,14 @@ const EducatorDashboard = () => {
                       variant="ghost"
                       className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-3 sm:px-5 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-pointer max-w-full"
                     >
-                      <div className="flex flex-row items-baseline gap-1 overflow-hidden">
+                      <div className="flex flex-row items-center gap-1.5 overflow-hidden">
                         <span className="hidden sm:inline text-xs text-slate-400 font-medium whitespace-nowrap">{t('educatorDashboard.welcome')}</span>
                         <span className="text-sm font-bold text-white truncate max-w-[100px] sm:max-w-[140px]">
                           {userData.organization_name || t('educatorDashboard.roleName')}
                         </span>
+                        {approvalStatus?.status === 'approved' && (
+                          <BadgeCheck className="h-4 w-4 shrink-0 text-purple-400" />
+                        )}
                       </div>
                       <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="sm" />
                       <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
@@ -555,9 +558,14 @@ const EducatorDashboard = () => {
                       <div className="flex items-center gap-4 pb-4 border-b border-purple-500/20">
                         <EducatorAvatar photoUrl={userData?.photo_url ?? null} size="md" />
                         <div className="flex-1 overflow-hidden">
-                          <h3 className="font-title text-base font-bold text-white truncate">
-                            {userData.organization_name || "My Organization"}
-                          </h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-title text-base font-bold text-white truncate">
+                              {userData.organization_name || "My Organization"}
+                            </h3>
+                            {approvalStatus?.status === 'approved' && (
+                              <BadgeCheck className="h-4 w-4 shrink-0 text-purple-400" />
+                            )}
+                          </div>
                           <p className="text-xs text-purple-400 font-medium">{userData.role || t('educatorDashboard.roleName')}</p>
                         </div>
                       </div>
