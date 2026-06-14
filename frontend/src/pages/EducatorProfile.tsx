@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, CalendarDays } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -244,29 +245,6 @@ function SocialLink({ icon, label, url }: { icon: React.ReactNode; label: string
   );
 }
 
-// ---------------------------------------------------------------------------
-// Empty placeholder for sections without data yet
-// ---------------------------------------------------------------------------
-
-function ComingSoon({ imgSrc, label, hint }: { imgSrc: string; label: string; hint: string }) {
-  return (
-    <div
-      className="flex flex-col items-center justify-center py-10 px-6 rounded-xl text-center"
-      style={{ backgroundColor: P.cardSoft, border: `1px dashed ${P.border}` }}
-    >
-      <img src={imgSrc} className="h-10 w-10 object-contain mb-3" alt="" aria-hidden style={{ opacity: 0.55 }} />
-      <p
-        className="text-[10px] uppercase tracking-[0.22em] font-semibold mb-1.5"
-        style={{ color: P.textMuted }}
-      >
-        {label}
-      </p>
-      <p className="text-sm max-w-xs" style={{ color: P.textMuted }}>
-        {hint}
-      </p>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -277,7 +255,13 @@ const EducatorProfile = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const prefersReduced = useReducedMotion();
+  const { user } = useAuth();
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
+
+  const isOwnProfile =
+    user?.role === 'issuer' &&
+    !!user.walletAddress &&
+    user.walletAddress.toLowerCase() === (wallet ?? '').toLowerCase();
 
   const displayName =
     [educator?.name, educator?.lastname].filter(Boolean).join(' ') ||
@@ -365,7 +349,7 @@ const EducatorProfile = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="space-y-5"
+              className="space-y-8"
             >
               {/* ── Hero card with sub-cover ── */}
               <motion.div variants={itemVariants}>
@@ -429,22 +413,12 @@ const EducatorProfile = () => {
                         >
                           {t('educatorProfile.educatorRoleLabel')}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <h1
-                            className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
-                            style={{ color: P.textPrimary }}
-                          >
-                            {displayName}
-                          </h1>
-                          {educator.is_approved && (
-                            <BadgeCheck
-                              className="h-6 w-6 shrink-0"
-                              style={{ color: '#a855f7' }}
-                              title={t('educatorProfile.verifiedTooltip')}
-                              aria-label={t('educatorProfile.verifiedTooltip')}
-                            />
-                          )}
-                        </div>
+                        <h1
+                          className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
+                          style={{ color: P.textPrimary }}
+                        >
+                          {displayName}
+                        </h1>
                         {educator.organization_name !== displayName && (
                           <p
                             className="text-sm font-medium mt-1"
@@ -672,27 +646,62 @@ const EducatorProfile = () => {
                 </Section>
               </motion.div>
 
-              {/* ── Issued certificates (placeholder) ── */}
-              <motion.div variants={itemVariants}>
-                <Section label={t('educatorProfile.certificatesGalleryLabel')}>
-                  <ComingSoon
-                    imgSrc="/icons/medalla.avif"
-                    label={t('educatorProfile.comingSoon')}
-                    hint={t('educatorProfile.certificatesGalleryHint')}
-                  />
-                </Section>
-              </motion.div>
+              {/* ── Book private class CTA ── */}
+              {!isOwnProfile && educator.class_settings && (
+                <motion.div variants={itemVariants}>
+                  <div
+                    className="rounded-2xl overflow-hidden"
+                    style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
+                  >
+                    <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                      <div className="space-y-1.5">
+                        <p
+                          className="text-[10px] uppercase tracking-[0.20em] font-semibold"
+                          style={{ color: P.textMuted }}
+                        >
+                          {t('educatorProfile.classesCta')}
+                        </p>
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          {educator.class_settings.hourly_rate_usd != null && (
+                            <span className="text-2xl font-bold tabular-nums" style={{ color: P.textPrimary }}>
+                              ${educator.class_settings.hourly_rate_usd}
+                              <span className="text-sm font-normal ml-1" style={{ color: P.textMuted }}>
+                                USD {t('educatorProfile.classesPerHour')}
+                              </span>
+                            </span>
+                          )}
+                          {educator.class_settings.accept_usdc && (
+                            <span
+                              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                              style={{ backgroundColor: P.surface, color: P.emerald, border: `1px solid oklch(0.72 0.14 155 / 0.25)` }}
+                            >
+                              <Check className="h-3 w-3" />
+                              USDC
+                            </span>
+                          )}
+                        </div>
+                        {educator.class_settings.durations?.length > 0 && (
+                          <p className="text-xs" style={{ color: P.textSecondary }}>
+                            {educator.class_settings.durations.join(', ')} {t('educatorProfile.classesMin')} — {t('educatorProfile.classesSessionFormats')}
+                          </p>
+                        )}
+                      </div>
 
-              {/* ── Talents formed (placeholder) ── */}
-              <motion.div variants={itemVariants}>
-                <Section label={t('educatorProfile.talentsListLabel')}>
-                  <ComingSoon
-                    imgSrc="/icons/talentsPlattform.avif"
-                    label={t('educatorProfile.comingSoon')}
-                    hint={t('educatorProfile.talentsListHint')}
-                  />
-                </Section>
-              </motion.div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/educator/${wallet}/book`)}
+                        className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.97] shrink-0"
+                        style={{ backgroundColor: P.accent, color: P.bg }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.88')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                      >
+                        <CalendarDays className="h-4 w-4" />
+                        {t('educatorProfile.classesBookCta')}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </motion.main>

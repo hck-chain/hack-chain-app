@@ -22,7 +22,8 @@ module.exports = (sequelize, DataTypes) => {
     knowledge_areas: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
     website_url: { type: DataTypes.STRING(500), allowNull: true },
     linkedin_url: { type: DataTypes.STRING(500), allowNull: true },
-    twitter_url: { type: DataTypes.STRING(500), allowNull: true }
+    twitter_url: { type: DataTypes.STRING(500), allowNull: true },
+    class_settings: { type: DataTypes.JSONB, allowNull: true, defaultValue: null }
   }, {
     tableName: 'issuers',
     underscored: true,
