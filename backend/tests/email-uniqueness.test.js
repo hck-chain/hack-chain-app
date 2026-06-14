@@ -29,15 +29,6 @@ jest.mock("../services/authorizeIssuer", () => ({
 jest.mock("../services/emailService", () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock("../harjoot/client", () => ({
-  createHarjootClient: jest.fn().mockReturnValue({}),
-}));
-jest.mock("../harjoot/usecases/activateMembership", () => ({
-  activateMembership: jest.fn().mockResolvedValue(undefined),
-}));
-jest.mock("../harjoot/usecases/claimInvitation", () => ({
-  claimInvitation: jest.fn().mockResolvedValue(undefined),
-}));
 
 const WALLET_A = "0x" + "aa".repeat(20);
 const WALLET_B = "0x" + "bb".repeat(20);
