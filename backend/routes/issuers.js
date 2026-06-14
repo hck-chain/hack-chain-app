@@ -1,41 +1,10 @@
 // backend/routes/issuers.js
 const express = require("express");
 const router = express.Router();
-const rateLimit = require("express-rate-limit");
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { authenticate } = require("../middleware/auth");
-const { requireAdmin } = require("../middleware/requireAdmin");
-
-// 2 re-applies per educator per week prevents approval-queue spam.
-const reapplyLimiter = rateLimit({
-  windowMs: 7 * 24 * 60 * 60 * 1000,
-  max: 2,
-  keyGenerator: (req) => String(req.auth.sub),
-  message: { error: "Too many re-apply requests. Try again next week." },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => !req.auth?.sub,
-});
-
-// Normalize a social/website URL field. Accepts empty string or null (clears the field).
-// Returns { ok: true, value } on success, or { ok: false, error } on failure.
-function normalizeUrl(value, label) {
-  if (value === null || value === undefined) return { ok: true, value: null };
-  if (typeof value !== "string") {
-    return { ok: false, error: `${label} must be a string or null` };
-  }
-  const trimmed = value.trim();
-  if (trimmed === "") return { ok: true, value: null };
-  if (trimmed.length > 500) {
-    return { ok: false, error: `${label} must be 500 characters or less` };
-  }
-  if (!/^https?:\/\/[^\s<>"']+$/i.test(trimmed)) {
-    return { ok: false, error: `${label} must be a valid http(s) URL` };
-  }
-  return { ok: true, value: trimmed };
-}
 
 // GET /api/issuers/me — own full profile (authenticated)
 router.get("/me", authenticate, async (req, res) => {
@@ -57,9 +26,6 @@ router.get("/me", authenticate, async (req, res) => {
       bio: issuer.bio,
       photo_url: issuer.photo_url,
       knowledge_areas: issuer.knowledge_areas ?? [],
-      website_url: issuer.website_url ?? null,
-      linkedin_url: issuer.linkedin_url ?? null,
-      twitter_url: issuer.twitter_url ?? null,
       wallet_address: issuer.wallet_address,
       email: issuer.User?.email ?? null,
       name: issuer.User?.name ?? null,
@@ -69,71 +35,6 @@ router.get("/me", authenticate, async (req, res) => {
   } catch (err) {
     console.error("GET /api/issuers/me error:", err);
     return res.status(500).json({ error: "Failed to fetch profile" });
-  }
-});
-
-/**
- * GET /api/issuers/me/status
- * DS Section 2.5 — educator approval status for the authenticated issuer.
- * Returns one of pending_approval | rejected | approved. When rejected the
- * body also carries the reason; when approved it carries the approved_at
- * timestamp. The educator dashboard uses this to gate the issuance UI.
- */
-router.get("/me/status", authenticate, async (req, res) => {
-  if (req.auth.role !== "issuer") {
-    return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
-  }
-  try {
-    const user = await User.findByPk(req.auth.sub, {
-      attributes: ["educator_approval_status", "rejection_reason", "approved_at"],
-    });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const status = user.educator_approval_status || "pending_approval";
-    const body = { status };
-    if (status === "rejected" && user.rejection_reason) {
-      body.reason = user.rejection_reason;
-    }
-    if (status === "approved" && user.approved_at) {
-      body.approved_at = user.approved_at;
-    }
-    return res.json(body);
-  } catch (err) {
-    console.error("GET /api/issuers/me/status error:", err);
-    return res.status(500).json({ error: "Failed to fetch status" });
-  }
-});
-
-/**
- * POST /api/issuers/me/reapply
- * Allows a rejected educator to re-submit for approval.
- * Only valid when current status is "rejected".
- */
-router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
-  if (req.auth.role !== "issuer") {
-    return res.status(403).json({ error: "Only educator accounts can use this endpoint" });
-  }
-  try {
-    const user = await User.findByPk(req.auth.sub, {
-      attributes: ["id", "educator_approval_status"],
-    });
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    if (user.educator_approval_status !== "rejected") {
-      return res.status(409).json({ error: "Only rejected accounts can re-apply" });
-    }
-
-    await user.update({
-      educator_approval_status: "pending_approval",
-      rejection_reason: null,
-    });
-
-    return res.json({ status: "pending_approval" });
-  } catch (err) {
-    console.error("POST /api/issuers/me/reapply error:", err);
-    return res.status(500).json({ error: "Failed to re-apply" });
   }
 });
 
@@ -196,7 +97,7 @@ router.patch("/me", authenticate, async (req, res) => {
     }
 
     const wallet = req.auth.wallet.toLowerCase();
-    const { bio, knowledge_areas, organization_name, website_url, linkedin_url, twitter_url } = req.body;
+    const { bio, knowledge_areas, organization_name } = req.body;
 
     if (bio !== undefined && typeof bio !== "string") {
       return res.status(400).json({ error: "bio must be a string" });
@@ -219,23 +120,10 @@ router.patch("/me", authenticate, async (req, res) => {
       return res.status(400).json({ error: "organization_name must be a non-empty string" });
     }
 
-    const urlChecks = [
-      { key: "website_url", raw: website_url, label: "website_url" },
-      { key: "linkedin_url", raw: linkedin_url, label: "linkedin_url" },
-      { key: "twitter_url", raw: twitter_url, label: "twitter_url" },
-    ];
-    const normalizedUrls = {};
-    for (const { key, raw, label } of urlChecks) {
-      if (raw === undefined) continue;
-      const result = normalizeUrl(raw, label);
-      if (!result.ok) return res.status(400).json({ error: result.error });
-      normalizedUrls[key] = result.value;
-    }
-
     const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
     if (!issuer) return res.status(404).json({ error: "Issuer not found" });
 
-    const updates = { ...normalizedUrls };
+    const updates = {};
     if (bio !== undefined) updates.bio = bio.trim();
     if (knowledge_areas !== undefined) updates.knowledge_areas = knowledge_areas;
     if (organization_name !== undefined) updates.organization_name = organization_name.trim();
@@ -249,9 +137,6 @@ router.patch("/me", authenticate, async (req, res) => {
         bio: issuer.bio,
         knowledge_areas: issuer.knowledge_areas,
         photo_url: issuer.photo_url,
-        website_url: issuer.website_url,
-        linkedin_url: issuer.linkedin_url,
-        twitter_url: issuer.twitter_url,
       },
     });
   } catch (err) {
@@ -384,9 +269,15 @@ router.delete("/me", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/issuers/authorize — admin only (ADMIN_WALLETS / ADMIN_WALLET env)
-router.post("/authorize", authenticate, requireAdmin, async (req, res) => {
+// POST /api/issuers/authorize — admin only (ADMIN_WALLET env var)
+router.post("/authorize", authenticate, async (req, res) => {
   try {
+    const callerWallet = req.auth.wallet.toLowerCase();
+    const adminWallet = (process.env.ADMIN_WALLET || "").toLowerCase();
+    if (!adminWallet || callerWallet !== adminWallet) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
     const { issuer } = req.body;
     if (!issuer) return res.status(400).json({ error: "Issuer address required" });
 
@@ -440,18 +331,14 @@ router.post("/mint", authenticate, async (req, res) => {
 // PATCH /api/issuers/me/photo  — update own profile photo (ipfs:// URI only)
 router.patch("/me/photo", authenticate, async (req, res) => {
   try {
-    if (req.auth.role !== "issuer") {
-      return res.status(403).json({ error: "Only educator accounts can update this profile" });
-    }
-
     const wallet = req.auth.wallet.toLowerCase();
     const { photo_url } = req.body;
 
-    if (photo_url !== null && typeof photo_url !== "string") {
-      return res.status(400).json({ error: "photo_url is required to be a string or null" });
+    if (!photo_url || typeof photo_url !== "string") {
+      return res.status(400).json({ error: "photo_url is required" });
     }
 
-    if (photo_url && typeof photo_url === "string" && !/^ipfs:\/\/[a-zA-Z0-9]+$/.test(photo_url)) {
+    if (!/^ipfs:\/\/[a-zA-Z0-9]+$/.test(photo_url)) {
       return res.status(400).json({ error: "photo_url must be a valid ipfs:// URI" });
     }
 
@@ -483,7 +370,7 @@ router.get("/:wallet_address", async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["name", "lastname", "created_at", "educator_approval_status"],
+          attributes: ["name", "lastname", "created_at"],
         },
         {
           model: Certificate,
@@ -507,13 +394,10 @@ router.get("/:wallet_address", async (req, res) => {
         photo_url: issuer.photo_url || null,
         bio: issuer.bio || null,
         knowledge_areas: issuer.knowledge_areas || [],
-        website_url: issuer.website_url || null,
-        linkedin_url: issuer.linkedin_url || null,
-        twitter_url: issuer.twitter_url || null,
         certificates_issued: issuer.certificates_issued,
         talents_formed,
         joined_at: issuer.User?.created_at || issuer.created_at,
-        is_approved: issuer.User?.educator_approval_status === 'approved',
+        class_settings: issuer.class_settings ?? null,
       },
     });
 

@@ -19,7 +19,6 @@ export interface Educator {
   certificates_issued: number;
   joined_at: string | null;
   certs_to_me: number;
-  is_approved?: boolean;
 }
 
 export interface EducatorProfile extends Omit<Educator, 'certs_to_me'> {
@@ -27,7 +26,7 @@ export interface EducatorProfile extends Omit<Educator, 'certs_to_me'> {
   website_url: string | null;
   linkedin_url: string | null;
   twitter_url: string | null;
-  is_approved?: boolean;
+  class_settings: ClassSettings | null;
 }
 
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

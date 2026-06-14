@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { generateSlots, getUpcomingDays } from '@/lib/slots';
+import type { UpcomingDay } from '@/lib/slots';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -269,13 +271,218 @@ function ComingSoon({ imgSrc, label, hint }: { imgSrc: string; label: string; hi
 }
 
 // ---------------------------------------------------------------------------
+// Classes section — slot picker for public profile
+// ---------------------------------------------------------------------------
+
+function formatDayLabel(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric' }).format(date);
+}
+
+interface ClassesSectionProps {
+  classSettings: NonNullable<import('@/types/dashboard').EducatorProfile['class_settings']>;
+  locale: string;
+  t: (key: string) => string;
+  prefersReduced: boolean | null;
+}
+
+function ClassesSection({ classSettings, locale, t, prefersReduced }: ClassesSectionProps) {
+  const { hourly_rate_usd, accept_usdc, durations, availability, google_calendar_url } = classSettings;
+
+  const upcomingDays = availability ? getUpcomingDays(availability) : [];
+  const hasAvailability = upcomingDays.length > 0 && durations?.length > 0;
+
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+  const [selectedDuration, setSelectedDuration] = useState<number>(durations?.[0] ?? 60);
+
+  const selectedDay: UpcomingDay | undefined = upcomingDays[selectedDayIdx];
+  const slots =
+    selectedDay && availability
+      ? generateSlots(
+          availability[selectedDay.dayKey].start,
+          availability[selectedDay.dayKey].end,
+          selectedDuration
+        )
+      : [];
+
+  return (
+    <Section label={t('educatorProfile.classesSection')} icon={<BookOpen className="h-3.5 w-3.5" />}>
+      {/* Pricing strip */}
+      {hourly_rate_usd != null && (
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <div
+            className="inline-flex items-baseline gap-1 px-4 py-2 rounded-xl"
+            style={{ backgroundColor: P.accentSoft, border: `1px solid ${P.accentBorder}` }}
+          >
+            <span className="text-xl font-bold tabular-nums" style={{ color: P.textPrimary }}>
+              ${hourly_rate_usd}
+            </span>
+            <span className="text-sm font-mono" style={{ color: P.accent }}>
+              USD {t('educatorProfile.classesPerHour')}
+            </span>
+          </div>
+          {accept_usdc && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{ backgroundColor: P.surface, border: `1px solid ${P.border}`, color: P.textSecondary }}
+            >
+              <Check className="h-3 w-3" style={{ color: P.emerald }} />
+              {t('educatorProfile.classesUsdcAccepted')}
+            </span>
+          )}
+        </div>
+      )}
+
+      {!hasAvailability && (
+        <p className="text-sm" style={{ color: P.textMuted }}>
+          {t('educatorProfile.classesNoAvailability')}
+        </p>
+      )}
+
+      {hasAvailability && (
+        <div className="space-y-4">
+          {/* Duration filter */}
+          {durations.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {durations.map((min) => (
+                <button
+                  key={min}
+                  type="button"
+                  onClick={() => setSelectedDuration(min)}
+                  className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: selectedDuration === min ? P.accent : P.surface,
+                    color: selectedDuration === min ? P.bg : P.textSecondary,
+                    border: `1px solid ${selectedDuration === min ? P.accent : P.border}`,
+                  }}
+                >
+                  {min} {t('educatorProfile.classesMin')}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Day tabs with arrow navigation */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Día anterior"
+              onClick={() => setSelectedDayIdx((i) => Math.max(0, i - 1))}
+              disabled={selectedDayIdx === 0}
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+              style={{ color: P.textMuted }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            <div className="flex-1 overflow-x-auto no-scrollbar">
+              <div className="flex gap-2 min-w-max px-0.5">
+                {upcomingDays.map((day, idx) => {
+                  const active = idx === selectedDayIdx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedDayIdx(idx)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0"
+                      style={{
+                        backgroundColor: active ? P.accent : P.surface,
+                        color: active ? P.bg : P.textSecondary,
+                        border: `1px solid ${active ? P.accent : P.border}`,
+                      }}
+                    >
+                      {formatDayLabel(day.date, locale)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Día siguiente"
+              onClick={() => setSelectedDayIdx((i) => Math.min(upcomingDays.length - 1, i + 1))}
+              disabled={selectedDayIdx === upcomingDays.length - 1}
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+              style={{ color: P.textMuted }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Slot grid */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${selectedDayIdx}-${selectedDuration}`}
+              initial={prefersReduced ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: prefersReduced ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {slots.length === 0 ? (
+                <p className="text-sm" style={{ color: P.textMuted }}>
+                  {t('educatorProfile.classesNoAvailability')}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {slots.map((slot) => (
+                    <div
+                      key={slot.start}
+                      className="relative group px-3.5 py-2 rounded-xl text-xs font-mono tabular-nums transition-colors cursor-default"
+                      style={{
+                        backgroundColor: P.surface,
+                        border: `1px solid ${P.border}`,
+                        color: P.textSecondary,
+                      }}
+                    >
+                      {slot.start}
+                      <span
+                        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-sans font-semibold uppercase tracking-wider"
+                        style={{ backgroundColor: P.accentSoft, color: P.accent }}
+                      >
+                        {t('educatorProfile.classesBookSoon')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Google Calendar embed */}
+      {google_calendar_url && (
+        <div className="mt-6 space-y-3">
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] font-semibold"
+            style={{ color: P.textMuted }}
+          >
+            {t('educatorProfile.classesCalendarTitle')}
+          </p>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${P.border}` }}>
+            <iframe
+              src={google_calendar_url}
+              title="Educator calendar"
+              className="w-full"
+              style={{ height: 380, border: 0, backgroundColor: P.surface }}
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
 const EducatorProfile = () => {
   const { wallet } = useParams<{ wallet: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const prefersReduced = useReducedMotion();
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
 
@@ -429,22 +636,12 @@ const EducatorProfile = () => {
                         >
                           {t('educatorProfile.educatorRoleLabel')}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <h1
-                            className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
-                            style={{ color: P.textPrimary }}
-                          >
-                            {displayName}
-                          </h1>
-                          {educator.is_approved && (
-                            <BadgeCheck
-                              className="h-6 w-6 shrink-0"
-                              style={{ color: '#a855f7' }}
-                              title={t('educatorProfile.verifiedTooltip')}
-                              aria-label={t('educatorProfile.verifiedTooltip')}
-                            />
-                          )}
-                        </div>
+                        <h1
+                          className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
+                          style={{ color: P.textPrimary }}
+                        >
+                          {displayName}
+                        </h1>
                         {educator.organization_name !== displayName && (
                           <p
                             className="text-sm font-medium mt-1"
@@ -671,6 +868,18 @@ const EducatorProfile = () => {
                   </div>
                 </Section>
               </motion.div>
+
+              {/* ── Classes ── */}
+              {educator.class_settings && (
+                <motion.div variants={itemVariants}>
+                  <ClassesSection
+                    classSettings={educator.class_settings}
+                    locale={i18n.language}
+                    t={t}
+                    prefersReduced={prefersReduced}
+                  />
+                </motion.div>
+              )}
 
               {/* ── Issued certificates (placeholder) ── */}
               <motion.div variants={itemVariants}>

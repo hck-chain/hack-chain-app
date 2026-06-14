@@ -795,6 +795,14 @@
     "certificatesGalleryHint": "The latest certificates issued by this educator will appear here.",
     "talentsListLabel": "Talents trained",
     "talentsListHint": "Soon you'll be able to explore the talents certified by this educator.",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "classesSection": "Available classes",
+    "classesPerHour": "/ hr",
+    "classesUsdcAccepted": "USDC accepted",
+    "classesDurationFilter": "Duration",
+    "classesMin": "min",
+    "classesNoAvailability": "This educator hasn't configured their availability yet.",
+    "classesCalendarTitle": "Educator calendar",
+    "classesBookSoon": "Booking coming soon"
   }
 }

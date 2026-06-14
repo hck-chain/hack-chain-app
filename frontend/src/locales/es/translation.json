@@ -795,6 +795,14 @@
     "certificatesGalleryHint": "Acá vas a poder ver los últimos certificados que emitió este educador.",
     "talentsListLabel": "Talentos formados",
     "talentsListHint": "Pronto vas a poder explorar los talentos certificados por este educador.",
-    "comingSoon": "Próximamente"
+    "comingSoon": "Próximamente",
+    "classesSection": "Clases disponibles",
+    "classesPerHour": "/ hora",
+    "classesUsdcAccepted": "USDC aceptado",
+    "classesDurationFilter": "Duración",
+    "classesMin": "min",
+    "classesNoAvailability": "Este educador todavía no configuró su disponibilidad.",
+    "classesCalendarTitle": "Calendario del educador",
+    "classesBookSoon": "Reserva próximamente"
   }
 }
