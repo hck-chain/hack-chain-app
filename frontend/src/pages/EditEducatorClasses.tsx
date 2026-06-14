@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft, Loader2, DollarSign, Clock, CalendarDays,
-  Link as LinkIcon, ChevronDown, Check,
+  Link as LinkIcon, ChevronDown, Check, AlertCircle,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,20 @@ const DEFAULT_AVAILABILITY: WeeklyAvailability = {
 };
 
 const GCAL_EMBED_PREFIX = 'https://calendar.google.com/calendar/embed';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function isRangeValid(start: string, end: string): boolean {
+  if (!start || !end) return false;
+  return timeToMinutes(start) < timeToMinutes(end);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -229,6 +243,10 @@ const EditEducatorClasses = () => {
     }));
   };
 
+  const invalidDays = DAYS.filter(
+    ({ key }) => availability[key].enabled && !isRangeValid(availability[key].start, availability[key].end)
+  );
+
   const handleSave = async () => {
     if (!rateValid) {
       toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidRate'), variant: 'destructive' });
@@ -240,6 +258,10 @@ const EditEducatorClasses = () => {
     }
     if (durations.length === 0) {
       toast({ title: t('editClasses.errorTitle'), description: t('editClasses.noDurations'), variant: 'destructive' });
+      return;
+    }
+    if (invalidDays.length > 0) {
+      toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidTimeRange'), variant: 'destructive' });
       return;
     }
 
@@ -482,30 +504,46 @@ const EditEducatorClasses = () => {
                     transition={{ duration: prefersReduced ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden"
                   >
-                    <div
-                      className="flex items-center gap-4 flex-wrap mt-1 px-4 py-3 rounded-xl"
-                      style={{ backgroundColor: P.surface, border: `1px solid ${P.borderSub}` }}
-                    >
-                      <span
-                        className="text-[11px] uppercase tracking-[0.14em] font-semibold w-8 shrink-0"
-                        style={{ color: P.accent }}
-                      >
-                        {t(labelKey)}
-                      </span>
-                      <TimeInput
-                        label={t('editClasses.startTime')}
-                        value={availability[key].start}
-                        onChange={(v) => updateDayTime(key, 'start', v)}
-                        disabled={isSaving}
-                      />
-                      <span className="text-sm self-end pb-2.5" style={{ color: P.textMuted }}>—</span>
-                      <TimeInput
-                        label={t('editClasses.endTime')}
-                        value={availability[key].end}
-                        onChange={(v) => updateDayTime(key, 'end', v)}
-                        disabled={isSaving}
-                      />
-                    </div>
+                    {(() => {
+                      const rangeInvalid = !isRangeValid(availability[key].start, availability[key].end);
+                      return (
+                        <div className="mt-1 space-y-1.5">
+                          <div
+                            className="flex items-center gap-4 flex-wrap px-4 py-3 rounded-xl"
+                            style={{
+                              backgroundColor: P.surface,
+                              border: `1px solid ${rangeInvalid ? 'oklch(0.65 0.18 25 / 0.55)' : P.borderSub}`,
+                            }}
+                          >
+                            <span
+                              className="text-[11px] uppercase tracking-[0.14em] font-semibold w-8 shrink-0"
+                              style={{ color: P.accent }}
+                            >
+                              {t(labelKey)}
+                            </span>
+                            <TimeInput
+                              label={t('editClasses.startTime')}
+                              value={availability[key].start}
+                              onChange={(v) => updateDayTime(key, 'start', v)}
+                              disabled={isSaving}
+                            />
+                            <span className="text-sm self-end pb-2.5" style={{ color: P.textMuted }}>—</span>
+                            <TimeInput
+                              label={t('editClasses.endTime')}
+                              value={availability[key].end}
+                              onChange={(v) => updateDayTime(key, 'end', v)}
+                              disabled={isSaving}
+                            />
+                          </div>
+                          {rangeInvalid && (
+                            <p className="flex items-center gap-1.5 text-xs px-1" style={{ color: 'oklch(0.75 0.16 25)' }}>
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              {t('editClasses.invalidTimeRangeInline')}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -636,7 +674,7 @@ const EditEducatorClasses = () => {
             </p>
             <Button
               onClick={handleSave}
-              disabled={isSaving || durations.length === 0}
+              disabled={isSaving || durations.length === 0 || invalidDays.length > 0}
               className="ml-auto font-semibold px-7 rounded-full transition-all hover:scale-[1.015] disabled:hover:scale-100"
               style={{ backgroundColor: P.accent, color: P.bg, border: 'none' }}
             >

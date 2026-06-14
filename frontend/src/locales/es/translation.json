@@ -736,7 +736,9 @@
     ],
     "showPreview": "Ver vista previa del calendario",
     "hidePreview": "Ocultar vista previa",
-    "noDurations": "Seleccioná al menos una duración de sesión."
+    "noDurations": "Seleccioná al menos una duración de sesión.",
+    "invalidTimeRange": "Revisá los horarios: el inicio debe ser antes del fin en cada día habilitado.",
+    "invalidTimeRangeInline": "El horario de inicio debe ser antes del fin."
   },
   "deleteAccount": {
     "title": "Eliminar cuenta de educador",

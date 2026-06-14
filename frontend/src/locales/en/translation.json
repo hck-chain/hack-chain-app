@@ -736,7 +736,9 @@
     ],
     "showPreview": "Show calendar preview",
     "hidePreview": "Hide preview",
-    "noDurations": "Select at least one session duration."
+    "noDurations": "Select at least one session duration.",
+    "invalidTimeRange": "Check the schedules: start must be before end for every enabled day.",
+    "invalidTimeRangeInline": "Start time must be before end time."
   },
   "deleteAccount": {
     "title": "Delete educator account",
