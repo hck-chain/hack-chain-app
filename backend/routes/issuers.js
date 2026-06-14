@@ -185,18 +185,33 @@ router.patch("/me/classes", authenticate, async (req, res) => {
     }
 
     if (durations !== undefined) {
-      if (!Array.isArray(durations) || durations.some((d) => !VALID_DURATIONS.includes(d))) {
-        return res.status(400).json({ error: "durations must be an array of 30, 45, or 60" });
+      if (
+        !Array.isArray(durations) ||
+        durations.length === 0 ||
+        durations.length > VALID_DURATIONS.length ||
+        durations.some((d) => !VALID_DURATIONS.includes(d)) ||
+        new Set(durations).size !== durations.length
+      ) {
+        return res.status(400).json({ error: "durations must be a non-empty array of unique values from [30, 45, 60]" });
       }
     }
 
     if (availability !== undefined) {
-      if (typeof availability !== "object" || availability === null) {
+      if (typeof availability !== "object" || availability === null || Array.isArray(availability)) {
         return res.status(400).json({ error: "availability must be an object" });
       }
+      // Whitelist-only: reject any key that is not a valid day to prevent JSONB injection
+      const incomingKeys = Object.keys(Object.assign({}, availability));
+      const extraKeys = incomingKeys.filter((k) => !VALID_DAYS.includes(k));
+      if (extraKeys.length > 0) {
+        return res.status(400).json({ error: `availability contains invalid keys: ${extraKeys.join(", ")}` });
+      }
       for (const day of VALID_DAYS) {
-        const slot = availability[day];
-        if (!slot) continue;
+        const slot = Object.prototype.hasOwnProperty.call(availability, day) ? availability[day] : undefined;
+        if (slot === undefined || slot === null) continue;
+        if (typeof slot !== "object" || Array.isArray(slot)) {
+          return res.status(400).json({ error: `availability.${day} must be an object` });
+        }
         if (typeof slot.enabled !== "boolean") {
           return res.status(400).json({ error: `availability.${day}.enabled must be a boolean` });
         }
