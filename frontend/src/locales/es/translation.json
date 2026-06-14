@@ -688,6 +688,25 @@
     "classesTitle": "Editar clases",
     "classesDesc": "Precio, duración, disponibilidad y calendario de tus clases."
   },
+  "bookClass": {
+    "backToProfile": "Volver al perfil",
+    "privateLessonWith": "Clase privada con",
+    "priceLabel": "Precio",
+    "availabilityTitle": "Elegí un horario",
+    "durationLabel": "Duración de la sesión",
+    "min": "min",
+    "selectDay": "Seleccioná el día",
+    "prevDay": "Día anterior",
+    "nextDay": "Día siguiente",
+    "selectSlot": "Horarios disponibles",
+    "noSlots": "Sin slots disponibles para este formato en ese día.",
+    "noAvailability": "Este educador no tiene disponibilidad configurada.",
+    "notAvailable": "La página de reservas no está disponible.",
+    "calendarTitle": "Calendario del educador",
+    "comingSoon": "Pronto",
+    "comingSoonTitle": "Reservas disponibles próximamente",
+    "comingSoonHint": "Estamos trabajando en el sistema de reservas. Por ahora podés contactar al educador directamente desde su perfil."
+  },
   "editClasses": {
     "pageTitle": "Editar clases",
     "backToProfile": "Volver al perfil",
@@ -805,6 +824,9 @@
     "classesMin": "min",
     "classesNoAvailability": "Este educador todavía no configuró su disponibilidad.",
     "classesCalendarTitle": "Calendario del educador",
-    "classesBookSoon": "Reserva próximamente"
+    "classesBookSoon": "Reserva próximamente",
+    "classesCta": "Clases privadas",
+    "classesBookCta": "Solicitar clase privada",
+    "classesSessionFormats": "formatos disponibles"
   }
 }

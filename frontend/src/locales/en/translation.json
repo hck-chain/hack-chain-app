@@ -688,6 +688,25 @@
     "classesTitle": "Edit classes",
     "classesDesc": "Set your pricing, session duration, availability and calendar."
   },
+  "bookClass": {
+    "backToProfile": "Back to profile",
+    "privateLessonWith": "Private lesson with",
+    "priceLabel": "Price",
+    "availabilityTitle": "Choose a time slot",
+    "durationLabel": "Session duration",
+    "min": "min",
+    "selectDay": "Select a day",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "selectSlot": "Available slots",
+    "noSlots": "No slots available for this format on that day.",
+    "noAvailability": "This educator has no availability configured.",
+    "notAvailable": "Booking page is not available.",
+    "calendarTitle": "Educator calendar",
+    "comingSoon": "Soon",
+    "comingSoonTitle": "Booking coming soon",
+    "comingSoonHint": "We're building the booking system. For now, you can contact the educator directly from their profile."
+  },
   "editClasses": {
     "pageTitle": "Edit classes",
     "backToProfile": "Back to profile",
@@ -805,6 +824,9 @@
     "classesMin": "min",
     "classesNoAvailability": "This educator hasn't configured their availability yet.",
     "classesCalendarTitle": "Educator calendar",
-    "classesBookSoon": "Booking coming soon"
+    "classesBookSoon": "Booking coming soon",
+    "classesCta": "Private lessons",
+    "classesBookCta": "Request private class",
+    "classesSessionFormats": "available formats"
   }
 }

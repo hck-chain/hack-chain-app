@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
-import { generateSlots, getUpcomingDays } from '@/lib/slots';
-import type { UpcomingDay } from '@/lib/slots';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, CalendarDays } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -246,234 +245,6 @@ function SocialLink({ icon, label, url }: { icon: React.ReactNode; label: string
   );
 }
 
-// ---------------------------------------------------------------------------
-// Empty placeholder for sections without data yet
-// ---------------------------------------------------------------------------
-
-function ComingSoon({ imgSrc, label, hint }: { imgSrc: string; label: string; hint: string }) {
-  return (
-    <div
-      className="flex flex-col items-center justify-center py-10 px-6 rounded-xl text-center"
-      style={{ backgroundColor: P.cardSoft, border: `1px dashed ${P.border}` }}
-    >
-      <img src={imgSrc} className="h-10 w-10 object-contain mb-3" alt="" aria-hidden style={{ opacity: 0.55 }} />
-      <p
-        className="text-[10px] uppercase tracking-[0.22em] font-semibold mb-1.5"
-        style={{ color: P.textMuted }}
-      >
-        {label}
-      </p>
-      <p className="text-sm max-w-xs" style={{ color: P.textMuted }}>
-        {hint}
-      </p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Classes section — slot picker for public profile
-// ---------------------------------------------------------------------------
-
-function formatDayLabel(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric' }).format(date);
-}
-
-interface ClassesSectionProps {
-  classSettings: NonNullable<import('@/types/dashboard').EducatorProfile['class_settings']>;
-  locale: string;
-  t: (key: string) => string;
-  prefersReduced: boolean | null;
-}
-
-function ClassesSection({ classSettings, locale, t, prefersReduced }: ClassesSectionProps) {
-  const { hourly_rate_usd, accept_usdc, durations, availability, google_calendar_url } = classSettings;
-
-  const upcomingDays = availability ? getUpcomingDays(availability) : [];
-  const hasAvailability = upcomingDays.length > 0 && durations?.length > 0;
-
-  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
-  const [selectedDuration, setSelectedDuration] = useState<number>(durations?.[0] ?? 60);
-
-  const selectedDay: UpcomingDay | undefined = upcomingDays[selectedDayIdx];
-  const slots =
-    selectedDay && availability
-      ? generateSlots(
-          availability[selectedDay.dayKey].start,
-          availability[selectedDay.dayKey].end,
-          selectedDuration
-        )
-      : [];
-
-  return (
-    <Section label={t('educatorProfile.classesSection')} icon={<BookOpen className="h-3.5 w-3.5" />}>
-      {/* Pricing strip */}
-      {hourly_rate_usd != null && (
-        <div className="flex flex-wrap items-center gap-3 mb-5">
-          <div
-            className="inline-flex items-baseline gap-1 px-4 py-2 rounded-xl"
-            style={{ backgroundColor: P.accentSoft, border: `1px solid ${P.accentBorder}` }}
-          >
-            <span className="text-xl font-bold tabular-nums" style={{ color: P.textPrimary }}>
-              ${hourly_rate_usd}
-            </span>
-            <span className="text-sm font-mono" style={{ color: P.accent }}>
-              USD {t('educatorProfile.classesPerHour')}
-            </span>
-          </div>
-          {accept_usdc && (
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-              style={{ backgroundColor: P.surface, border: `1px solid ${P.border}`, color: P.textSecondary }}
-            >
-              <Check className="h-3 w-3" style={{ color: P.emerald }} />
-              {t('educatorProfile.classesUsdcAccepted')}
-            </span>
-          )}
-        </div>
-      )}
-
-      {!hasAvailability && (
-        <p className="text-sm" style={{ color: P.textMuted }}>
-          {t('educatorProfile.classesNoAvailability')}
-        </p>
-      )}
-
-      {hasAvailability && (
-        <div className="space-y-4">
-          {/* Duration filter */}
-          {durations.length > 1 && (
-            <div className="flex flex-wrap gap-2">
-              {durations.map((min) => (
-                <button
-                  key={min}
-                  type="button"
-                  onClick={() => setSelectedDuration(min)}
-                  className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: selectedDuration === min ? P.accent : P.surface,
-                    color: selectedDuration === min ? P.bg : P.textSecondary,
-                    border: `1px solid ${selectedDuration === min ? P.accent : P.border}`,
-                  }}
-                >
-                  {min} {t('educatorProfile.classesMin')}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Day tabs with arrow navigation */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Día anterior"
-              onClick={() => setSelectedDayIdx((i) => Math.max(0, i - 1))}
-              disabled={selectedDayIdx === 0}
-              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-              style={{ color: P.textMuted }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <div className="flex-1 overflow-x-auto no-scrollbar">
-              <div className="flex gap-2 min-w-max px-0.5">
-                {upcomingDays.map((day, idx) => {
-                  const active = idx === selectedDayIdx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedDayIdx(idx)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0"
-                      style={{
-                        backgroundColor: active ? P.accent : P.surface,
-                        color: active ? P.bg : P.textSecondary,
-                        border: `1px solid ${active ? P.accent : P.border}`,
-                      }}
-                    >
-                      {formatDayLabel(day.date, locale)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              aria-label="Día siguiente"
-              onClick={() => setSelectedDayIdx((i) => Math.min(upcomingDays.length - 1, i + 1))}
-              disabled={selectedDayIdx === upcomingDays.length - 1}
-              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-              style={{ color: P.textMuted }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Slot grid */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${selectedDayIdx}-${selectedDuration}`}
-              initial={prefersReduced ? false : { opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: prefersReduced ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {slots.length === 0 ? (
-                <p className="text-sm" style={{ color: P.textMuted }}>
-                  {t('educatorProfile.classesNoAvailability')}
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {slots.map((slot) => (
-                    <div
-                      key={slot.start}
-                      className="relative group px-3.5 py-2 rounded-xl text-xs font-mono tabular-nums transition-colors cursor-default"
-                      style={{
-                        backgroundColor: P.surface,
-                        border: `1px solid ${P.border}`,
-                        color: P.textSecondary,
-                      }}
-                    >
-                      {slot.start}
-                      <span
-                        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-sans font-semibold uppercase tracking-wider"
-                        style={{ backgroundColor: P.accentSoft, color: P.accent }}
-                      >
-                        {t('educatorProfile.classesBookSoon')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Google Calendar embed */}
-      {google_calendar_url && (
-        <div className="mt-6 space-y-3">
-          <p
-            className="text-[10px] uppercase tracking-[0.18em] font-semibold"
-            style={{ color: P.textMuted }}
-          >
-            {t('educatorProfile.classesCalendarTitle')}
-          </p>
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${P.border}` }}>
-            <iframe
-              src={google_calendar_url}
-              title="Educator calendar"
-              className="w-full"
-              style={{ height: 380, border: 0, backgroundColor: P.surface }}
-              loading="lazy"
-              sandbox="allow-scripts allow-same-origin"
-            />
-          </div>
-        </div>
-      )}
-    </Section>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -482,9 +253,15 @@ function ClassesSection({ classSettings, locale, t, prefersReduced }: ClassesSec
 const EducatorProfile = () => {
   const { wallet } = useParams<{ wallet: string }>();
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const prefersReduced = useReducedMotion();
+  const { user } = useAuth();
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
+
+  const isOwnProfile =
+    user?.role === 'issuer' &&
+    !!user.walletAddress &&
+    user.walletAddress.toLowerCase() === (wallet ?? '').toLowerCase();
 
   const displayName =
     [educator?.name, educator?.lastname].filter(Boolean).join(' ') ||
@@ -572,7 +349,7 @@ const EducatorProfile = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="space-y-5"
+              className="space-y-8"
             >
               {/* ── Hero card with sub-cover ── */}
               <motion.div variants={itemVariants}>
@@ -869,39 +646,62 @@ const EducatorProfile = () => {
                 </Section>
               </motion.div>
 
-              {/* ── Classes ── */}
-              {educator.class_settings && (
+              {/* ── Book private class CTA ── */}
+              {!isOwnProfile && educator.class_settings && (
                 <motion.div variants={itemVariants}>
-                  <ClassesSection
-                    classSettings={educator.class_settings}
-                    locale={i18n.language}
-                    t={t}
-                    prefersReduced={prefersReduced}
-                  />
+                  <div
+                    className="rounded-2xl overflow-hidden"
+                    style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
+                  >
+                    <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                      <div className="space-y-1.5">
+                        <p
+                          className="text-[10px] uppercase tracking-[0.20em] font-semibold"
+                          style={{ color: P.textMuted }}
+                        >
+                          {t('educatorProfile.classesCta')}
+                        </p>
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          {educator.class_settings.hourly_rate_usd != null && (
+                            <span className="text-2xl font-bold tabular-nums" style={{ color: P.textPrimary }}>
+                              ${educator.class_settings.hourly_rate_usd}
+                              <span className="text-sm font-normal ml-1" style={{ color: P.textMuted }}>
+                                USD {t('educatorProfile.classesPerHour')}
+                              </span>
+                            </span>
+                          )}
+                          {educator.class_settings.accept_usdc && (
+                            <span
+                              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                              style={{ backgroundColor: P.surface, color: P.emerald, border: `1px solid oklch(0.72 0.14 155 / 0.25)` }}
+                            >
+                              <Check className="h-3 w-3" />
+                              USDC
+                            </span>
+                          )}
+                        </div>
+                        {educator.class_settings.durations?.length > 0 && (
+                          <p className="text-xs" style={{ color: P.textSecondary }}>
+                            {educator.class_settings.durations.join(', ')} {t('educatorProfile.classesMin')} — {t('educatorProfile.classesSessionFormats')}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/educator/${wallet}/book`)}
+                        className="group flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.97] shrink-0"
+                        style={{ backgroundColor: P.accent, color: P.bg }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.88')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                      >
+                        <CalendarDays className="h-4 w-4" />
+                        {t('educatorProfile.classesBookCta')}
+                      </button>
+                    </div>
+                  </div>
                 </motion.div>
               )}
-
-              {/* ── Issued certificates (placeholder) ── */}
-              <motion.div variants={itemVariants}>
-                <Section label={t('educatorProfile.certificatesGalleryLabel')}>
-                  <ComingSoon
-                    imgSrc="/icons/medalla.avif"
-                    label={t('educatorProfile.comingSoon')}
-                    hint={t('educatorProfile.certificatesGalleryHint')}
-                  />
-                </Section>
-              </motion.div>
-
-              {/* ── Talents formed (placeholder) ── */}
-              <motion.div variants={itemVariants}>
-                <Section label={t('educatorProfile.talentsListLabel')}>
-                  <ComingSoon
-                    imgSrc="/icons/talentsPlattform.avif"
-                    label={t('educatorProfile.comingSoon')}
-                    hint={t('educatorProfile.talentsListHint')}
-                  />
-                </Section>
-              </motion.div>
             </motion.div>
           )}
         </motion.main>
