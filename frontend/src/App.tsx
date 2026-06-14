@@ -37,6 +37,7 @@ const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
 const BlockchainDisclaimer = lazy(() => import("./pages/legal/BlockchainDisclaimer"));
 const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
 const EditEducatorProfile = lazy(() => import("./pages/EditEducatorProfile"));
+const EditEducatorClasses = lazy(() => import("./pages/EditEducatorClasses"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Referrals = lazy(() => import("./pages/Referrals"));
 
@@ -121,6 +122,11 @@ const App = () => {
                 <Route path="/educator/profile/edit" element={
                   <ProtectedRoute roles={['issuer']}>
                     <EditEducatorProfile />
+                  </ProtectedRoute>
+                } />
+                <Route path="/educator/classes/edit" element={
+                  <ProtectedRoute roles={['issuer']}>
+                    <EditEducatorClasses />
                   </ProtectedRoute>
                 } />
 

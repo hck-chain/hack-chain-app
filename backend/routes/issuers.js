@@ -260,6 +260,103 @@ router.patch("/me", authenticate, async (req, res) => {
   }
 });
 
+// GET /api/issuers/me/classes — own class settings (authenticated)
+router.get("/me/classes", authenticate, async (req, res) => {
+  try {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
+    }
+    const wallet = req.auth.wallet.toLowerCase();
+    const issuer = await Issuer.findOne({ where: { wallet_address: wallet }, attributes: ["class_settings"] });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
+    return res.json({ class_settings: issuer.class_settings ?? null });
+  } catch (err) {
+    console.error("GET /api/issuers/me/classes error:", err);
+    return res.status(500).json({ error: "Failed to fetch class settings" });
+  }
+});
+
+const VALID_DURATIONS = [30, 45, 60];
+const VALID_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// PATCH /api/issuers/me/classes — update class settings (authenticated)
+router.patch("/me/classes", authenticate, async (req, res) => {
+  try {
+    if (req.auth.role !== "issuer") {
+      return res.status(403).json({ error: "Only educator accounts can update this endpoint" });
+    }
+
+    const { hourly_rate_usd, accept_usdc, durations, availability, google_calendar_url } = req.body;
+
+    if (hourly_rate_usd !== undefined && hourly_rate_usd !== null) {
+      if (typeof hourly_rate_usd !== "number" || hourly_rate_usd < 0 || hourly_rate_usd > 9999) {
+        return res.status(400).json({ error: "hourly_rate_usd must be a number between 0 and 9999" });
+      }
+    }
+
+    if (accept_usdc !== undefined && typeof accept_usdc !== "boolean") {
+      return res.status(400).json({ error: "accept_usdc must be a boolean" });
+    }
+
+    if (durations !== undefined) {
+      if (!Array.isArray(durations) || durations.some((d) => !VALID_DURATIONS.includes(d))) {
+        return res.status(400).json({ error: "durations must be an array of 30, 45, or 60" });
+      }
+    }
+
+    if (availability !== undefined) {
+      if (typeof availability !== "object" || availability === null) {
+        return res.status(400).json({ error: "availability must be an object" });
+      }
+      for (const day of VALID_DAYS) {
+        const slot = availability[day];
+        if (!slot) continue;
+        if (typeof slot.enabled !== "boolean") {
+          return res.status(400).json({ error: `availability.${day}.enabled must be a boolean` });
+        }
+        if (slot.enabled) {
+          if (!TIME_RE.test(slot.start) || !TIME_RE.test(slot.end)) {
+            return res.status(400).json({ error: `availability.${day} must have valid HH:MM start and end times` });
+          }
+          if (slot.start >= slot.end) {
+            return res.status(400).json({ error: `availability.${day}.start must be before end` });
+          }
+        }
+      }
+    }
+
+    if (google_calendar_url !== undefined && google_calendar_url !== null) {
+      if (typeof google_calendar_url !== "string" || google_calendar_url.length > 1000) {
+        return res.status(400).json({ error: "google_calendar_url must be a string of max 1000 characters" });
+      }
+      if (google_calendar_url.trim().length > 0 && !google_calendar_url.trim().startsWith("https://calendar.google.com/")) {
+        return res.status(400).json({ error: "google_calendar_url must be a valid Google Calendar embed URL" });
+      }
+    }
+
+    const wallet = req.auth.wallet.toLowerCase();
+    const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
+
+    const current = issuer.class_settings ?? {};
+    const updated = {
+      ...current,
+      ...(hourly_rate_usd !== undefined && { hourly_rate_usd: hourly_rate_usd ?? null }),
+      ...(accept_usdc !== undefined && { accept_usdc }),
+      ...(durations !== undefined && { durations }),
+      ...(availability !== undefined && { availability }),
+      ...(google_calendar_url !== undefined && { google_calendar_url: google_calendar_url?.trim() || null }),
+    };
+
+    await issuer.update({ class_settings: updated });
+    return res.json({ class_settings: issuer.class_settings });
+  } catch (err) {
+    console.error("PATCH /api/issuers/me/classes error:", err);
+    return res.status(500).json({ error: "Failed to update class settings" });
+  }
+});
+
 // DELETE /api/issuers/me — hard delete own account
 router.delete("/me", authenticate, async (req, res) => {
   try {

@@ -240,14 +240,6 @@
   "educatorDashboard": {
     "title": "Educator Dashboard",
     "subtitle": "Create and issue blockchain-verified credentials with ease.",
-    "pendingApproval": "Account pending review by the HackChain team.",
-    "rejectedTitle": "Application rejected",
-    "reapplyBtn": "Request review",
-    "reapplying": "Sending…",
-    "reapplySuccess": "Request sent",
-    "reapplySuccessDesc": "Your account is back to pending review.",
-    "reapplyError": "Error",
-    "reapplyErrorDesc": "Could not send the request.",
     "welcome": "Welcome back,",
     "certificatesIssued": "Certificates Issued",
     "talentsAvailable": "Talents on Platform",
@@ -692,7 +684,59 @@
     "linkedinPlaceholder": "https://linkedin.com/in/yourhandle",
     "twitterLabel": "X / Twitter",
     "twitterPlaceholder": "https://x.com/yourhandle",
-    "invalidUrl": "One of the links is not a valid URL. Please review before saving."
+    "invalidUrl": "One of the links is not a valid URL. Please review before saving.",
+    "classesTitle": "Edit classes",
+    "classesDesc": "Set your pricing, session duration, availability and calendar."
+  },
+  "editClasses": {
+    "pageTitle": "Edit classes",
+    "backToProfile": "Back to profile",
+    "saveBtn": "Save classes",
+    "saving": "Saving...",
+    "savedTitle": "Classes saved",
+    "savedDesc": "Your class settings have been updated.",
+    "errorTitle": "Error",
+    "savedChangesNote": "Changes are reflected on your public profile immediately.",
+    "pricingSection": "Pricing",
+    "pricingHint": "Set your hourly rate. Per-session price is calculated automatically based on duration.",
+    "hourlyRateLabel": "Hourly rate",
+    "perSessionBreakdown": "Per-session price",
+    "min": "min",
+    "acceptUsdc": "Accept USDC",
+    "acceptUsdcHint": "Talents can pay with USDC directly from their wallet.",
+    "invalidRate": "Rate must be a number between 0 and 9999.",
+    "durationSection": "Duration",
+    "durationHint": "Choose the session formats you offer. You can select multiple.",
+    "selectAtLeastOne": "Select at least one duration.",
+    "availabilitySection": "Availability",
+    "availabilityHint": "Toggle days and time ranges when you are available to teach.",
+    "dayMon": "Mon",
+    "dayTue": "Tue",
+    "dayWed": "Wed",
+    "dayThu": "Thu",
+    "dayFri": "Fri",
+    "daySat": "Sat",
+    "daySun": "Sun",
+    "startTime": "From",
+    "endTime": "To",
+    "noAvailabilitySet": "Enable at least one day to show your availability.",
+    "calendarSection": "Google Calendar",
+    "calendarHint": "Paste your Google Calendar embed link so talents can see your real availability.",
+    "calendarUrlLabel": "Embed URL",
+    "calendarUrlPlaceholder": "https://calendar.google.com/calendar/embed?src=...",
+    "calendarUrlError": "URL must start with https://calendar.google.com/calendar/embed",
+    "invalidCalendarUrl": "The calendar URL is not valid.",
+    "calendarInstructionsTitle": "How to get the link",
+    "calendarInstructions": [
+      "Open Google Calendar in your browser.",
+      "Click the three dots next to the calendar you want to share.",
+      "Select 'Settings and sharing'.",
+      "Scroll down to 'Integrate calendar' and copy the iframe URL.",
+      "Paste only the URL (without the <iframe> tag)."
+    ],
+    "showPreview": "Show calendar preview",
+    "hidePreview": "Hide preview",
+    "noDurations": "Select at least one session duration."
   },
   "deleteAccount": {
     "title": "Delete educator account",
@@ -723,8 +767,6 @@
     "expertiseSection": "Expertise",
     "accountSection": "Account",
     "educatorRoleLabel": "Educator",
-    "verifiedLabel": "Verified",
-    "verifiedTooltip": "Educator verified by HackChain",
     "percentComplete": "% complete",
     "backToDashboard": "Back to dashboard",
     "uploadNewPhoto": "Upload new photo",
@@ -754,43 +796,5 @@
     "talentsListLabel": "Talents trained",
     "talentsListHint": "Soon you'll be able to explore the talents certified by this educator.",
     "comingSoon": "Coming soon"
-  },
-  "referrals": {
-    "title": "Referrals",
-    "pageTitle": "Referral Program",
-    "pageSubtitle": "Invite other users to join HackChain. When they stake HACK, you both earn rewards.",
-    "viewAll": "View all",
-    "comingSoon": {
-      "title": "Staking is coming soon!",
-      "desc": "Soon your referrals will be able to stake and you'll start earning real rewards. Start referring now and build your network for Phase 2."
-    },
-    "shareCode": "Share your code",
-    "instructions": "Share this link. Your friend registers and stakes 1000 HACK for 30 days. You get 1000 HACK.",
-    "yourCode": "Your Code",
-    "inviteLink": "Invite Link",
-    "stats": {
-      "totalEarned": "Total Earned",
-      "monthly": "Monthly Limit",
-      "paymentsThisMonth": "Payments this month",
-      "pending": "Pending",
-      "paid": "Paid",
-      "queued": "Queued"
-    },
-    "list": {
-      "title": "My Referrals",
-      "total": "Total:"
-    },
-    "empty": {
-      "title": "You have no referrals yet",
-      "desc": "Share your invitation code to build your network and start earning rewards."
-    },
-    "table": {
-      "referred": "Referred",
-      "status": "Status",
-      "progress": "Progress",
-      "date": "Date",
-      "days": "days"
-    },
-    "pagination": "Page {{page}} of {{totalPages}}"
   }
 }

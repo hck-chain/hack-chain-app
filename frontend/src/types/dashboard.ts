@@ -30,6 +30,24 @@ export interface EducatorProfile extends Omit<Educator, 'certs_to_me'> {
   is_approved?: boolean;
 }
 
+export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+export interface DayAvailability {
+  enabled: boolean;
+  start: string;
+  end: string;
+}
+
+export type WeeklyAvailability = Record<DayKey, DayAvailability>;
+
+export interface ClassSettings {
+  hourly_rate_usd: number | null;
+  accept_usdc: boolean;
+  durations: number[];
+  availability: WeeklyAvailability;
+  google_calendar_url: string | null;
+}
+
 export interface TalentInfo {
   wallet_address: string;
   name?: string;
