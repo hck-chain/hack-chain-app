@@ -1,0 +1,693 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import {
+  ArrowLeft, Loader2, DollarSign, Clock, CalendarDays,
+  Link as LinkIcon, ChevronDown, Check, AlertCircle,
+} from 'lucide-react';
+import Layout from '@/components/Layout';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useMyClassSettings, useUpdateClassSettings } from '@/hooks/useClassSettings';
+import { P } from '@/components/profile/palette';
+import { GrainOverlay } from '@/components/profile/GrainOverlay';
+import { useTranslation } from 'react-i18next';
+import type { ClassSettings, DayKey, WeeklyAvailability } from '@/types/dashboard';
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const DURATIONS = [30, 45, 60] as const;
+
+const DAYS: { key: DayKey; labelKey: string }[] = [
+  { key: 'mon', labelKey: 'editClasses.dayMon' },
+  { key: 'tue', labelKey: 'editClasses.dayTue' },
+  { key: 'wed', labelKey: 'editClasses.dayWed' },
+  { key: 'thu', labelKey: 'editClasses.dayThu' },
+  { key: 'fri', labelKey: 'editClasses.dayFri' },
+  { key: 'sat', labelKey: 'editClasses.daySat' },
+  { key: 'sun', labelKey: 'editClasses.daySun' },
+];
+
+const DEFAULT_AVAILABILITY: WeeklyAvailability = {
+  mon: { enabled: false, start: '09:00', end: '18:00' },
+  tue: { enabled: false, start: '09:00', end: '18:00' },
+  wed: { enabled: false, start: '09:00', end: '18:00' },
+  thu: { enabled: false, start: '09:00', end: '18:00' },
+  fri: { enabled: false, start: '09:00', end: '18:00' },
+  sat: { enabled: false, start: '09:00', end: '13:00' },
+  sun: { enabled: false, start: '09:00', end: '13:00' },
+};
+
+const GCAL_EMBED_PREFIX = 'https://calendar.google.com/calendar/embed';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function isRangeValid(start: string, end: string): boolean {
+  if (!start || !end) return false;
+  return timeToMinutes(start) < timeToMinutes(end);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function ratePerSession(hourlyRate: number, minutes: number): string {
+  return ((hourlyRate * minutes) / 60).toFixed(2);
+}
+
+function isValidGcalUrl(url: string): boolean {
+  if (!url.trim()) return true;
+  return url.trim().startsWith(GCAL_EMBED_PREFIX);
+}
+
+// ---------------------------------------------------------------------------
+// SectionCard — same pattern as EditEducatorProfile
+// ---------------------------------------------------------------------------
+
+interface SectionCardProps {
+  label: string;
+  description?: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function SectionCard({ label, description, icon, children }: SectionCardProps) {
+  return (
+    <section
+      className="rounded-2xl overflow-hidden"
+      style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
+    >
+      <header
+        className="flex items-start gap-3 px-6 py-5"
+        style={{ borderBottom: `1px solid ${P.borderSub}` }}
+      >
+        {icon && (
+          <div className="mt-0.5 shrink-0" style={{ color: P.accent }}>
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-[11px] uppercase tracking-[0.18em] font-semibold" style={{ color: P.textMuted }}>
+            {label}
+          </h2>
+          {description && (
+            <p className="text-sm mt-1.5" style={{ color: P.textSecondary }}>
+              {description}
+            </p>
+          )}
+        </div>
+      </header>
+      <div className="px-6 py-6">{children}</div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Toggle — clean iOS-style boolean switch
+// ---------------------------------------------------------------------------
+
+interface ToggleProps {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  label?: string;
+}
+
+function Toggle({ checked, onChange, disabled, label }: ToggleProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex items-center gap-2.5 group disabled:opacity-50"
+    >
+      <span
+        className="relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200"
+        style={{ backgroundColor: checked ? P.accent : P.surface, border: `1px solid ${checked ? P.accent : P.border}` }}
+      >
+        <span
+          className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full transition-transform duration-200"
+          style={{
+            backgroundColor: checked ? P.bg : P.textMuted,
+            transform: checked ? 'translateX(16px)' : 'translateX(0)',
+          }}
+        />
+      </span>
+      {label && (
+        <span className="text-sm" style={{ color: P.textSecondary }}>
+          {label}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TimeInput — styled time picker
+// ---------------------------------------------------------------------------
+
+interface TimeInputProps {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  label: string;
+}
+
+function TimeInput({ value, onChange, disabled, label }: TimeInputProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[10px] uppercase tracking-[0.16em] font-semibold" style={{ color: P.textMuted }}>
+        {label}
+      </label>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="rounded-xl px-3 py-2.5 text-sm font-mono tabular-nums outline-none transition-colors disabled:opacity-50 [color-scheme:dark]"
+        style={{
+          backgroundColor: P.surface,
+          border: `1px solid ${P.border}`,
+          color: P.textPrimary,
+        }}
+        onFocus={(e) => (e.currentTarget.style.borderColor = P.borderFocus)}
+        onBlur={(e) => (e.currentTarget.style.borderColor = P.border)}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
+
+const EditEducatorClasses = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { t } = useTranslation();
+  const prefersReduced = useReducedMotion();
+
+  const { data: settings, isPending: isLoading } = useMyClassSettings();
+  const updateSettings = useUpdateClassSettings();
+
+  const [hourlyRate, setHourlyRate] = useState<string>('');
+  const [acceptUsdc, setAcceptUsdc] = useState(false);
+  const [durations, setDurations] = useState<number[]>([30, 60]);
+  const [availability, setAvailability] = useState<WeeklyAvailability>(DEFAULT_AVAILABILITY);
+  const [calendarUrl, setCalendarUrl] = useState('');
+  const [calendarFocused, setCalendarFocused] = useState(false);
+  const [showCalendarPreview, setShowCalendarPreview] = useState(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    setHourlyRate(settings.hourly_rate_usd != null ? String(settings.hourly_rate_usd) : '');
+    setAcceptUsdc(settings.accept_usdc ?? false);
+    setDurations(settings.durations?.length ? settings.durations : [30, 60]);
+    setAvailability({ ...DEFAULT_AVAILABILITY, ...(settings.availability ?? {}) });
+    setCalendarUrl(settings.google_calendar_url ?? '');
+  }, [settings]);
+
+  const isSaving = updateSettings.isPending;
+
+  const parsedRate = parseFloat(hourlyRate);
+  const rateValid = hourlyRate === '' || (!isNaN(parsedRate) && parsedRate >= 0 && parsedRate <= 9999);
+
+  const toggleDuration = (min: number) => {
+    setDurations((prev) =>
+      prev.includes(min) ? prev.filter((d) => d !== min) : [...prev, min].sort((a, b) => a - b)
+    );
+  };
+
+  const toggleDay = (day: DayKey) => {
+    setAvailability((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], enabled: !prev[day].enabled },
+    }));
+  };
+
+  const updateDayTime = (day: DayKey, field: 'start' | 'end', value: string) => {
+    setAvailability((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], [field]: value },
+    }));
+  };
+
+  const invalidDays = DAYS.filter(
+    ({ key }) => availability[key].enabled && !isRangeValid(availability[key].start, availability[key].end)
+  );
+
+  const handleSave = async () => {
+    if (!rateValid) {
+      toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidRate'), variant: 'destructive' });
+      return;
+    }
+    if (!isValidGcalUrl(calendarUrl)) {
+      toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidCalendarUrl'), variant: 'destructive' });
+      return;
+    }
+    if (durations.length === 0) {
+      toast({ title: t('editClasses.errorTitle'), description: t('editClasses.noDurations'), variant: 'destructive' });
+      return;
+    }
+    if (invalidDays.length > 0) {
+      toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidTimeRange'), variant: 'destructive' });
+      return;
+    }
+
+    const payload: Partial<ClassSettings> = {
+      hourly_rate_usd: hourlyRate.trim() ? parsedRate : null,
+      accept_usdc: acceptUsdc,
+      durations,
+      availability,
+      google_calendar_url: calendarUrl.trim() || null,
+    };
+
+    try {
+      await updateSettings.mutateAsync(payload);
+      toast({ title: t('editClasses.savedTitle'), description: t('editClasses.savedDesc') });
+      navigate('/educator/profile/edit');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      toast({ title: t('editClasses.errorTitle'), description: message, variant: 'destructive' });
+    }
+  };
+
+  const calendarUrlValid = isValidGcalUrl(calendarUrl);
+  const calendarUrlFilled = calendarUrl.trim().length > 0;
+  const showCalendarError = !calendarFocused && calendarUrlFilled && !calendarUrlValid;
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <GrainOverlay />
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-7 w-7 animate-spin" style={{ color: P.accent }} />
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <GrainOverlay />
+
+      <div className="min-h-screen font-body" style={{ color: P.textPrimary }}>
+
+        {/* Sticky top bar */}
+        <div
+          className="sticky top-0 z-20 backdrop-blur-xl"
+          style={{ backgroundColor: 'oklch(0.11 0.012 280 / 0.78)', borderBottom: `1px solid ${P.borderSub}` }}
+        >
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+            <button
+              onClick={() => navigate('/educator/profile/edit')}
+              className="flex items-center gap-2 transition-colors text-sm rounded-full px-2 py-1.5 -ml-2"
+              style={{ color: P.textMuted }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = P.textPrimary)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = P.textMuted)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('editClasses.backToProfile')}</span>
+            </button>
+
+            <span
+              className="text-[11px] uppercase tracking-[0.18em] font-semibold"
+              style={{ color: P.textMuted }}
+            >
+              {t('editClasses.pageTitle')}
+            </span>
+
+            <div className="w-16" />
+          </div>
+        </div>
+
+        <motion.main
+          initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReduced ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="relative max-w-2xl mx-auto px-4 sm:px-6 pt-10 pb-32 space-y-5"
+        >
+
+          {/* ── Pricing ── */}
+          <SectionCard
+            label={t('editClasses.pricingSection')}
+            description={t('editClasses.pricingHint')}
+            icon={<DollarSign className="h-4 w-4" />}
+          >
+            <div className="space-y-5">
+              {/* Rate input */}
+              <div>
+                <label
+                  className="block text-[11px] uppercase tracking-[0.16em] font-semibold mb-2"
+                  style={{ color: P.textMuted }}
+                >
+                  {t('editClasses.hourlyRateLabel')}
+                </label>
+                <div
+                  className="flex items-center rounded-xl overflow-hidden transition-colors"
+                  style={{ backgroundColor: P.surface, border: `1px solid ${rateValid ? P.border : 'oklch(0.65 0.18 25 / 0.55)'}` }}
+                >
+                  <span
+                    className="px-4 py-3 text-sm font-mono font-semibold shrink-0"
+                    style={{ color: P.textMuted, borderRight: `1px solid ${P.borderSub}` }}
+                  >
+                    USD
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={9999}
+                    step={0.01}
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="0.00"
+                    className="flex-1 bg-transparent border-0 outline-none py-3 px-3.5 text-[15px] font-mono tabular-nums disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    style={{ color: P.textPrimary }}
+                    onFocus={(e) => (e.currentTarget.parentElement!.style.borderColor = P.borderFocus)}
+                    onBlur={(e) => (e.currentTarget.parentElement!.style.borderColor = rateValid ? P.border : 'oklch(0.65 0.18 25 / 0.55)')}
+                  />
+                  <span className="pr-4 text-sm font-mono" style={{ color: P.textMuted }}>/hr</span>
+                </div>
+              </div>
+
+              {/* Per-session breakdown — only shown when rate + durations are set */}
+              {parsedRate > 0 && durations.length > 0 && rateValid && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="rounded-xl overflow-hidden"
+                  style={{ backgroundColor: P.accentSoft, border: `1px solid ${P.accentBorder}` }}
+                >
+                  <div className="px-4 py-3 space-y-1.5">
+                    <p className="text-[10px] uppercase tracking-[0.16em] font-semibold" style={{ color: P.accent }}>
+                      {t('editClasses.perSessionBreakdown')}
+                    </p>
+                    {durations.map((min) => (
+                      <div key={min} className="flex items-center justify-between">
+                        <span className="text-sm" style={{ color: P.textSecondary }}>
+                          {min} {t('editClasses.min')}
+                        </span>
+                        <span className="text-sm font-mono tabular-nums font-semibold" style={{ color: P.textPrimary }}>
+                          ${ratePerSession(parsedRate, min)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* USDC toggle */}
+              <div
+                className="flex items-center justify-between py-3.5 px-4 rounded-xl"
+                style={{ backgroundColor: P.surface, border: `1px solid ${P.border}` }}
+              >
+                <div>
+                  <p className="text-sm font-medium" style={{ color: P.textPrimary }}>
+                    {t('editClasses.acceptUsdc')}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: P.textMuted }}>
+                    {t('editClasses.acceptUsdcHint')}
+                  </p>
+                </div>
+                <Toggle checked={acceptUsdc} onChange={setAcceptUsdc} disabled={isSaving} />
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* ── Session duration ── */}
+          <SectionCard
+            label={t('editClasses.durationSection')}
+            description={t('editClasses.durationHint')}
+            icon={<Clock className="h-4 w-4" />}
+          >
+            <div className="flex gap-3 flex-wrap">
+              {DURATIONS.map((min) => {
+                const selected = durations.includes(min);
+                return (
+                  <button
+                    key={min}
+                    type="button"
+                    onClick={() => toggleDuration(min)}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all disabled:opacity-50"
+                    style={{
+                      backgroundColor: selected ? P.accent : P.surface,
+                      color: selected ? P.bg : P.textSecondary,
+                      border: `1px solid ${selected ? P.accent : P.border}`,
+                    }}
+                  >
+                    {selected && <Check className="h-3.5 w-3.5" />}
+                    <span className="font-mono tabular-nums">{min}</span>
+                    <span>{t('editClasses.min')}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {durations.length === 0 && (
+              <p className="mt-3 text-xs" style={{ color: 'oklch(0.75 0.16 25)' }}>
+                {t('editClasses.selectAtLeastOne')}
+              </p>
+            )}
+          </SectionCard>
+
+          {/* ── Weekly availability ── */}
+          <SectionCard
+            label={t('editClasses.availabilitySection')}
+            description={t('editClasses.availabilityHint')}
+            icon={<CalendarDays className="h-4 w-4" />}
+          >
+            <div className="space-y-3">
+              {/* Day chips row */}
+              <div className="flex gap-2 flex-wrap">
+                {DAYS.map(({ key, labelKey }) => {
+                  const enabled = availability[key].enabled;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleDay(key)}
+                      disabled={isSaving}
+                      className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.12em] transition-all disabled:opacity-50"
+                      style={{
+                        backgroundColor: enabled ? P.accent : P.surface,
+                        color: enabled ? P.bg : P.textMuted,
+                        border: `1px solid ${enabled ? P.accent : P.border}`,
+                      }}
+                    >
+                      {t(labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Time ranges — shown only for enabled days */}
+              <AnimatePresence initial={false}>
+                {DAYS.filter(({ key }) => availability[key].enabled).map(({ key, labelKey }) => (
+                  <motion.div
+                    key={key}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: prefersReduced ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    {(() => {
+                      const rangeInvalid = !isRangeValid(availability[key].start, availability[key].end);
+                      return (
+                        <div className="mt-1 space-y-1.5">
+                          <div
+                            className="flex items-center gap-4 flex-wrap px-4 py-3 rounded-xl"
+                            style={{
+                              backgroundColor: P.surface,
+                              border: `1px solid ${rangeInvalid ? 'oklch(0.65 0.18 25 / 0.55)' : P.borderSub}`,
+                            }}
+                          >
+                            <span
+                              className="text-[11px] uppercase tracking-[0.14em] font-semibold w-8 shrink-0"
+                              style={{ color: P.accent }}
+                            >
+                              {t(labelKey)}
+                            </span>
+                            <TimeInput
+                              label={t('editClasses.startTime')}
+                              value={availability[key].start}
+                              onChange={(v) => updateDayTime(key, 'start', v)}
+                              disabled={isSaving}
+                            />
+                            <span className="text-sm self-end pb-2.5" style={{ color: P.textMuted }}>—</span>
+                            <TimeInput
+                              label={t('editClasses.endTime')}
+                              value={availability[key].end}
+                              onChange={(v) => updateDayTime(key, 'end', v)}
+                              disabled={isSaving}
+                            />
+                          </div>
+                          {rangeInvalid && (
+                            <p className="flex items-center gap-1.5 text-xs px-1" style={{ color: 'oklch(0.75 0.16 25)' }}>
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              {t('editClasses.invalidTimeRangeInline')}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {!DAYS.some(({ key }) => availability[key].enabled) && (
+                <p className="text-xs pt-1" style={{ color: P.textMuted }}>
+                  {t('editClasses.noAvailabilitySet')}
+                </p>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* ── Google Calendar ── */}
+          <SectionCard
+            label={t('editClasses.calendarSection')}
+            description={t('editClasses.calendarHint')}
+            icon={<LinkIcon className="h-4 w-4" />}
+          >
+            <div className="space-y-4">
+              {/* URL input */}
+              <div>
+                <label
+                  className="block text-[11px] uppercase tracking-[0.16em] font-semibold mb-2"
+                  style={{ color: P.textMuted }}
+                >
+                  {t('editClasses.calendarUrlLabel')}
+                </label>
+                <input
+                  type="url"
+                  inputMode="url"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={calendarUrl}
+                  onChange={(e) => setCalendarUrl(e.target.value)}
+                  onFocus={() => setCalendarFocused(true)}
+                  onBlur={() => setCalendarFocused(false)}
+                  disabled={isSaving}
+                  placeholder={t('editClasses.calendarUrlPlaceholder')}
+                  className="w-full rounded-xl outline-none py-3 px-3.5 text-sm font-mono disabled:opacity-50 transition-colors"
+                  style={{
+                    backgroundColor: P.surface,
+                    border: `1px solid ${calendarFocused ? P.borderFocus : showCalendarError ? 'oklch(0.65 0.18 25 / 0.55)' : P.border}`,
+                    color: P.textPrimary,
+                  }}
+                />
+                {showCalendarError && (
+                  <p className="mt-1.5 text-xs" style={{ color: 'oklch(0.75 0.16 25)' }}>
+                    {t('editClasses.calendarUrlError')}
+                  </p>
+                )}
+              </div>
+
+              {/* How-to instructions */}
+              <div
+                className="rounded-xl px-4 py-3 space-y-1.5"
+                style={{ backgroundColor: P.surface, border: `1px solid ${P.borderSub}` }}
+              >
+                <p className="text-[10px] uppercase tracking-[0.16em] font-semibold" style={{ color: P.textMuted }}>
+                  {t('editClasses.calendarInstructionsTitle')}
+                </p>
+                <ol className="space-y-1">
+                  {(t('editClasses.calendarInstructions', { returnObjects: true }) as string[]).map((step, i) => (
+                    <li key={i} className="flex gap-2 text-xs" style={{ color: P.textSecondary }}>
+                      <span className="font-mono tabular-nums shrink-0" style={{ color: P.textMuted }}>
+                        {i + 1}.
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Live preview toggle */}
+              {calendarUrlFilled && calendarUrlValid && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCalendarPreview((v) => !v)}
+                    className="flex items-center gap-2 text-sm transition-colors"
+                    style={{ color: P.accent }}
+                  >
+                    <ChevronDown
+                      className="h-4 w-4 transition-transform duration-200"
+                      style={{ transform: showCalendarPreview ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    />
+                    {showCalendarPreview ? t('editClasses.hidePreview') : t('editClasses.showPreview')}
+                  </button>
+
+                  <AnimatePresence>
+                    {showCalendarPreview && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: prefersReduced ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden mt-3"
+                      >
+                        <div
+                          className="rounded-xl overflow-hidden"
+                          style={{ border: `1px solid ${P.border}` }}
+                        >
+                          <iframe
+                            src={calendarUrl}
+                            title="Google Calendar preview"
+                            className="w-full"
+                            style={{ height: 400, border: 0, backgroundColor: P.surface }}
+                            loading="lazy"
+                            sandbox="allow-scripts allow-same-origin"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+        </motion.main>
+
+        {/* ── Footer ── */}
+        <footer
+          className="sticky bottom-0 z-10 backdrop-blur-xl"
+          style={{ backgroundColor: 'oklch(0.11 0.012 280 / 0.85)', borderTop: `1px solid ${P.borderSub}` }}
+        >
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <p className="text-xs hidden sm:block" style={{ color: P.textMuted }}>
+              {t('editClasses.savedChangesNote')}
+            </p>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || durations.length === 0 || invalidDays.length > 0}
+              className="ml-auto font-semibold px-7 rounded-full transition-all hover:scale-[1.015] disabled:hover:scale-100"
+              style={{ backgroundColor: P.accent, color: P.bg, border: 'none' }}
+            >
+              {isSaving
+                ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />{t('editClasses.saving')}</>
+                : t('editClasses.saveBtn')
+              }
+            </Button>
+          </div>
+        </footer>
+      </div>
+    </Layout>
+  );
+};
+
+export default EditEducatorClasses;

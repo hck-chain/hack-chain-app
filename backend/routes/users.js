@@ -18,6 +18,7 @@ const config = require("../harjoot/config");
 const configReferrals = require("../config/referrals");
 
 const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -39,6 +40,29 @@ router.post("/register", registerLimiter, async (req, res) => {
     const existingUser = await User.findOne({ where: { wallet_address: normalizedWallet } });
     if (existingUser) {
       return res.status(409).json({ error: "User already registered" });
+    }
+
+    if (email !== undefined) {
+      if (typeof email !== "string" || !isValidEmail(email.trim())) {
+        return res.status(400).json({ error: "Valid email address required" });
+      }
+      const emailTaken = await User.findOne({ where: { email: email.toLowerCase().trim() } });
+      if (emailTaken) {
+        return res.status(409).json({ error: "Email already in use" });
+      }
+    }
+
+    if (name !== undefined && (typeof name !== "string" || name.trim().length === 0 || name.length > 50)) {
+      return res.status(400).json({ error: "name must be a non-empty string of max 50 characters" });
+    }
+    if (lastname !== undefined && (typeof lastname !== "string" || lastname.trim().length === 0 || lastname.length > 50)) {
+      return res.status(400).json({ error: "lastname must be a non-empty string of max 50 characters" });
+    }
+    if (organization_name !== undefined && (typeof organization_name !== "string" || organization_name.trim().length === 0 || organization_name.length > 255)) {
+      return res.status(400).json({ error: "organization_name must be a non-empty string of max 255 characters" });
+    }
+    if (company_name !== undefined && (typeof company_name !== "string" || company_name.trim().length === 0 || company_name.length > 255)) {
+      return res.status(400).json({ error: "company_name must be a non-empty string of max 255 characters" });
     }
 
     switch (role) {
@@ -71,7 +95,7 @@ router.post("/register", registerLimiter, async (req, res) => {
     await sequelize.transaction(async (t) => {
       newUser = await User.create(
         {
-          wallet_address: normalizedWallet, role, name, lastname, email, nonce, is_active: true,
+          wallet_address: normalizedWallet, role, name, lastname, email: email ? email.toLowerCase().trim() : null, nonce, is_active: true,
           email_verified: false,
           verification_token: verificationToken,
           verification_token_expires_at: verificationTokenExpiresAt,
