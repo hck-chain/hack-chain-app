@@ -713,7 +713,14 @@
     "calendarTitle": "Calendario del educador",
     "comingSoon": "Pronto",
     "comingSoonTitle": "Reservas disponibles próximamente",
-    "comingSoonHint": "Estamos trabajando en el sistema de reservas. Por ahora podés contactar al educador directamente desde su perfil."
+    "comingSoonHint": "Estamos trabajando en el sistema de reservas. Por ahora podés contactar al educador directamente desde su perfil.",
+    "confirmTitle": "Tu selección",
+    "messageLabel": "Mensaje (opcional)",
+    "messagePlaceholder": "Contale al educador qué querés trabajar en la sesión...",
+    "confirmBtn": "Solicitar clase",
+    "sending": "Enviando...",
+    "successTitle": "¡Solicitud enviada!",
+    "successHint": "El educador confirmará tu clase en breve."
   },
   "editClasses": {
     "pageTitle": "Editar clases",

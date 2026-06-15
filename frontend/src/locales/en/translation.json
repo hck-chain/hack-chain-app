@@ -713,7 +713,14 @@
     "calendarTitle": "Educator calendar",
     "comingSoon": "Soon",
     "comingSoonTitle": "Booking coming soon",
-    "comingSoonHint": "We're building the booking system. For now, you can contact the educator directly from their profile."
+    "comingSoonHint": "We're building the booking system. For now, you can contact the educator directly from their profile.",
+    "confirmTitle": "Your selection",
+    "messageLabel": "Message (optional)",
+    "messagePlaceholder": "Tell the educator what you want to cover in the session...",
+    "confirmBtn": "Request class",
+    "sending": "Sending...",
+    "successTitle": "Request sent!",
+    "successHint": "The educator will confirm your class shortly."
   },
   "editClasses": {
     "pageTitle": "Edit classes",
