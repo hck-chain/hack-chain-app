@@ -102,7 +102,7 @@ export function ReferralsSection() {
                 </span>
                 <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">{t('referrals.stats.paymentsThisMonth', 'Pagos este mes')}</span>
               </div>
-              <div className="col-span-2 flex gap-6 text-xs text-slate-400 bg-white/[0.04] backdrop-blur-sm rounded-2xl px-5 py-4 border border-white/5 font-title font-bold uppercase tracking-wider">
+              <div className="col-span-2 flex flex-wrap gap-4 text-xs text-slate-400 bg-white/[0.04] backdrop-blur-sm rounded-2xl px-5 py-4 border border-white/5 font-title font-bold uppercase tracking-wider">
                 <div className="flex items-center gap-2"><Users size={14} className="text-blue-400"/> <span className="text-white">{stats.pendingCount}</span> {t('referrals.stats.pending', 'Pendientes')}</div>
                 <div className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400"/> <span className="text-white">{stats.claimedCount}</span> {t('referrals.stats.paid', 'Pagados')}</div>
                 <div className="flex items-center gap-2"><Clock size={14} className="text-yellow-400"/> <span className="text-white">{stats.eligibleCount}</span> {t('referrals.stats.queued', 'En cola')}</div>
@@ -121,7 +121,8 @@ export function ReferralsSection() {
       )}
       {!listLoading && referrals.length > 0 && (
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative">
-          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left min-w-[480px]">
             <thead className="font-body text-[10px] uppercase tracking-[0.2em] text-white/40 bg-black/20 border-b border-white/10 font-bold">
               <tr>
                 <th className="px-6 py-5">{t('referrals.table.referred', 'Referido')}</th>
@@ -161,6 +162,7 @@ export function ReferralsSection() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

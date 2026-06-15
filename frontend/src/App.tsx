@@ -41,6 +41,7 @@ const EditEducatorClasses = lazy(() => import("./pages/EditEducatorClasses"));
 const BookEducatorClass = lazy(() => import("./pages/BookEducatorClass"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Referrals = lazy(() => import("./pages/Referrals"));
+const EducatorsList = lazy(() => import("./pages/EducatorsList"));
 
 // Admin dashboard — lazy-loaded shell + 4 sub-pages. AdminRoute pings the
 // backend on mount to verify the wallet is in ADMIN_WALLETS; failed probe
@@ -151,6 +152,7 @@ const App = () => {
                 </Route>
 
                 {/* Educator public profile */}
+                <Route path="/educators" element={<EducatorsList />} />
                 <Route path="/educator/:wallet" element={<EducatorProfile />} />
                 <Route path="/educator/:wallet/book" element={<BookEducatorClass />} />
 

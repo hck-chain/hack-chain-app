@@ -48,7 +48,6 @@ async function updateUserByIdAndRole(id, role, updates) {
   const Model = modelForRole(role);
   if (!Model) throw new Error("Invalid role");
 
-  // Allowed fields per role (safe whitelist)
   const allowedByRole = {
     student: ["name", "lastName", "age", "email", "bio", "avatarUrl"],
     issuer: ["name", "email", "bio", "address"],
@@ -61,8 +60,30 @@ async function updateUserByIdAndRole(id, role, updates) {
     if (updates[k] !== undefined) filtered[k] = updates[k];
   }
 
-  // Special: if no updates, return current
   const instance = await Model.findByPk(id);
+  if (!instance) return null;
+
+  await instance.update(filtered);
+  return instance;
+}
+
+async function updateUserByWallet(wallet, role, updates) {
+  const Model = modelForRole(role);
+  if (!Model) throw new Error("Invalid role");
+
+  const allowedByRole = {
+    student: ["name", "lastName", "age", "email", "bio", "avatarUrl"],
+    issuer: ["name", "email", "bio", "address"],
+    recruiter: ["name", "lastName", "email", "bio"],
+  };
+
+  const allowed = allowedByRole[role.toLowerCase()] || [];
+  const filtered = {};
+  for (const k of allowed) {
+    if (updates[k] !== undefined) filtered[k] = updates[k];
+  }
+
+  const instance = await Model.findOne({ where: { wallet_address: wallet } });
   if (!instance) return null;
 
   await instance.update(filtered);
@@ -74,4 +95,5 @@ module.exports = {
   modelForRole,
   getUserByIdAndRole,
   updateUserByIdAndRole,
+  updateUserByWallet,
 };

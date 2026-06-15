@@ -11,7 +11,7 @@ async function getMe(req, res) {
     const auth = req.auth;
     if (!auth) return res.status(401).json({ error: "Not authenticated" });
 
-    const result = await userService.getUserByIdAndRole(auth.sub, auth.role);
+    const result = await userService.findUserByWallet(auth.wallet);
     if (!result) return res.status(404).json({ error: "User not found" });
 
     const user = result.user.toJSON ? result.user.toJSON() : { ...result.user };
@@ -47,7 +47,7 @@ async function updateMe(req, res) {
     delete updates.privateKey;
     delete updates.walletAddress; // keep walletAddress immutable via profile
 
-    const updated = await userService.updateUserByIdAndRole(auth.sub, auth.role, updates);
+    const updated = await userService.updateUserByWallet(auth.wallet, auth.role, updates);
     if (!updated) return res.status(404).json({ error: "User not found" });
 
     const out = updated.toJSON ? updated.toJSON() : { ...updated };

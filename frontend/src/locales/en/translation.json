@@ -876,5 +876,21 @@
       "days": "days"
     },
     "pagination": "Page {{page}} of {{totalPages}}"
+  },
+  "discover": {
+    "viewAll": "View all educators",
+    "viewProfile": "View profile of",
+    "verified": "Verified",
+    "certs": "certs",
+    "hasClasses": "Takes classes",
+    "noEducators": "No educators available yet",
+    "noResults": "No educators match your search",
+    "allEducators": "All Educators",
+    "filterByArea": "Filter by knowledge area..."
+  },
+  "common": {
+    "back": "Back",
+    "prev": "Previous",
+    "next": "Next"
   }
 }

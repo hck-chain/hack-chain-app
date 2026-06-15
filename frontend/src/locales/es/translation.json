@@ -876,5 +876,21 @@
       "days": "días"
     },
     "pagination": "Página {{page}} de {{totalPages}}"
+  },
+  "discover": {
+    "viewAll": "Ver todos los educadores",
+    "viewProfile": "Ver perfil de",
+    "verified": "Verificado",
+    "certs": "certs",
+    "hasClasses": "Da clases",
+    "noEducators": "Todavía no hay educadores disponibles",
+    "noResults": "Ningún educador coincide con tu búsqueda",
+    "allEducators": "Todos los Educadores",
+    "filterByArea": "Filtrar por área de conocimiento..."
+  },
+  "common": {
+    "back": "Volver",
+    "prev": "Anterior",
+    "next": "Siguiente"
   }
 }

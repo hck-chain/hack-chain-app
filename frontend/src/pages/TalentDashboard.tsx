@@ -8,6 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import { DeleteAccountModal } from '@/components/DeleteAccountModal/DeleteAccountModal';
+import { useDeleteStudentAccount } from '@/hooks/useDeleteStudentAccount';
+import { useFeaturedEducators } from '@/hooks/useFeaturedEducators';
+import FeaturedEducatorCard from '@/components/FeaturedEducatorCard/FeaturedEducatorCard';
 
 import Layout from '@/components/Layout';
 import EducatorMiniCard from '@/components/EducatorMiniCard/EducatorMiniCard';
@@ -164,11 +168,40 @@ function FormacionSection({ wallet }: { wallet: string }) {
 
 function DescubrirSection() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { data, isPending } = useFeaturedEducators(3);
+  const educators = data?.educators ?? [];
+
+  if (isPending) {
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => <EducatorSkeleton key={i} />)}
+      </div>
+    );
+  }
+
+  if (educators.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-500 rounded-3xl border border-dashed border-white/10">
+        <img src="/icons/talentsPlattform.avif" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+        <p className="font-body text-base mt-3">{t('discover.noEducators')}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-500 rounded-3xl border border-dashed border-white/10">
-      <img src="/icons/talentsPlattform.avif" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
-      <p className="font-body text-base">{t('talentDashboard.sectionDescubrir')}</p>
-      <p className="font-body text-sm mt-1">{t('talentDashboard.discoverComingSoon')}</p>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {educators.map((educator) => (
+          <FeaturedEducatorCard key={educator.wallet_address} educator={educator} />
+        ))}
+      </div>
+      <button
+        onClick={() => navigate('/educators')}
+        className="w-full py-3 rounded-2xl border border-white/10 text-slate-400 text-sm font-medium hover:bg-white/5 hover:text-white hover:border-white/20 transition-all duration-200"
+      >
+        {t('discover.viewAll')}
+      </button>
     </div>
   );
 }
@@ -184,9 +217,28 @@ const TalentDashboard = () => {
   const queryClient = useQueryClient();
   const [talent, setTalent] = useState<TalentInfo | null>(null);
   const [copiedWallet, setCopiedWallet] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { isAdmin } = useAdminAccess();
 
   const { logout } = useAuth();
+  const deleteAccount = useDeleteStudentAccount();
+
+  const handleDeleteAccount = () => {
+    if (!talent?.wallet_address) return;
+    deleteAccount.mutate(talent.wallet_address, {
+      onSuccess: () => {
+        logout();
+        queryClient.clear();
+        try { appKit.disconnect(); } catch (_) { }
+        toast({ title: t('deleteAccount.successTitle', 'Account deleted'), description: t('deleteAccount.successDesc', 'Your account has been permanently deleted.') });
+        navigate('/');
+      },
+      onError: (error) => {
+        setShowDeleteModal(false);
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      },
+    });
+  };
 
   const handleLogout = async () => {
     logout();
@@ -239,7 +291,15 @@ const TalentDashboard = () => {
   }
 
   return (
-    <Layout>
+    <>
+      <DeleteAccountModal
+        open={showDeleteModal}
+        organizationName={talent.name ?? talent.wallet_address.slice(0, 6)}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
+        isPending={deleteAccount.isPending}
+      />
+      <Layout>
       <div className="min-h-screen font-body text-slate-200">
         <motion.main
           initial={{ opacity: 0, y: -16 }}
@@ -364,7 +424,7 @@ const TalentDashboard = () => {
                       )}
                     </div>
 
-                    <div className="pt-3 border-t border-purple-500/20">
+                    <div className="pt-3 border-t border-purple-500/20 space-y-2">
                       <Button
                         onClick={handleLogout}
                         variant="outline"
@@ -372,6 +432,14 @@ const TalentDashboard = () => {
                       >
                         <img src="/icons/logout.avif" className="h-5 w-5 mr-2 object-contain drop-shadow-md" />
                         {t('talentDashboard.closeSession')}
+                      </Button>
+                      <Button
+                        onClick={() => setShowDeleteModal(true)}
+                        variant="ghost"
+                        className="w-full text-slate-500 hover:text-red-400 hover:bg-red-500/5 text-xs"
+                      >
+                        <img src="/icons/delete.avif" className="h-5 w-5 mr-2 object-contain drop-shadow-md" />
+                        {t('deleteAccount.deleteBtn')}
                       </Button>
                     </div>
                   </div>
@@ -449,6 +517,7 @@ const TalentDashboard = () => {
         </motion.main>
       </div>
     </Layout>
+    </>
   );
 };
 

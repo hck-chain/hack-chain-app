@@ -49,6 +49,18 @@ export interface ClassSettings {
   google_calendar_url: string | null;
 }
 
+export interface FeaturedEducator {
+  wallet_address: string;
+  organization_name: string | null;
+  name: string | null;
+  lastname: string | null;
+  photo_url: string | null;
+  bio: string | null;
+  knowledge_areas: string[];
+  certificates_issued: number;
+  has_classes: boolean;
+}
+
 export interface TalentInfo {
   wallet_address: string;
   name?: string;

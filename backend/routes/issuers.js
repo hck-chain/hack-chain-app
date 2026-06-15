@@ -5,6 +5,7 @@ const rateLimit = require("express-rate-limit");
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
+const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
 const { authenticate } = require("../middleware/auth");
 
 // 2 re-applies per educator per week prevents approval-queue spam.
@@ -106,6 +107,31 @@ router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
 });
 
 
+// 60 requests/min per IP — public endpoint, no auth needed
+const featuredLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: "Too many requests, slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// GET /api/issuers/featured — random approved educators for discovery widget
+// Must be registered before /:wallet_address to avoid param capture.
+// Query: count (1–6, default 3)
+router.get("/featured", featuredLimiter, async (req, res) => {
+  try {
+    const raw = parseInt(req.query.count);
+    const count = Number.isNaN(raw) ? 3 : Math.min(6, Math.max(1, raw));
+
+    const educators = await getFeaturedIssuers(count);
+    return res.json({ educators });
+  } catch (err) {
+    console.error("GET /api/issuers/featured error:", err);
+    return res.status(500).json({ error: "Failed to fetch featured educators" });
+  }
+});
+
 // GET /api/issuers  — public, paginated educator discovery
 // Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
 router.get("/", async (req, res) => {
@@ -114,17 +140,21 @@ router.get("/", async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
     const area  = typeof req.query.area === "string" ? req.query.area.trim() : null;
 
-    const where = {};
+    const { Op } = require("sequelize");
+
+    const userWhere = { educator_approval_status: "approved" };
+    const issuerWhere = {};
     if (area) {
-      const { Op } = require("sequelize");
-      where.knowledge_areas = { [Op.contains]: [area] };
+      issuerWhere.knowledge_areas = { [Op.contains]: [area] };
     }
 
     const { count, rows } = await Issuer.findAndCountAll({
-      where,
+      where: issuerWhere,
       include: [{
         model: User,
         attributes: ["name", "lastname", "created_at"],
+        where: userWhere,
+        required: true,
       }],
       order: [["certificates_issued", "DESC"]],
       limit,
@@ -133,15 +163,16 @@ router.get("/", async (req, res) => {
 
     res.json({
       educators: rows.map((issuer) => ({
-        wallet_address:     issuer.wallet_address,
-        organization_name:  issuer.organization_name,
-        name:               issuer.User?.name     || null,
-        lastname:           issuer.User?.lastname  || null,
-        photo_url:          issuer.photo_url       || null,
-        bio:                issuer.bio             || null,
-        knowledge_areas:    issuer.knowledge_areas || [],
+        wallet_address:      issuer.wallet_address,
+        organization_name:   issuer.organization_name,
+        name:                issuer.User?.name     || null,
+        lastname:            issuer.User?.lastname  || null,
+        photo_url:           issuer.photo_url       || null,
+        bio:                 issuer.bio             || null,
+        knowledge_areas:     issuer.knowledge_areas || [],
         certificates_issued: issuer.certificates_issued,
-        joined_at:          issuer.User?.created_at || issuer.created_at,
+        has_classes:         issuer.class_settings !== null && issuer.class_settings !== undefined,
+        joined_at:           issuer.User?.created_at || issuer.created_at,
       })),
       pagination: {
         total: count,

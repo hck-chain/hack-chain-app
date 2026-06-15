@@ -20,7 +20,7 @@ export const useUserRegistration = () => {
     return useMutation({
         mutationFn: async (formData: UserRegistrationFormData) => {
             const requestData = transformFormDataToRequest(formData);
-            const walletAddress = await getConnectedWallet();
+            const walletAddress = await getConnectedWallet(true);
 
             return registerUser({
                 ...requestData,

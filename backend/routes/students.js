@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { Student, User, Certificate, Issuer } = require("../models");
 const { authenticate } = require("../middleware/auth");
+const { validateDeletionMessage, deleteStudentAccount } = require("../services/studentService");
 
 // GET /api/students
 router.get("/", authenticate, async (req, res) => {
@@ -176,6 +177,33 @@ router.put("/:wallet_address", authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update student" });
+  }
+});
+
+// DELETE /api/students/me — hard delete own account (requires wallet signature)
+router.delete("/me", authenticate, async (req, res) => {
+  try {
+    if (req.auth.role !== "student") {
+      return res.status(403).json({ error: "Only student accounts can be deleted via this endpoint" });
+    }
+
+    const wallet = req.auth.wallet.toLowerCase();
+    const { signature, message } = req.body;
+
+    if (!signature || !message) {
+      return res.status(400).json({ error: "signature and message are required" });
+    }
+
+    const validation = validateDeletionMessage(message, signature, wallet);
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    await deleteStudentAccount(wallet);
+    return res.json({ message: "Account deleted successfully" });
+  } catch (err) {
+    console.error("delete student error:", err);
+    return res.status(500).json({ error: "Failed to delete account" });
   }
 });
 
