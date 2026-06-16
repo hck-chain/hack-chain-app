@@ -716,6 +716,7 @@
     "comingSoonHint": "We're building the booking system. For now, you can contact the educator directly from their profile.",
     "selectClass": "Choose a class",
     "changeClass": "Change",
+    "backToClasses": "Back to classes",
     "confirmTitle": "Your selection",
     "messageLabel": "Message (optional)",
     "messagePlaceholder": "Tell the educator what you want to cover in the session...",

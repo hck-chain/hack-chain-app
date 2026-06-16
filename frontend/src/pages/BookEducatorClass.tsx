@@ -344,14 +344,25 @@ const BookEducatorClass = () => {
         >
           <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
             <button
-              onClick={() => navigate(`/educator/${wallet}`)}
+              onClick={() => {
+                if (effectiveStep === 'slot' && hasClasses) {
+                  setStep('class');
+                  setSelectedClass(null);
+                } else {
+                  navigate(-1);
+                }
+              }}
               className="flex items-center gap-2 text-sm transition-colors rounded-full px-2 py-1.5 -ml-2"
               style={{ color: P.textMuted }}
               onMouseEnter={(e) => (e.currentTarget.style.color = P.textPrimary)}
               onMouseLeave={(e) => (e.currentTarget.style.color = P.textMuted)}
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('bookClass.backToProfile')}</span>
+              <span className="hidden sm:inline">
+                {effectiveStep === 'slot' && hasClasses
+                  ? t('bookClass.backToClasses')
+                  : t('bookClass.backToProfile')}
+              </span>
             </button>
           </div>
         </div>
