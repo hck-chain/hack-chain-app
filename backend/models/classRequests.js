@@ -18,6 +18,13 @@ module.exports = (sequelize, DataTypes) => {
     duration_minutes: { type: DataTypes.INTEGER, allowNull: false },
     hourly_rate_usd: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
     student_message: { type: DataTypes.TEXT, allowNull: true },
+    issuer_class_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'issuer_classes', key: 'id' },
+      onDelete: 'SET NULL',
+    },
+    class_name: { type: DataTypes.STRING(255), allowNull: true },
     status: {
       type: DataTypes.STRING(20),
       allowNull: false,
@@ -42,6 +49,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'issuer_wallet_address',
       targetKey: 'wallet_address',
       as: 'issuer',
+    });
+    ClassRequest.belongsTo(models.IssuerClass, {
+      foreignKey: 'issuer_class_id',
+      as: 'issuerClass',
     });
   };
 

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
-const { ClassRequest, Issuer, User } = require("../models");
+const { ClassRequest, Issuer, IssuerClass, User } = require("../models");
 const { authenticate } = require("../middleware/auth");
 
 const createLimiter = rateLimit({
@@ -27,6 +27,7 @@ router.post("/", authenticate, createLimiter, async (req, res) => {
       duration_minutes,
       hourly_rate_usd,
       student_message,
+      issuer_class_id,
     } = req.body;
 
     if (!issuer_wallet_address || !requested_date || !start_time || !duration_minutes) {
@@ -57,6 +58,24 @@ router.post("/", authenticate, createLimiter, async (req, res) => {
       ? String(student_message).trim().slice(0, 500)
       : null;
 
+    // Resolve class name snapshot (if a class was selected)
+    let resolvedClassName = null;
+    let resolvedClassId = null;
+    if (issuer_class_id != null) {
+      const issuerClass = await IssuerClass.findOne({
+        where: {
+          id: Number(issuer_class_id),
+          issuer_wallet_address: issuer_wallet_address.toLowerCase(),
+          is_active: true,
+        },
+      });
+      if (!issuerClass) {
+        return res.status(400).json({ error: "Selected class not found or is no longer available" });
+      }
+      resolvedClassId = issuerClass.id;
+      resolvedClassName = issuerClass.name;
+    }
+
     const request = await ClassRequest.create({
       student_wallet_address: req.auth.wallet.toLowerCase(),
       issuer_wallet_address: issuer_wallet_address.toLowerCase(),
@@ -65,6 +84,8 @@ router.post("/", authenticate, createLimiter, async (req, res) => {
       duration_minutes: Number(duration_minutes),
       hourly_rate_usd: hourly_rate_usd != null ? Number(hourly_rate_usd) : null,
       student_message: sanitizedMessage,
+      issuer_class_id: resolvedClassId,
+      class_name: resolvedClassName,
       status: "pending",
     });
 

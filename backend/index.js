@@ -112,6 +112,7 @@ const uploadRoutes = require("./routes/upload");
 const adminRouter = require("./routes/admin");
 const referralsRouter = require("./routes/referrals");
 const classRequestsRouter = require("./routes/classRequests");
+const issuerClassesRouter = require("./routes/issuerClasses");
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
@@ -125,6 +126,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/admin", adminRouter);
 app.use("/api/referrals", referralsRouter);
 app.use("/api/class-requests", classRequestsRouter);
+app.use("/api/issuer-classes", issuerClassesRouter);
 
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));

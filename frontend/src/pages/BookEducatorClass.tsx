@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, Clock, CalendarDays, Loader2,
-  CheckCircle2, MessageSquare,
+  CheckCircle2, MessageSquare, BookOpen,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEducatorProfile } from '@/hooks/useEducatorProfile';
+import { useIssuerClasses } from '@/hooks/useIssuerClasses';
 import { useRequestClass } from '@/hooks/useRequestClass';
 import { useTranslation } from 'react-i18next';
 import { P } from '@/components/profile/palette';
@@ -15,7 +16,7 @@ import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { resolveIpfs } from '@/lib/ipfs';
 import { generateSlots, getUpcomingDays } from '@/lib/slots';
 import type { UpcomingDay } from '@/lib/slots';
-import type { ClassSettings } from '@/types/dashboard';
+import type { ClassSettings, IssuerClass } from '@/types/dashboard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,8 @@ interface SlotSelection {
   startTime: string;
   durationMinutes: number;
 }
+
+type BookingStep = 'class' | 'slot';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -250,8 +253,14 @@ const BookEducatorClass = () => {
   const { t, i18n } = useTranslation();
   const prefersReduced = useReducedMotion();
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
+  const { data: classesData, isPending: classesLoading } = useIssuerClasses(wallet);
   const { mutate: requestClass, isPending: isSending } = useRequestClass();
 
+  const availableClasses = classesData?.classes ?? [];
+  const hasClasses = !classesLoading && availableClasses.length > 0;
+
+  const [step, setStep] = useState<BookingStep>('class');
+  const [selectedIssuerClass, setSelectedIssuerClass] = useState<IssuerClass | null>(null);
   const [selectedClass, setSelectedClass] = useState<SlotSelection | null>(null);
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -277,12 +286,21 @@ const BookEducatorClass = () => {
         duration_minutes: selectedClass.durationMinutes,
         hourly_rate_usd: cs?.hourly_rate_usd ?? null,
         student_message: message.trim() || null,
+        issuer_class_id: selectedIssuerClass?.id ?? null,
       },
       { onSuccess: () => setSubmitted(true) }
     );
   }
 
-  if (isPending) {
+  function handleClassSelect(cls: IssuerClass) {
+    setSelectedIssuerClass(cls);
+    setStep('slot');
+  }
+
+  // Skip class step if educator has no classes configured
+  const effectiveStep: BookingStep = (!classesLoading && availableClasses.length === 0) ? 'slot' : step;
+
+  if (isPending || classesLoading) {
     return (
       <Layout>
         <GrainOverlay />
@@ -380,7 +398,12 @@ const BookEducatorClass = () => {
                       </>
                     )}
                   </p>
-                  <p className="text-xs mt-1" style={{ color: P.textMuted }}>{displayName}</p>
+                  {selectedIssuerClass && (
+                    <p className="text-xs font-medium mt-0.5" style={{ color: P.accent }}>
+                      {selectedIssuerClass.name}
+                    </p>
+                  )}
+                  <p className="text-xs mt-0.5" style={{ color: P.textMuted }}>{displayName}</p>
                 </div>
               )}
               <button
@@ -466,26 +489,116 @@ const BookEducatorClass = () => {
               )}
             </div>
 
-            {/* Slot picker */}
-            <div
-              className="rounded-2xl px-6 py-6"
-              style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
-            >
-              <p
-                className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-6"
-                style={{ color: P.textMuted }}
-              >
-                {t('bookClass.availabilityTitle')}
-              </p>
-              <SlotPicker
-                settings={cs}
-                locale={i18n.language}
-                t={t}
-                prefersReduced={prefersReduced}
-                selectedSlot={selectedClass?.startTime ?? null}
-                onSelect={setSelectedClass}
-              />
-            </div>
+            {/* Step 1 — Class selector */}
+            <AnimatePresence mode="wait">
+              {effectiveStep === 'class' && (
+                <motion.div
+                  key="class-step"
+                  initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: prefersReduced ? 0 : 0.22 }}
+                  className="rounded-2xl px-6 py-6"
+                  style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <BookOpen className="h-4 w-4" style={{ color: P.accent }} />
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-semibold" style={{ color: P.textMuted }}>
+                      {t('bookClass.selectClass')}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {availableClasses.map((cls) => (
+                      <button
+                        key={cls.id}
+                        type="button"
+                        onClick={() => handleClassSelect(cls)}
+                        className="w-full text-left px-4 py-3.5 rounded-xl transition-all active:scale-[0.99]"
+                        style={{ backgroundColor: P.surface, border: `1px solid ${P.border}` }}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = P.accent)}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = P.border)}
+                      >
+                        <p className="text-sm font-semibold" style={{ color: P.textPrimary }}>
+                          {cls.name}
+                        </p>
+                        {cls.description && (
+                          <p className="text-xs mt-0.5 line-clamp-2" style={{ color: P.textMuted }}>
+                            {cls.description}
+                          </p>
+                        )}
+                        {cls.topics && cls.topics.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {cls.topics.map((topic) => (
+                              <span
+                                key={topic}
+                                className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                                style={{ backgroundColor: P.accentSoft, color: P.accent }}
+                              >
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 2 — Slot picker */}
+              {effectiveStep === 'slot' && (
+                <motion.div
+                  key="slot-step"
+                  initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: prefersReduced ? 0 : 0.22 }}
+                >
+                  {/* Selected class badge + back */}
+                  {selectedIssuerClass && hasClasses && (
+                    <div
+                      className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl mb-3"
+                      style={{ backgroundColor: P.accentSoft, border: `1px solid ${P.accentBorder}` }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: P.accent }} />
+                        <span className="text-sm font-semibold truncate" style={{ color: P.accent }}>
+                          {selectedIssuerClass.name}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setStep('class'); setSelectedClass(null); }}
+                        className="text-xs shrink-0 transition-colors"
+                        style={{ color: P.textMuted }}
+                      >
+                        {t('bookClass.changeClass')}
+                      </button>
+                    </div>
+                  )}
+
+                  <div
+                    className="rounded-2xl px-6 py-6"
+                    style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
+                  >
+                    <p
+                      className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-6"
+                      style={{ color: P.textMuted }}
+                    >
+                      {t('bookClass.availabilityTitle')}
+                    </p>
+                    <SlotPicker
+                      settings={cs}
+                      locale={i18n.language}
+                      t={t}
+                      prefersReduced={prefersReduced}
+                      selectedSlot={selectedClass?.startTime ?? null}
+                      onSelect={setSelectedClass}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Confirmation panel */}
             <AnimatePresence>

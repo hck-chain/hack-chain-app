@@ -61,6 +61,14 @@ export interface FeaturedEducator {
   has_classes: boolean;
 }
 
+export interface IssuerClass {
+  id: number;
+  name: string;
+  description: string | null;
+  topics: string[];
+  is_active?: boolean;
+}
+
 export interface TalentInfo {
   wallet_address: string;
   name?: string;

@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft, Loader2, DollarSign, Clock, CalendarDays,
   Link as LinkIcon, ChevronDown, Check, AlertCircle,
+  BookOpen, Plus, X, Trash2, EyeOff,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMyClassSettings, useUpdateClassSettings } from '@/hooks/useClassSettings';
+import {
+  useMyIssuerClasses,
+  useCreateIssuerClass,
+  useUpdateIssuerClass,
+  useDeleteIssuerClass,
+} from '@/hooks/useIssuerClasses';
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { useTranslation } from 'react-i18next';
@@ -189,6 +196,293 @@ function TimeInput({ value, onChange, disabled, label }: TimeInputProps) {
 }
 
 // ---------------------------------------------------------------------------
+// TopicTagInput — type a topic and press Enter or comma to add
+// ---------------------------------------------------------------------------
+
+interface TopicTagInputProps {
+  topics: string[];
+  onChange: (topics: string[]) => void;
+  disabled?: boolean;
+  placeholder: string;
+}
+
+function TopicTagInput({ topics, onChange, disabled, placeholder }: TopicTagInputProps) {
+  const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function addTopic() {
+    const value = input.trim();
+    if (!value || topics.includes(value) || topics.length >= 10) return;
+    onChange([...topics, value]);
+    setInput('');
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTopic();
+    }
+    if (e.key === 'Backspace' && !input && topics.length > 0) {
+      onChange(topics.slice(0, -1));
+    }
+  }
+
+  return (
+    <div
+      className="flex flex-wrap gap-1.5 rounded-xl px-3 py-2.5 min-h-[44px] cursor-text"
+      style={{ backgroundColor: P.surface, border: `1px solid ${P.border}` }}
+      onClick={() => inputRef.current?.focus()}
+    >
+      {topics.map((topic) => (
+        <span
+          key={topic}
+          className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
+          style={{ backgroundColor: P.accentSoft, color: P.accent, border: `1px solid ${P.accentBorder}` }}
+        >
+          {topic}
+          {!disabled && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onChange(topics.filter((t) => t !== topic)); }}
+              className="opacity-60 hover:opacity-100 transition-opacity"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </span>
+      ))}
+      {!disabled && topics.length < 10 && (
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={addTopic}
+          placeholder={topics.length === 0 ? placeholder : ''}
+          className="flex-1 min-w-[120px] bg-transparent outline-none text-sm"
+          style={{ color: P.textPrimary }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ClassCatalogSection — create/list/delete educator classes
+// ---------------------------------------------------------------------------
+
+function ClassCatalogSection({ t, prefersReduced }: { t: (k: string) => string; prefersReduced: boolean | null }) {
+  const { data, isPending } = useMyIssuerClasses();
+  const createClass = useCreateIssuerClass();
+  const updateClass = useUpdateIssuerClass();
+  const deleteClass = useDeleteIssuerClass();
+
+  const [newName, setNewName] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newTopics, setNewTopics] = useState<string[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  const classes = data?.classes ?? [];
+  const isCreating = createClass.isPending;
+
+  async function handleCreate() {
+    const name = newName.trim();
+    if (!name) return;
+    try {
+      await createClass.mutateAsync({ name, description: newDescription.trim() || undefined, topics: newTopics });
+      setNewName('');
+      setNewDescription('');
+      setNewTopics([]);
+      setShowForm(false);
+    } catch (_) {}
+  }
+
+  return (
+    <SectionCard
+      label={t('editClasses.catalogSection')}
+      description={t('editClasses.catalogHint')}
+      icon={<BookOpen className="h-4 w-4" />}
+    >
+      <div className="space-y-3">
+        {isPending ? (
+          <div className="flex items-center gap-2 py-2" style={{ color: P.textMuted }}>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">{t('editClasses.catalogLoading')}</span>
+          </div>
+        ) : (
+          <>
+            {/* Existing classes */}
+            <AnimatePresence initial={false}>
+              {classes.map((cls) => (
+                <motion.div
+                  key={cls.id}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: prefersReduced ? 0 : 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="flex items-start gap-3 px-4 py-3.5 rounded-xl"
+                    style={{
+                      backgroundColor: cls.is_active ? P.surface : 'transparent',
+                      border: `1px solid ${cls.is_active ? P.border : P.borderSub}`,
+                      opacity: cls.is_active ? 1 : 0.5,
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold leading-tight truncate" style={{ color: P.textPrimary }}>
+                        {cls.name}
+                      </p>
+                      {cls.description && (
+                        <p className="text-xs mt-0.5 line-clamp-1" style={{ color: P.textMuted }}>
+                          {cls.description}
+                        </p>
+                      )}
+                      {cls.topics && cls.topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {cls.topics.map((topic) => (
+                            <span
+                              key={topic}
+                              className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                              style={{ backgroundColor: P.accentSoft, color: P.accent }}
+                            >
+                              {topic}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        title={cls.is_active ? t('editClasses.catalogDeactivate') : t('editClasses.catalogActivate')}
+                        onClick={() => updateClass.mutate({ id: cls.id!, is_active: !cls.is_active })}
+                        disabled={updateClass.isPending}
+                        className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                        style={{ color: P.textMuted }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = P.textPrimary)}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = P.textMuted)}
+                      >
+                        <EyeOff className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        title={t('editClasses.catalogDelete')}
+                        onClick={() => deleteClass.mutate(cls.id!)}
+                        disabled={deleteClass.isPending}
+                        className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                        style={{ color: P.textMuted }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'oklch(0.65 0.18 25)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = P.textMuted)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {classes.length === 0 && !showForm && (
+              <p className="text-sm py-1" style={{ color: P.textMuted }}>
+                {t('editClasses.catalogEmpty')}
+              </p>
+            )}
+
+            {/* Add class form */}
+            <AnimatePresence>
+              {showForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: prefersReduced ? 0 : 0.22 }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="rounded-xl p-4 space-y-3"
+                    style={{ backgroundColor: P.surface, border: `1px solid ${P.accentBorder}` }}
+                  >
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      maxLength={255}
+                      placeholder={t('editClasses.catalogNamePlaceholder')}
+                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: P.card, border: `1px solid ${P.border}`, color: P.textPrimary }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = P.accent)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = P.border)}
+                    />
+                    <input
+                      type="text"
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                      maxLength={1000}
+                      placeholder={t('editClasses.catalogDescPlaceholder')}
+                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: P.card, border: `1px solid ${P.border}`, color: P.textPrimary }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = P.accent)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = P.border)}
+                    />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.14em] font-semibold mb-1.5" style={{ color: P.textMuted }}>
+                        {t('editClasses.catalogTopicsLabel')}
+                      </p>
+                      <TopicTagInput
+                        topics={newTopics}
+                        onChange={setNewTopics}
+                        placeholder={t('editClasses.catalogTopicsPlaceholder')}
+                      />
+                      <p className="text-[10px] mt-1" style={{ color: P.textMuted }}>
+                        {t('editClasses.catalogTopicsHint')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleCreate}
+                        disabled={!newName.trim() || isCreating}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                        style={{ backgroundColor: P.accent, color: P.bg }}
+                      >
+                        {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                        {t('editClasses.catalogAddBtn')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowForm(false); setNewName(''); setNewDescription(''); setNewTopics([]); }}
+                        className="px-4 py-2 rounded-xl text-sm transition-colors"
+                        style={{ color: P.textMuted }}
+                      >
+                        {t('editClasses.catalogCancelBtn')}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!showForm && classes.length < 20 && (
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2 text-sm font-medium transition-colors mt-1"
+                style={{ color: P.accent }}
+              >
+                <Plus className="h-4 w-4" />
+                {t('editClasses.catalogAddClass')}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -338,6 +632,9 @@ const EditEducatorClasses = () => {
           transition={{ duration: prefersReduced ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="relative max-w-2xl mx-auto px-4 sm:px-6 pt-10 pb-32 space-y-5"
         >
+
+          {/* ── Class catalog ── */}
+          <ClassCatalogSection t={t} prefersReduced={prefersReduced} />
 
           {/* ── Pricing ── */}
           <SectionCard
