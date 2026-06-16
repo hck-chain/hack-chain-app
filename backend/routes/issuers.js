@@ -7,6 +7,8 @@ const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
 const { authenticate } = require("../middleware/auth");
+const emailService = require("../services/emailService");
+const { getAdminEmails } = require("../services/adminService");
 
 // 2 re-applies per educator per week prevents approval-queue spam.
 const reapplyLimiter = rateLimit({
@@ -98,6 +100,23 @@ router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
       educator_approval_status: "pending_approval",
       rejection_reason: null,
     });
+
+    try {
+      const [fullUser, issuer, adminEmails] = await Promise.all([
+        User.findByPk(req.auth.sub, { attributes: ["name", "email", "wallet_address"] }),
+        Issuer.findOne({ where: { wallet_address: req.auth.wallet?.toLowerCase() }, attributes: ["organization_name"] }),
+        getAdminEmails(User),
+      ]);
+      await emailService.notifyAdminEducatorReapply({
+        to: adminEmails,
+        name: fullUser?.name || null,
+        email: fullUser?.email || null,
+        wallet: fullUser?.wallet_address || req.auth.wallet,
+        organization: issuer?.organization_name || null,
+      });
+    } catch (err) {
+      console.error("[reapply] notifyAdminEducatorReapply failed:", err && err.message);
+    }
 
     return res.json({ status: "pending_approval" });
   } catch (err) {

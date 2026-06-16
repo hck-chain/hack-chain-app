@@ -13,6 +13,7 @@ const emailService = require("../services/emailService");
 const { createHarjootClient } = require("../harjoot/client");
 const { activateMembership } = require("../harjoot/usecases/activateMembership");
 const { claimInvitation } = require("../harjoot/usecases/claimInvitation");
+const { getAdminEmails } = require("../services/adminService");
 const { attachReferralOnRegister } = require("../usecases/referrals/attachReferralOnRegister");
 const config = require("../harjoot/config");
 const configReferrals = require("../config/referrals");
@@ -165,6 +166,21 @@ router.post("/register", registerLimiter, async (req, res) => {
         });
       } catch (err) {
         console.error("[register] claimInvitation failed:", err && err.message);
+      }
+    }
+
+    if (newUser.role === "issuer") {
+      try {
+        const adminEmails = await getAdminEmails(User);
+        await emailService.notifyAdminNewEducator({
+          to: adminEmails,
+          name: newUser.name || null,
+          email: newUser.email || null,
+          wallet: newUser.wallet_address,
+          organization: roleSpecificData?.organization_name || null,
+        });
+      } catch (err) {
+        console.error("[register] notifyAdminNewEducator failed:", err && err.message);
       }
     }
 

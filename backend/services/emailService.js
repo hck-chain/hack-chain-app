@@ -405,10 +405,68 @@ async function notifyEducatorClaimed({ to, educatorName, studentWallet, studentN
   });
 }
 
+async function notifyAdminNewEducator({ to, name, email, wallet, organization }) {
+  if (!to || (Array.isArray(to) && to.length === 0)) return;
+
+  const adminUrl = `${FRONTEND_URL}/admin`;
+  const displayName = [name, organization].filter(Boolean).join(' / ') || wallet;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Nueva solicitud de educador: ${displayName}`,
+    text: `Nueva solicitud de educador pendiente de aprobación.\n\nNombre: ${name || '—'}\nOrganización: ${organization || '—'}\nEmail: ${email || '—'}\nWallet: ${wallet}\n\nRevisa en el panel de admin: ${adminUrl}`,
+    html: renderEducatorEmail({
+      title: 'Nueva solicitud de educador',
+      headline: 'Nueva solicitud de educador',
+      accentColor: '#680099',
+      body: `<p style="margin:0 0 12px;">Hay una nueva solicitud de educador pendiente de revisión.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               <tr><td style="padding:6px 0;color:#888;">Nombre</td><td style="padding:6px 0;font-weight:700;">${name || '—'}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Organización</td><td style="padding:6px 0;">${organization || '—'}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Email</td><td style="padding:6px 0;">${email || '—'}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Wallet</td><td style="padding:6px 0;font-family:monospace;font-size:12px;">${wallet}</td></tr>
+             </table>`,
+      ctaUrl: adminUrl,
+      ctaLabel: 'Ir al panel de admin',
+    }),
+  });
+}
+
+async function notifyAdminEducatorReapply({ to, name, email, wallet, organization }) {
+  if (!to || (Array.isArray(to) && to.length === 0)) return;
+
+  const adminUrl = `${FRONTEND_URL}/admin`;
+  const displayName = [name, organization].filter(Boolean).join(' / ') || wallet;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Re-solicitud de educador: ${displayName}`,
+    text: `Un educador rechazado volvió a solicitar aprobación.\n\nNombre: ${name || '—'}\nOrganización: ${organization || '—'}\nEmail: ${email || '—'}\nWallet: ${wallet}\n\nRevisa en el panel de admin: ${adminUrl}`,
+    html: renderEducatorEmail({
+      title: 'Re-solicitud de educador',
+      headline: 'Re-solicitud de educador',
+      accentColor: '#8b5cf6',
+      body: `<p style="margin:0 0 12px;">Un educador que fue rechazado volvió a solicitar aprobación.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               <tr><td style="padding:6px 0;color:#888;">Nombre</td><td style="padding:6px 0;font-weight:700;">${name || '—'}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Organización</td><td style="padding:6px 0;">${organization || '—'}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Email</td><td style="padding:6px 0;">${email || '—'}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Wallet</td><td style="padding:6px 0;font-family:monospace;font-size:12px;">${wallet}</td></tr>
+             </table>`,
+      ctaUrl: adminUrl,
+      ctaLabel: 'Ir al panel de admin',
+    }),
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   notifyEducatorApproved,
   notifyEducatorRejected,
+  notifyAdminNewEducator,
+  notifyAdminEducatorReapply,
   sendInvite,
   notifyEducatorClaimed,
 };
