@@ -792,6 +792,27 @@
     "catalogActivate": "Activate",
     "catalogDelete": "Delete"
   },
+  "classInbox": {
+    "title": "Class requests",
+    "loading": "Loading requests...",
+    "empty": "No class requests yet.",
+    "min": "min",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "complete": "Complete",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "toast": {
+      "confirmed": "Request confirmed",
+      "cancelled": "Request cancelled",
+      "completed": "Class marked as completed",
+      "error": "Could not update the request"
+    }
+  },
   "deleteAccount": {
     "title": "Delete educator account",
     "warningPermanent": "permanent and irreversible",

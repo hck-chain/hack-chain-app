@@ -792,6 +792,27 @@
     "catalogActivate": "Activar",
     "catalogDelete": "Eliminar"
   },
+  "classInbox": {
+    "title": "Solicitudes de clases",
+    "loading": "Cargando solicitudes...",
+    "empty": "No tienes solicitudes de clases por el momento.",
+    "min": "min",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "complete": "Completada",
+    "status": {
+      "pending": "Pendiente",
+      "confirmed": "Confirmada",
+      "cancelled": "Cancelada",
+      "completed": "Completada"
+    },
+    "toast": {
+      "confirmed": "Solicitud confirmada",
+      "cancelled": "Solicitud cancelada",
+      "completed": "Clase marcada como completada",
+      "error": "No se pudo actualizar la solicitud"
+    }
+  },
   "deleteAccount": {
     "title": "Eliminar cuenta de educador",
     "warningPermanent": "permanente e irreversible",
