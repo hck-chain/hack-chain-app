@@ -146,7 +146,7 @@ describe("ClassRequests endpoints", () => {
     test.each([1, 15, 100, 61])("returns 400 for invalid duration %d", async (dur) => {
       const res = await request(studentApp).post("/api/class-requests").send({ ...BASE_BODY, duration_minutes: dur });
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/duration/i);
+      expect(res.body.error).toBe("INVALID_DURATION");
     });
 
     test.each(["30", "45", "60", "90", "120"])("accepts valid duration %s as string", async (dur) => {
@@ -157,7 +157,7 @@ describe("ClassRequests endpoints", () => {
     test("returns 400 for invalid time format (no colon)", async () => {
       const res = await request(studentApp).post("/api/class-requests").send({ ...BASE_BODY, start_time: "1000" });
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/time/i);
+      expect(res.body.error).toBe("INVALID_TIME_FORMAT");
     });
 
     test("returns 400 for invalid time format (single digit hour)", async () => {
@@ -168,7 +168,7 @@ describe("ClassRequests endpoints", () => {
     test("returns 400 for a past requested_date", async () => {
       const res = await request(studentApp).post("/api/class-requests").send({ ...BASE_BODY, requested_date: "2000-01-01" });
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/date/i);
+      expect(res.body.error).toBe("INVALID_OR_PAST_DATE");
     });
 
     test("returns 400 for an invalid date string", async () => {
@@ -227,7 +227,7 @@ describe("ClassRequests endpoints", () => {
         issuer_class_id: otherClass.id,
       });
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/class not found/i);
+      expect(res.body.error).toBe("CLASS_NOT_FOUND");
     });
 
     test("returns 400 when issuer_class_id refers to an inactive class", async () => {

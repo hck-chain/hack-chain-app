@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
-const { ClassRequest, Issuer, IssuerClass, User } = require("../models");
+const db = require("../models");
 const { authenticate } = require("../middleware/auth");
+const { requestClass } = require("../usecases/classes/requestClass");
+const { updateClassRequestStatus } = require("../usecases/classes/updateClassRequestStatus");
 
 const createLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -10,115 +12,47 @@ const createLimiter = rateLimit({
   message: { error: "Too many requests" },
 });
 
-const VALID_DURATIONS = [30, 45, 60, 90, 120];
-const TIME_RE = /^\d{2}:\d{2}$/;
-
-// POST /api/class-requests — student sends a class request
+// POST /api/class-requests
 router.post("/", authenticate, createLimiter, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only students can request classes" });
+  }
+
   try {
-    if (req.auth.role !== "student") {
-      return res.status(403).json({ error: "Only students can request classes" });
-    }
-
-    const {
-      issuer_wallet_address,
-      requested_date,
-      start_time,
-      duration_minutes,
-      hourly_rate_usd,
-      student_message,
-      issuer_class_id,
-    } = req.body;
-
-    if (!issuer_wallet_address || !requested_date || !start_time || !duration_minutes) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    if (!VALID_DURATIONS.includes(Number(duration_minutes))) {
-      return res.status(400).json({ error: "Invalid duration" });
-    }
-
-    if (!TIME_RE.test(start_time)) {
-      return res.status(400).json({ error: "Invalid time format" });
-    }
-
-    const date = new Date(requested_date);
-    if (isNaN(date.getTime()) || date < new Date()) {
-      return res.status(400).json({ error: "Invalid or past date" });
-    }
-
-    const issuer = await Issuer.findOne({
-      where: { wallet_address: issuer_wallet_address.toLowerCase() },
-    });
-    if (!issuer || !issuer.class_settings) {
-      return res.status(404).json({ error: "Educator not found or does not offer classes" });
-    }
-
-    const sanitizedMessage = student_message
-      ? String(student_message).trim().slice(0, 500)
-      : null;
-
-    // Resolve class name snapshot (if a class was selected)
-    let resolvedClassName = null;
-    let resolvedClassId = null;
-    if (issuer_class_id != null) {
-      const issuerClass = await IssuerClass.findOne({
-        where: {
-          id: Number(issuer_class_id),
-          issuer_wallet_address: issuer_wallet_address.toLowerCase(),
-          is_active: true,
-        },
-      });
-      if (!issuerClass) {
-        return res.status(400).json({ error: "Selected class not found or is no longer available" });
-      }
-      resolvedClassId = issuerClass.id;
-      resolvedClassName = issuerClass.name;
-    }
-
-    const request = await ClassRequest.create({
-      student_wallet_address: req.auth.wallet.toLowerCase(),
-      issuer_wallet_address: issuer_wallet_address.toLowerCase(),
-      requested_date,
-      start_time,
-      duration_minutes: Number(duration_minutes),
-      hourly_rate_usd: hourly_rate_usd != null ? Number(hourly_rate_usd) : null,
-      student_message: sanitizedMessage,
-      issuer_class_id: resolvedClassId,
-      class_name: resolvedClassName,
-      status: "pending",
+    const result = await requestClass({
+      models: db,
+      studentWallet: req.auth.wallet,
+      issuerWalletAddress: req.body.issuer_wallet_address,
+      requestedDate: req.body.requested_date,
+      startTime: req.body.start_time,
+      durationMinutes: req.body.duration_minutes,
+      hourlyRateUsd: req.body.hourly_rate_usd,
+      studentMessage: req.body.student_message,
+      issuerClassId: req.body.issuer_class_id,
     });
 
-    res.status(201).json({ id: request.id, status: request.status });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.code });
+    return res.status(201).json(result.data);
   } catch (err) {
     console.error("POST /class-requests error:", err);
-    res.status(500).json({ error: "Failed to create class request" });
+    return res.status(500).json({ error: "Failed to create class request" });
   }
 });
 
-// GET /api/class-requests/mine — educator sees incoming requests
+// GET /api/class-requests/mine
 router.get("/mine", authenticate, async (req, res) => {
-  try {
-    if (req.auth.role !== "issuer") {
-      return res.status(403).json({ error: "Only educators can view their class requests" });
-    }
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educators can view their class requests" });
+  }
 
-    const requests = await ClassRequest.findAll({
+  try {
+    const requests = await db.ClassRequest.findAll({
       where: { issuer_wallet_address: req.auth.wallet.toLowerCase() },
-      include: [
-        {
-          model: User,
-          as: "student",
-          attributes: ["name", "lastname", "wallet_address"],
-        },
-      ],
-      order: [
-        ["requested_date", "ASC"],
-        ["start_time", "ASC"],
-      ],
+      include: [{ model: db.User, as: "student", attributes: ["name", "lastname", "wallet_address"] }],
+      order: [["requested_date", "ASC"], ["start_time", "ASC"]],
     });
 
-    res.json({
+    return res.json({
       requests: requests.map((r) => ({
         id: r.id,
         student_name: [r.student?.name, r.student?.lastname].filter(Boolean).join(" ") || null,
@@ -128,44 +62,36 @@ router.get("/mine", authenticate, async (req, res) => {
         duration_minutes: r.duration_minutes,
         hourly_rate_usd: r.hourly_rate_usd,
         student_message: r.student_message,
+        class_name: r.class_name || null,
         status: r.status,
         created_at: r.created_at,
       })),
     });
   } catch (err) {
     console.error("GET /class-requests/mine error:", err);
-    res.status(500).json({ error: "Failed to fetch class requests" });
+    return res.status(500).json({ error: "Failed to fetch class requests" });
   }
 });
 
-// PATCH /api/class-requests/:id/status — educator confirms or cancels
+// PATCH /api/class-requests/:id/status
 router.patch("/:id/status", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educators can update class request status" });
+  }
+
   try {
-    if (req.auth.role !== "issuer") {
-      return res.status(403).json({ error: "Only educators can update class request status" });
-    }
-
-    const { status } = req.body;
-    if (!["confirmed", "cancelled", "completed"].includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
-
-    const request = await ClassRequest.findOne({
-      where: {
-        id: req.params.id,
-        issuer_wallet_address: req.auth.wallet.toLowerCase(),
-      },
+    const result = await updateClassRequestStatus({
+      models: db,
+      requestId: req.params.id,
+      issuerWallet: req.auth.wallet,
+      status: req.body.status,
     });
 
-    if (!request) {
-      return res.status(404).json({ error: "Request not found" });
-    }
-
-    await request.update({ status });
-    res.json({ id: request.id, status: request.status });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.code });
+    return res.json(result.data);
   } catch (err) {
     console.error("PATCH /class-requests/:id/status error:", err);
-    res.status(500).json({ error: "Failed to update status" });
+    return res.status(500).json({ error: "Failed to update status" });
   }
 });
 

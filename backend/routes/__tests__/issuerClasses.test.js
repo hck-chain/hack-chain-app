@@ -201,7 +201,7 @@ describe("IssuerClasses endpoints", () => {
       const fullApp = buildApp(models, { role: "issuer", wallet });
       const res = await request(fullApp).post("/api/issuer-classes").send({ name: "One Too Many" });
       expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/20/);
+      expect(res.body.error).toBe("MAX_CLASSES_REACHED");
     });
   });
 
