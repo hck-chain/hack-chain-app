@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Award, Briefcase, Wallet, LogOut, ChevronDown, ExternalLink, GraduationCap, Users, Mail, Copy, Check } from 'lucide-react';
+import { Award, Briefcase, Wallet, LogOut, ChevronDown, ChevronRight, ExternalLink, GraduationCap, Users, Mail, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
@@ -50,13 +50,13 @@ function CertificateSkeleton() {
 
 function EducatorSkeleton() {
   return (
-    <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-      <Skeleton className="h-11 w-11 rounded-full bg-white/5 shrink-0" />
+    <div className="flex items-center gap-3.5 py-4 border-b border-white/[0.05] px-2 animate-pulse">
+      <div className="h-9 w-9 rounded-full bg-white/[0.05] shrink-0" />
       <div className="flex-1 space-y-2">
-        <Skeleton className="h-3 w-32 bg-white/5" />
-        <Skeleton className="h-3 w-24 bg-white/5" />
-        <Skeleton className="h-3 w-40 bg-white/5" />
+        <div className="h-3 w-28 bg-white/[0.05] rounded-full" />
+        <div className="h-2.5 w-20 bg-white/[0.04] rounded-full" />
       </div>
+      <div className="h-3 w-5 bg-white/[0.04] rounded-full" />
     </div>
   );
 }
@@ -158,7 +158,7 @@ function FormacionSection({ wallet }: { wallet: string }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div>
       {educators.map((educator) => (
         <EducatorMiniCard key={educator.wallet_address} educator={educator} />
       ))}
@@ -182,9 +182,9 @@ function DescubrirSection() {
 
   if (educators.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-slate-500 rounded-3xl border border-dashed border-white/10">
-        <img src="/icons/talentsPlattform.avif" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
-        <p className="font-body text-base mt-3">{t('discover.noEducators')}</p>
+      <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+        <img src="/icons/talentsPlattform.avif" className="h-10 w-10 object-contain opacity-25 mt-0.5" />
+        <p className="font-body text-sm mt-3">{t('discover.noEducators')}</p>
       </div>
     );
   }
@@ -198,9 +198,10 @@ function DescubrirSection() {
       </div>
       <button
         onClick={() => navigate('/educators')}
-        className="w-full py-3 rounded-2xl border border-white/10 text-slate-400 text-sm font-medium hover:bg-white/5 hover:text-white hover:border-white/20 transition-all duration-200"
+        className="text-sm text-slate-500 hover:text-purple-400 transition-colors min-h-[44px] flex items-center gap-1.5"
       >
         {t('discover.viewAll')}
+        <ChevronRight className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -413,6 +414,17 @@ const TalentDashboard = () => {
                         </div>
                       )}
                       
+                      <button
+                        onClick={() => navigate('/dashboard/talent/classes')}
+                        className="w-full text-left flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors"
+                      >
+                        <img src="/icons/libroNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('talentDashboard.classesLabel')}</p>
+                          <p className="text-sm text-slate-200">{t('talentDashboard.classesHint')}</p>
+                        </div>
+                      </button>
+
                       {isAdmin && (
                         <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
                           <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
@@ -451,19 +463,19 @@ const TalentDashboard = () => {
           {/* ── Mobile: Tabs ── */}
           <div className="block md:hidden">
             <Tabs defaultValue="trayectoria">
-              <TabsList className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-1 mb-6">
+              <TabsList className="w-full flex bg-transparent rounded-none p-0 h-auto border-b border-white/[0.08] mb-8 gap-8">
                 <TabsTrigger
                   value="trayectoria"
-                  className="flex-1 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-fuchsia-500/20 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-purple-500/30 text-white/40 transition-all"
+                  className="flex items-center gap-1.5 px-0 pb-3 rounded-none bg-transparent shadow-none text-slate-500 border-b-2 border-transparent -mb-px data-[state=active]:border-purple-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium transition-colors"
                 >
-                  <Award className="h-4 w-4 mr-1.5" />
+                  <Award className="h-4 w-4" />
                   {t('talentDashboard.tabTrayectoria')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="formacion"
-                  className="flex-1 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-fuchsia-500/20 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-purple-500/30 text-white/40 transition-all"
+                  className="flex items-center gap-1.5 px-0 pb-3 rounded-none bg-transparent shadow-none text-slate-500 border-b-2 border-transparent -mb-px data-[state=active]:border-purple-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium transition-colors"
                 >
-                  <GraduationCap className="h-4 w-4 mr-1.5" />
+                  <GraduationCap className="h-4 w-4" />
                   {t('talentDashboard.tabFormacion')}
                 </TabsTrigger>
               </TabsList>
@@ -479,28 +491,20 @@ const TalentDashboard = () => {
 
           {/* ── Desktop: Two columns ── */}
           <div className="hidden md:grid md:grid-cols-[minmax(260px,300px)_1fr] gap-8">
-            <aside className="relative overflow-hidden rounded-3xl bg-white/[0.02] border border-white/[0.07] p-5">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
-              <div className="absolute -top-16 -left-16 w-40 h-40 bg-purple-500/8 rounded-full blur-[60px] pointer-events-none" />
-              <h2 className="relative z-10 font-title text-[10px] uppercase tracking-[0.22em] text-white/35 font-bold mb-5 flex items-center gap-2">
+            <aside className="rounded-3xl border border-white/[0.07] p-5">
+              <h2 className="font-title text-[10px] uppercase tracking-[0.22em] text-white/35 font-bold mb-5 flex items-center gap-2">
                 <GraduationCap className="h-3.5 w-3.5 text-purple-400/60" />
                 {t('talentDashboard.sectionFormacion')}
               </h2>
-              <div className="relative z-10">
-                <FormacionSection wallet={talent.wallet_address} />
-              </div>
+              <FormacionSection wallet={talent.wallet_address} />
             </aside>
 
-            <section className="relative overflow-hidden rounded-3xl bg-white/[0.02] border border-white/[0.07] p-5">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/40 to-transparent" />
-              <div className="absolute -top-16 -right-16 w-40 h-40 bg-fuchsia-500/8 rounded-full blur-[60px] pointer-events-none" />
-              <h2 className="relative z-10 font-title text-[10px] uppercase tracking-[0.22em] text-white/35 font-bold mb-5 flex items-center gap-2">
+            <section className="rounded-3xl border border-white/[0.07] p-5">
+              <h2 className="font-title text-[10px] uppercase tracking-[0.22em] text-white/35 font-bold mb-5 flex items-center gap-2">
                 <img src="/icons/medalla.avif" className="h-3.5 w-3.5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                 {t('talentDashboard.sectionTrayectoria')}
               </h2>
-              <div className="relative z-10">
-                <TrayectoriaSection wallet={talent.wallet_address} />
-              </div>
+              <TrayectoriaSection wallet={talent.wallet_address} />
             </section>
           </div>
 

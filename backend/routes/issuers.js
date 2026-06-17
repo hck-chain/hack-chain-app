@@ -159,12 +159,20 @@ router.get("/", async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
     const area  = typeof req.query.area === "string" ? req.query.area.trim() : null;
 
-    const { Op } = require("sequelize");
+    const { Op, where: seqWhere, fn, cast, col } = require("sequelize");
 
     const userWhere = { educator_approval_status: "approved" };
     const issuerWhere = {};
     if (area) {
-      issuerWhere.knowledge_areas = { [Op.contains]: [area] };
+      const term = area.toLowerCase();
+      // OR across name, lastname, org name, and knowledge_areas (case-insensitive partial match).
+      // subQuery: false is required so that User columns are accessible in the main WHERE clause.
+      issuerWhere[Op.or] = [
+        seqWhere(fn("LOWER", cast(col("Issuer.knowledge_areas"), "text")), { [Op.like]: `%${term}%` }),
+        seqWhere(fn("LOWER", col("Issuer.organization_name")), { [Op.like]: `%${term}%` }),
+        seqWhere(fn("LOWER", col("User.name")), { [Op.like]: `%${term}%` }),
+        seqWhere(fn("LOWER", col("User.lastname")), { [Op.like]: `%${term}%` }),
+      ];
     }
 
     const { count, rows } = await Issuer.findAndCountAll({
@@ -178,6 +186,7 @@ router.get("/", async (req, res) => {
       order: [["certificates_issued", "DESC"]],
       limit,
       offset: (page - 1) * limit,
+      subQuery: false,
     });
 
     res.json({

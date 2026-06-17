@@ -39,6 +39,7 @@ const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
 const EditEducatorProfile = lazy(() => import("./pages/EditEducatorProfile"));
 const EditEducatorClasses = lazy(() => import("./pages/EditEducatorClasses"));
 const BookEducatorClass = lazy(() => import("./pages/BookEducatorClass"));
+const TalentClasses = lazy(() => import("./pages/TalentClasses"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Referrals = lazy(() => import("./pages/Referrals"));
 const EducatorsList = lazy(() => import("./pages/EducatorsList"));
@@ -99,6 +100,11 @@ const App = () => {
                     <TalentDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/dashboard/talent/classes" element={
+                  <ProtectedRoute roles={['student']}>
+                    <TalentClasses />
+                  </ProtectedRoute>
+                } />
                 <Route path="/dashboard/recruiter" element={
                   <ProtectedRoute roles={['recruiter']}>
                     <RecruiterDashboard />
@@ -154,7 +160,11 @@ const App = () => {
                 {/* Educator public profile */}
                 <Route path="/educators" element={<EducatorsList />} />
                 <Route path="/educator/:wallet" element={<EducatorProfile />} />
-                <Route path="/educator/:wallet/book" element={<BookEducatorClass />} />
+                <Route path="/educator/:wallet/book" element={
+                  <ProtectedRoute roles={['student']}>
+                    <BookEducatorClass />
+                  </ProtectedRoute>
+                } />
 
                 {/* Legal routes */}
                 <Route path="/legal/cookies" element={<CookiePolicy />} />

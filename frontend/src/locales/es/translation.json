@@ -222,7 +222,23 @@
     "viewOnOpenSea": "Ver en OpenSea",
     "errorLoadUser": "No se pudo cargar la información del usuario.",
     "sessionExpiredTitle": "Sesión expirada",
-    "sessionExpiredDesc": "Tu sesión se cerró por inactividad."
+    "sessionExpiredDesc": "Tu sesión se cerró por inactividad.",
+    "classesLabel": "Clases",
+    "classesHint": "Ver mis solicitudes"
+  },
+  "talentClasses": {
+    "title": "Mis clases",
+    "backToDashboard": "Dashboard",
+    "confirmed": "confirmada(s)",
+    "loading": "Cargando...",
+    "empty": "Todavía no solicitaste ninguna clase.",
+    "emptyHint": "Explora los educadores disponibles y agenda tu primera sesión.",
+    "discover": "Explorar educadores",
+    "viewProfile": "Ver perfil",
+    "sectionActive": "En curso",
+    "sectionHistory": "Historial",
+    "duration": "{{minutes}} min",
+    "price": "${{amount}}/h"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",
@@ -723,7 +739,8 @@
     "confirmBtn": "Solicitar clase",
     "sending": "Enviando...",
     "successTitle": "¡Solicitud enviada!",
-    "successHint": "El educador confirmará tu clase en breve."
+    "successHint": "El educador confirmará tu clase en breve.",
+    "errorSubmit": "No se pudo enviar la solicitud. Inténtalo de nuevo."
   },
   "editClasses": {
     "pageTitle": "Editar clases",
@@ -932,7 +949,8 @@
     "noEducators": "Todavía no hay educadores disponibles",
     "noResults": "Ningún educador coincide con tu búsqueda",
     "allEducators": "Todos los Educadores",
-    "filterByArea": "Filtrar por área de conocimiento..."
+    "filterByArea": "Filtrar por área de conocimiento...",
+    "searchEducators": "Buscar por nombre o área..."
   },
   "common": {
     "back": "Volver",
