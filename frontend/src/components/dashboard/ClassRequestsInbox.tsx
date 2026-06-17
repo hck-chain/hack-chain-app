@@ -75,7 +75,7 @@ function RequestCard({ req, onAction }: { req: ClassRequest; onAction: (id: numb
             <Button
               size="sm"
               onClick={() => onAction(req.id, 'confirmed')}
-              className="h-8 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-semibold"
+              className="h-11 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-semibold"
             >
               <Check className="h-3.5 w-3.5 mr-1" />
               {t('classInbox.confirm')}
@@ -83,7 +83,7 @@ function RequestCard({ req, onAction }: { req: ClassRequest; onAction: (id: numb
             <Button
               size="sm"
               onClick={() => onAction(req.id, 'cancelled')}
-              className="h-8 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold"
+              className="h-11 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold"
             >
               <X className="h-3.5 w-3.5 mr-1" />
               {t('classInbox.cancel')}
@@ -95,7 +95,7 @@ function RequestCard({ req, onAction }: { req: ClassRequest; onAction: (id: numb
           <Button
             size="sm"
             onClick={() => onAction(req.id, 'completed')}
-            className="h-8 px-3 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-xl text-xs font-semibold shrink-0"
+            className="h-11 px-4 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-xl text-xs font-semibold shrink-0"
           >
             <CheckCheck className="h-3.5 w-3.5 mr-1" />
             {t('classInbox.complete')}
@@ -128,7 +128,7 @@ export function ClassRequestsInbox() {
   const sorted  = [...pending, ...others];
 
   return (
-    <section className="mb-10">
+    <section className="relative mb-10">
       <div className="flex items-center gap-3 mb-4">
         <h2 className="font-title text-sm font-bold uppercase tracking-[0.18em] text-white/40">
           {t('classInbox.title')}

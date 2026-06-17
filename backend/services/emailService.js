@@ -461,6 +461,39 @@ async function notifyAdminEducatorReapply({ to, name, email, wallet, organizatio
   });
 }
 
+async function notifyEducatorClassRequest({ to, educatorName, studentName, requestedDate, startTime, durationMinutes, className }) {
+  console.log(`[emailService] Notificando solicitud de clase a educador: ${to}`);
+  const greeting = educatorName ? `Hola, ${educatorName}.` : "Hola.";
+  const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
+
+  const classLine = className
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+    : "";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Nueva solicitud de clase de ${studentName}`,
+    text: `${greeting}\n\n${studentName} solicitó una clase privada contigo.\n\nFecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${durationMinutes} min${className ? `\nClase: ${className}` : ""}\n\nRevisa y confirma desde tu dashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Nueva solicitud de clase",
+      headline: "Nueva solicitud de clase privada",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;"><strong>${studentName}</strong> solicitó una clase privada contigo.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               ${classLine}
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${durationMinutes} min</td></tr>
+             </table>
+             <p style="margin:16px 0 0;">Ingresa a tu dashboard para confirmar o rechazar la solicitud.</p>`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ver solicitud",
+    }),
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   notifyEducatorApproved,
@@ -469,4 +502,5 @@ module.exports = {
   notifyAdminEducatorReapply,
   sendInvite,
   notifyEducatorClaimed,
+  notifyEducatorClassRequest,
 };

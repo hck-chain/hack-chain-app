@@ -81,10 +81,21 @@ describe("requestClass", () => {
     expect(result.code).toBe("INVALID_TIME_FORMAT");
   });
 
-  test("returns INVALID_OR_PAST_DATE for a past date", async () => {
+  test("returns INSUFFICIENT_LEAD_TIME for a past date", async () => {
     const result = await requestClass({ ...base(), requestedDate: "2000-01-01" });
     expect(result.ok).toBe(false);
-    expect(result.code).toBe("INVALID_OR_PAST_DATE");
+    expect(result.code).toBe("INSUFFICIENT_LEAD_TIME");
+  });
+
+  test("returns INSUFFICIENT_LEAD_TIME when slot is within 24 hours", async () => {
+    // Build a date/time that is exactly 23 hours from now — inside the lead window.
+    const soon = new Date(Date.now() + 23 * 60 * 60 * 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    const requestedDate = `${soon.getFullYear()}-${pad(soon.getMonth() + 1)}-${pad(soon.getDate())}`;
+    const startTime = `${pad(soon.getHours())}:${pad(soon.getMinutes())}`;
+    const result = await requestClass({ ...base(), requestedDate, startTime });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("INSUFFICIENT_LEAD_TIME");
   });
 
   test("returns EDUCATOR_NOT_FOUND when educator has no class_settings", async () => {

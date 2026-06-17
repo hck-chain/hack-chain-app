@@ -18,6 +18,7 @@ async function requestClass({
   hourlyRateUsd,
   studentMessage,
   issuerClassId,
+  requestedTimestampUtc,
 }) {
   if (!models || !studentWallet) {
     throw new TypeError("requestClass requires { models, studentWallet }");
@@ -35,9 +36,28 @@ async function requestClass({
     return { ok: false, code: "INVALID_TIME_FORMAT", httpStatus: 400 };
   }
 
-  const date = new Date(requestedDate);
-  if (isNaN(date.getTime()) || date < new Date()) {
+  // Prefer the UTC timestamp sent by the client — timezone-safe.
+  // Fall back to reconstructing from date+time strings (tests, legacy callers).
+  let classDateTime;
+  if (requestedTimestampUtc) {
+    classDateTime = new Date(requestedTimestampUtc);
+  } else {
+    const date = new Date(requestedDate);
+    if (isNaN(date.getTime())) {
+      return { ok: false, code: "INVALID_OR_PAST_DATE", httpStatus: 400 };
+    }
+    const [startH, startM] = startTime.split(':').map(Number);
+    classDateTime = new Date(date);
+    classDateTime.setHours(startH, startM, 0, 0);
+  }
+
+  if (isNaN(classDateTime.getTime())) {
     return { ok: false, code: "INVALID_OR_PAST_DATE", httpStatus: 400 };
+  }
+
+  const minLeadMs = 24 * 60 * 60 * 1000;
+  if (classDateTime < new Date(Date.now() + minLeadMs)) {
+    return { ok: false, code: "INSUFFICIENT_LEAD_TIME", httpStatus: 400 };
   }
 
   const issuer = await models.Issuer.findOne({
@@ -85,7 +105,7 @@ async function requestClass({
     status: "pending",
   });
 
-  return { ok: true, data: { id: record.id, status: record.status } };
+  return { ok: true, data: { id: record.id, status: record.status, class_name: resolvedClassName } };
 }
 
 module.exports = { requestClass };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
@@ -11,10 +11,11 @@ import { useEducatorProfile } from '@/hooks/useEducatorProfile';
 import { useIssuerClasses } from '@/hooks/useIssuerClasses';
 import { useRequestClass } from '@/hooks/useRequestClass';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/hooks/use-toast';
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { resolveIpfs } from '@/lib/ipfs';
-import { generateSlots, getUpcomingDays } from '@/lib/slots';
+import { generateSlots, getUpcomingDays, filterValidSlots } from '@/lib/slots';
 import type { UpcomingDay } from '@/lib/slots';
 import type { ClassSettings, IssuerClass } from '@/types/dashboard';
 
@@ -48,7 +49,10 @@ function formatFullDate(date: Date, locale: string): string {
 }
 
 function toISODate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function calcPrice(hourlyRate: number | null | undefined, durationMinutes: number): string | null {
@@ -80,10 +84,13 @@ function SlotPicker({ settings, locale, t, prefersReduced, selectedSlot, onSelec
   const selectedDay = upcomingDays[selectedDayIdx];
   const slots =
     selectedDay && availability
-      ? generateSlots(
-          availability[selectedDay.dayKey].start,
-          availability[selectedDay.dayKey].end,
-          selectedDuration
+      ? filterValidSlots(
+          generateSlots(
+            availability[selectedDay.dayKey].start,
+            availability[selectedDay.dayKey].end,
+            selectedDuration
+          ),
+          selectedDay.date
         )
       : [];
 
@@ -251,6 +258,7 @@ const BookEducatorClass = () => {
   const { wallet } = useParams<{ wallet: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { toast } = useToast();
   const prefersReduced = useReducedMotion();
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
   const { data: classesData, isPending: classesLoading } = useIssuerClasses(wallet);
@@ -265,6 +273,10 @@ const BookEducatorClass = () => {
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (submitted) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [submitted]);
+
   const cs = educator?.class_settings;
   const displayName =
     [educator?.name, educator?.lastname].filter(Boolean).join(' ') ||
@@ -278,6 +290,12 @@ const BookEducatorClass = () => {
   function handleConfirm() {
     if (!selectedClass || !wallet) return;
 
+    // Build the absolute UTC timestamp of the selected slot so the backend
+    // can validate lead time without any timezone ambiguity.
+    const slotDt = new Date(selectedClass.date);
+    const [slotH, slotM] = selectedClass.startTime.split(':').map(Number);
+    slotDt.setHours(slotH, slotM, 0, 0);
+
     requestClass(
       {
         issuer_wallet_address: wallet,
@@ -287,8 +305,12 @@ const BookEducatorClass = () => {
         hourly_rate_usd: cs?.hourly_rate_usd ?? null,
         student_message: message.trim() || null,
         issuer_class_id: selectedIssuerClass?.id ?? null,
+        requested_timestamp_utc: slotDt.toISOString(),
       },
-      { onSuccess: () => setSubmitted(true) }
+      {
+        onSuccess: () => setSubmitted(true),
+        onError: () => toast({ title: t('bookClass.errorSubmit'), variant: 'destructive' }),
+      }
     );
   }
 
@@ -322,7 +344,7 @@ const BookEducatorClass = () => {
           </p>
           <button
             onClick={() => navigate(`/educator/${wallet}`)}
-            className="text-sm transition-colors"
+            className="text-sm transition-colors min-h-[44px] px-4 py-2 rounded-xl"
             style={{ color: P.accent }}
           >
             {t('bookClass.backToProfile')}
@@ -352,7 +374,7 @@ const BookEducatorClass = () => {
                   navigate(-1);
                 }
               }}
-              className="flex items-center gap-2 text-sm transition-colors rounded-full px-2 py-1.5 -ml-2"
+              className="flex items-center gap-2 text-sm transition-colors rounded-xl px-3 py-2.5 -ml-2 min-h-[44px]"
               style={{ color: P.textMuted }}
               onMouseEnter={(e) => (e.currentTarget.style.color = P.textPrimary)}
               onMouseLeave={(e) => (e.currentTarget.style.color = P.textMuted)}
@@ -376,12 +398,7 @@ const BookEducatorClass = () => {
               transition={{ duration: prefersReduced ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-28 flex flex-col items-center text-center gap-6"
             >
-              <div
-                className="h-16 w-16 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: P.accentSoft }}
-              >
-                <CheckCircle2 className="h-8 w-8" style={{ color: P.accent }} />
-              </div>
+              <CheckCircle2 className="h-16 w-16" style={{ color: P.accent }} />
               <div className="space-y-2">
                 <p className="text-xl font-bold" style={{ color: P.textPrimary }}>
                   {t('bookClass.successTitle')}
@@ -418,8 +435,8 @@ const BookEducatorClass = () => {
                 </div>
               )}
               <button
-                onClick={() => navigate(`/educator/${wallet}`)}
-                className="text-sm transition-colors"
+                onClick={() => navigate(`/educator/${wallet}`, { replace: true })}
+                className="text-sm transition-colors min-h-[44px] px-4 py-2 rounded-xl"
                 style={{ color: P.accent }}
               >
                 {t('bookClass.backToProfile')}

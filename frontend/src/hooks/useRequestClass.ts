@@ -9,6 +9,7 @@ export interface ClassRequestPayload {
   hourly_rate_usd?: number | null;
   student_message?: string | null;
   issuer_class_id?: number | null;
+  requested_timestamp_utc?: string;
 }
 
 interface ClassRequestResponse {

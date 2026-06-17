@@ -14,6 +14,8 @@ const DAY_INDEX: Record<DayKey, number> = {
   sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6,
 };
 
+export const MIN_LEAD_HOURS = 24;
+
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
@@ -38,23 +40,44 @@ export function generateSlots(start: string, end: string, durationMin: number): 
   return slots;
 }
 
-// Returns the next N days (starting today) that match an enabled day in availability.
+// Removes slots that start within MIN_LEAD_HOURS from now.
+export function filterValidSlots(slots: TimeSlot[], date: Date): TimeSlot[] {
+  const cutoff = new Date(Date.now() + MIN_LEAD_HOURS * 60 * 60 * 1000);
+  return slots.filter((slot) => {
+    const [h, m] = slot.start.split(':').map(Number);
+    const slotDateTime = new Date(date);
+    slotDateTime.setHours(h, m, 0, 0);
+    return slotDateTime >= cutoff;
+  });
+}
+
+// Returns upcoming days that have at least one slot outside the lead-time window.
+// A day is excluded if its availability end time falls before the cutoff — meaning
+// no slot on that day can ever satisfy the MIN_LEAD_HOURS requirement.
 export function getUpcomingDays(availability: WeeklyAvailability, daysAhead = 14): UpcomingDay[] {
   const result: UpcomingDay[] = [];
+  const cutoff = new Date(Date.now() + MIN_LEAD_HOURS * 60 * 60 * 1000);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   for (let i = 0; i < daysAhead; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
-    const jsDay = date.getDay(); // 0 = Sunday
+
+    const jsDay = date.getDay();
     const dayKey = (Object.entries(DAY_INDEX) as [DayKey, number][]).find(
       ([, idx]) => idx === jsDay
     )?.[0];
 
-    if (dayKey && availability[dayKey]?.enabled) {
-      result.push({ date, dayKey });
-    }
+    if (!dayKey || !availability[dayKey]?.enabled) continue;
+
+    // Skip days where the last possible slot start (= end time) is before the cutoff.
+    const [endH, endM] = availability[dayKey].end.split(':').map(Number);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(endH, endM, 0, 0);
+    if (dayEnd <= cutoff) continue;
+
+    result.push({ date, dayKey });
   }
 
   return result;
