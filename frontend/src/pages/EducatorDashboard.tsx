@@ -18,7 +18,8 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck } from 'lucide-react';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell } from 'lucide-react';
+import { usePendingClassRequestsCount } from '@/hooks/usePendingClassRequestsCount';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
@@ -105,6 +106,8 @@ const EducatorDashboard = () => {
 
   const { createCertificate, isLoading } = useCreateCertificate();
   const { toast } = useToast();
+  const { data: pendingData } = usePendingClassRequestsCount();
+  const pendingRequestsCount = pendingData?.count ?? 0;
 
   useSessionTimeout({
     onExpired: () => {
@@ -529,6 +532,21 @@ const EducatorDashboard = () => {
 
               <div className="flex justify-end items-center gap-2">
                 <LanguageToggle />
+
+                {/* Notification badge — class requests */}
+                <Link
+                  to="/educator/class-requests"
+                  className="relative flex items-center justify-center h-9 w-9 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
+                  aria-label={`Solicitudes de clases${pendingRequestsCount > 0 ? ` (${pendingRequestsCount} pendientes)` : ''}`}
+                >
+                  <Bell className="h-4 w-4 text-slate-400" />
+                  {pendingRequestsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 min-w-[16px] px-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-black tabular-nums leading-none">
+                      {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
+                    </span>
+                  )}
+                </Link>
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button

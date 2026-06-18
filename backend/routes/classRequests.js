@@ -60,6 +60,26 @@ router.post("/", authenticate, createLimiter, async (req, res) => {
   }
 });
 
+// GET /api/class-requests/pending-count — lightweight poll for notification badge
+router.get("/pending-count", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educators can access this endpoint" });
+  }
+  try {
+    const { Op } = require("sequelize");
+    const count = await db.ClassRequest.count({
+      where: {
+        issuer_wallet_address: req.auth.wallet.toLowerCase(),
+        status: "pending",
+      },
+    });
+    return res.json({ count });
+  } catch (err) {
+    console.error("GET /class-requests/pending-count error:", err);
+    return res.status(500).json({ error: "Failed to fetch count" });
+  }
+});
+
 // GET /api/class-requests/mine
 router.get("/mine", authenticate, async (req, res) => {
   if (req.auth.role !== "issuer") {
