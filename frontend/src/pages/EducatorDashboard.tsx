@@ -27,7 +27,6 @@ import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
-import { ClassRequestsInbox } from '@/components/dashboard/ClassRequestsInbox';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
@@ -857,9 +856,6 @@ const EducatorDashboard = () => {
                 </div>
               </div>
             </div>
-
-            {/* ── Class requests inbox ── */}
-            <ClassRequestsInbox />
 
             {/* ── Main grid ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
