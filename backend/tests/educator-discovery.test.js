@@ -252,4 +252,131 @@ describe("Educator Discovery", () => {
     });
     expect(res.body.educators).toHaveLength(2);
   });
+
+  // -------------------------------------------------------------------------
+  // GET /api/issuers?area= — expanded search (name, lastname, org, areas)
+  // -------------------------------------------------------------------------
+
+  describe("list: search by name / lastname / org / area", () => {
+    const seedFull = async ({
+      name = "Unknown",
+      lastname = null,
+      org = "Default Org",
+      areas = [],
+      status = "approved",
+    } = {}) => {
+      const w = makeWallet();
+      await User.create({
+        wallet_address: w,
+        role: "issuer",
+        name,
+        lastname,
+        nonce: crypto.randomBytes(16).toString("hex"),
+        educator_approval_status: status,
+      });
+      await Issuer.create({
+        wallet_address: w,
+        organization_name: org,
+        knowledge_areas: areas,
+        certificates_issued: 0,
+      });
+      return w;
+    };
+
+    test("finds educator by partial name (case-insensitive)", async () => {
+      await seedFull({ name: "Carlos", lastname: "Perez" });
+      await seedFull({ name: "Laura",  lastname: "Gomez" });
+
+      const res = await request(app).get("/api/issuers?area=carl").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+      expect(res.body.educators[0].name).toBe("Carlos");
+    });
+
+    test("finds educator by partial lastname (case-insensitive)", async () => {
+      await seedFull({ name: "Ana",  lastname: "Villanueva" });
+      await seedFull({ name: "Marco", lastname: "Reyes" });
+
+      const res = await request(app).get("/api/issuers?area=villa").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+      expect(res.body.educators[0].name).toBe("Ana");
+    });
+
+    test("finds educator by partial organization name", async () => {
+      await seedFull({ name: "Rosa", org: "MIT Academy" });
+      await seedFull({ name: "Juan", org: "Harvard Online" });
+
+      const res = await request(app).get("/api/issuers?area=mit").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+      expect(res.body.educators[0].organization_name).toBe("MIT Academy");
+    });
+
+    test("finds educator by partial knowledge area", async () => {
+      await seedFull({ name: "Eve",  areas: ["Blockchain", "Web3"] });
+      await seedFull({ name: "Bob",  areas: ["Marketing"] });
+
+      const res = await request(app).get("/api/issuers?area=block").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+      expect(res.body.educators[0].name).toBe("Eve");
+    });
+
+    test("search is case-insensitive — uppercase query matches lowercase data", async () => {
+      await seedFull({ name: "sofia", lastname: "ramirez" });
+
+      const res = await request(app).get("/api/issuers?area=SOFIA").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+    });
+
+    test("returns all approved when no area param", async () => {
+      await seedFull({ name: "Alice" });
+      await seedFull({ name: "Bob" });
+
+      const res = await request(app).get("/api/issuers").expect(200);
+
+      expect(res.body.educators).toHaveLength(2);
+    });
+
+    test("returns empty list when nothing matches", async () => {
+      await seedFull({ name: "Carlos", org: "TechLab", areas: ["Python"] });
+
+      const res = await request(app).get("/api/issuers?area=zzznomatch").expect(200);
+
+      expect(res.body.educators).toHaveLength(0);
+      expect(res.body.pagination.total).toBe(0);
+    });
+
+    test("non-approved educator is excluded even when name matches", async () => {
+      await seedFull({ name: "Carlos", status: "approved" });
+      await seedFull({ name: "Carlos", status: "pending_approval" });
+      await seedFull({ name: "Carlos", status: "rejected" });
+
+      const res = await request(app).get("/api/issuers?area=carlos").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+    });
+
+    test("OR logic — one field match is enough to include educator", async () => {
+      // This educator matches org but not name/lastname/areas
+      await seedFull({ name: "Pedro", org: "Blockchain Academy", areas: ["Python"] });
+
+      const res = await request(app).get("/api/issuers?area=blockchain").expect(200);
+
+      expect(res.body.educators).toHaveLength(1);
+    });
+
+    test("multiple matches from different fields return all of them", async () => {
+      await seedFull({ name: "Blockchain", org: "Other Org" });       // matches by name
+      await seedFull({ name: "Maria", org: "Blockchain Institute" }); // matches by org
+      await seedFull({ name: "Luis", areas: ["Blockchain Basics"] }); // matches by area
+      await seedFull({ name: "Unrelated" });
+
+      const res = await request(app).get("/api/issuers?area=blockchain").expect(200);
+
+      expect(res.body.educators).toHaveLength(3);
+    });
+  });
 });

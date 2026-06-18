@@ -40,6 +40,12 @@ function buildApp(models, authPayload) {
       signRefreshToken: () => "ref",
       setAuthCookies: jest.fn(),
     }));
+    jest.doMock("../services/emailService", () => ({
+      notifyClassRequestStatusChange: jest.fn().mockResolvedValue(undefined),
+      notifyNewClassRequest: jest.fn().mockResolvedValue(undefined),
+      notifyAdminEducatorRegistered: jest.fn().mockResolvedValue(undefined),
+      notifyAdminEducatorReapply: jest.fn().mockResolvedValue(undefined),
+    }));
     const issuersRoute = require("../routes/issuers");
     app = express();
     app.use(bodyParser.json());

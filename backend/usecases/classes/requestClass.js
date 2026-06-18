@@ -55,6 +55,10 @@ async function requestClass({
     return { ok: false, code: "INVALID_OR_PAST_DATE", httpStatus: 400 };
   }
 
+  if (classDateTime < new Date()) {
+    return { ok: false, code: "INVALID_OR_PAST_DATE", httpStatus: 400 };
+  }
+
   const minLeadMs = 24 * 60 * 60 * 1000;
   if (classDateTime < new Date(Date.now() + minLeadMs)) {
     return { ok: false, code: "INSUFFICIENT_LEAD_TIME", httpStatus: 400 };

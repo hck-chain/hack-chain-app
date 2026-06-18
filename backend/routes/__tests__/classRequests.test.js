@@ -28,6 +28,10 @@ function buildApp(models, authPayload) {
         next();
       },
     }));
+    jest.doMock("../../services/emailService", () => ({
+      notifyClassRequestStatusChange: jest.fn().mockResolvedValue(undefined),
+      notifyNewClassRequest: jest.fn().mockResolvedValue(undefined),
+    }));
     const route = require("../classRequests");
     app = express();
     app.use(bodyParser.json());
