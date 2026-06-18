@@ -611,7 +611,7 @@ const EducatorDashboard = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
-                      className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors min-h-[36px] px-2 rounded-lg"
+                      className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors min-h-[36px] px-2 rounded-lg"
                       aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
                     >
                       <Bell className="h-[18px] w-[18px] shrink-0" />
