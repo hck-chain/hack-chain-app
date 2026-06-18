@@ -956,5 +956,33 @@
     "back": "Back",
     "prev": "Previous",
     "next": "Next"
+  },
+  "educatorClassRequests": {
+    "title": "Class Requests",
+    "back": "Back",
+    "viewAll": "View all requests",
+    "notifTitle": "Pending requests",
+    "noPending": "No pending requests",
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "history": "History"
+    },
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "actions": {
+      "confirm": "Confirm",
+      "complete": "Complete",
+      "cancel": "Cancel"
+    },
+    "empty": {
+      "pending": "No pending requests",
+      "other": "No requests in this section"
+    }
   }
 }

@@ -956,5 +956,33 @@
     "back": "Volver",
     "prev": "Anterior",
     "next": "Siguiente"
+  },
+  "educatorClassRequests": {
+    "title": "Solicitudes de Clases",
+    "back": "Volver",
+    "viewAll": "Ver todas las solicitudes",
+    "notifTitle": "Solicitudes pendientes",
+    "noPending": "No hay solicitudes pendientes",
+    "tabs": {
+      "all": "Todas",
+      "pending": "Pendientes",
+      "confirmed": "Confirmadas",
+      "history": "Historial"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "confirmed": "Confirmada",
+      "cancelled": "Cancelada",
+      "completed": "Completada"
+    },
+    "actions": {
+      "confirm": "Confirmar",
+      "complete": "Completar",
+      "cancel": "Cancelar"
+    },
+    "empty": {
+      "pending": "No hay solicitudes pendientes",
+      "other": "No hay solicitudes en esta sección"
+    }
   }
 }

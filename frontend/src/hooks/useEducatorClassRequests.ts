@@ -20,9 +20,9 @@ interface ClassRequestsResponse {
 }
 
 export function useEducatorClassRequests() {
-  return useQuery<ClassRequestsResponse>({
-    queryKey: ['class-requests', 'mine'],
-    queryFn: () => api.get<ClassRequestsResponse>('/api/class-requests/mine'),
+  return useQuery<EducatorClassRequest[]>({
+    queryKey: ['class-requests', 'educator-mine'],
+    queryFn: () => api.get<ClassRequestsResponse>('/api/class-requests/mine').then(d => d.requests),
     staleTime: 15_000,
   });
 }
@@ -34,7 +34,7 @@ export function useUpdateClassRequestStatus() {
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       api.patch(`/api/class-requests/${id}/status`, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['class-requests', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['class-requests', 'educator-mine'] });
       queryClient.invalidateQueries({ queryKey: ['class-requests', 'pending-count'] });
     },
   });

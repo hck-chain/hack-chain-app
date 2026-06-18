@@ -9,26 +9,28 @@ import { useEducatorClassRequests, useUpdateClassRequestStatus, type EducatorCla
 type FilterTab = 'all' | 'pending' | 'confirmed' | 'history';
 
 const STATUS_META: Record<EducatorClassRequest['status'], {
-  label: string;
+  labelKey: string;
   className: string;
   icon: React.ElementType;
 }> = {
-  pending:   { label: 'Pendiente',  className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',   icon: Clock },
-  confirmed: { label: 'Confirmada', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: CheckCircle },
-  cancelled: { label: 'Cancelada',  className: 'bg-slate-500/10 text-slate-400 border-slate-500/20',   icon: XCircle },
-  completed: { label: 'Completada', className: 'bg-purple-500/10 text-purple-400 border-purple-500/20', icon: Flag },
+  pending:   { labelKey: 'educatorClassRequests.status.pending',   className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',       icon: Clock },
+  confirmed: { labelKey: 'educatorClassRequests.status.confirmed', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: CheckCircle },
+  cancelled: { labelKey: 'educatorClassRequests.status.cancelled', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20',       icon: XCircle },
+  completed: { labelKey: 'educatorClassRequests.status.completed', className: 'bg-purple-500/10 text-purple-400 border-purple-500/20',   icon: Flag },
 };
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-MX', {
+function formatDate(dateStr: string, locale: string) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString(locale, {
     weekday: 'short', day: 'numeric', month: 'short',
   });
 }
 
 function RequestRow({ request }: { request: EducatorClassRequest }) {
+  const { t, i18n } = useTranslation();
   const { mutate: updateStatus, isPending } = useUpdateClassRequestStatus();
   const meta = STATUS_META[request.status];
   const StatusIcon = meta.icon;
+  const locale = i18n.language.startsWith('es') ? 'es-MX' : 'en-US';
 
   const canConfirm  = request.status === 'pending';
   const canCancel   = request.status === 'pending' || request.status === 'confirmed';
@@ -37,33 +39,29 @@ function RequestRow({ request }: { request: EducatorClassRequest }) {
   return (
     <div className="py-4 border-b border-white/[0.05] last:border-b-0">
       <div className="flex items-start gap-3">
-        {/* Avatar placeholder */}
         <div className="h-9 w-9 rounded-full bg-purple-950/80 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
           <User className="h-4 w-4 text-purple-300" />
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Top row: name + status badge */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px] font-semibold text-white leading-tight">
               {request.student_name || request.student_wallet.slice(0, 8) + '…'}
             </span>
             <span className={`inline-flex items-center gap-1 px-2 py-px rounded text-[10px] font-semibold border ${meta.className}`}>
               <StatusIcon className="h-2.5 w-2.5" />
-              {meta.label}
+              {t(meta.labelKey)}
             </span>
           </div>
 
-          {/* Class name */}
           {request.class_name && (
             <p className="text-xs text-purple-400 mt-0.5 truncate">{request.class_name}</p>
           )}
 
-          {/* Date / time / duration */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5">
             <span className="flex items-center gap-1 text-xs text-slate-400">
               <Calendar className="h-3 w-3 shrink-0" />
-              {formatDate(request.requested_date)} · {request.start_time}
+              {formatDate(request.requested_date, locale)} · {request.start_time}
             </span>
             <span className="flex items-center gap-1 text-xs text-slate-500">
               <Timer className="h-3 w-3 shrink-0" />
@@ -74,14 +72,12 @@ function RequestRow({ request }: { request: EducatorClassRequest }) {
             )}
           </div>
 
-          {/* Student message */}
           {request.student_message && (
             <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 italic">
               "{request.student_message}"
             </p>
           )}
 
-          {/* Action buttons */}
           {(canConfirm || canCancel || canComplete) && (
             <div className="flex flex-wrap gap-2 mt-3">
               {canConfirm && (
@@ -91,7 +87,7 @@ function RequestRow({ request }: { request: EducatorClassRequest }) {
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[36px]"
                 >
                   <CheckCircle className="h-3.5 w-3.5" />
-                  Confirmar
+                  {t('educatorClassRequests.actions.confirm')}
                 </button>
               )}
               {canComplete && (
@@ -101,7 +97,7 @@ function RequestRow({ request }: { request: EducatorClassRequest }) {
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[36px]"
                 >
                   <Flag className="h-3.5 w-3.5" />
-                  Completar
+                  {t('educatorClassRequests.actions.complete')}
                 </button>
               )}
               {canCancel && (
@@ -111,7 +107,7 @@ function RequestRow({ request }: { request: EducatorClassRequest }) {
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] text-slate-500 border border-white/[0.06] hover:text-slate-300 hover:bg-white/[0.07] disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[36px]"
                 >
                   <XCircle className="h-3.5 w-3.5" />
-                  Cancelar
+                  {t('educatorClassRequests.actions.cancel')}
                 </button>
               )}
             </div>
@@ -138,11 +134,11 @@ function RowSkeleton() {
   );
 }
 
-const TABS: { id: FilterTab; label: string }[] = [
-  { id: 'all',       label: 'Todas' },
-  { id: 'pending',   label: 'Pendientes' },
-  { id: 'confirmed', label: 'Confirmadas' },
-  { id: 'history',   label: 'Historial' },
+const TABS: { id: FilterTab; labelKey: string }[] = [
+  { id: 'all',       labelKey: 'educatorClassRequests.tabs.all' },
+  { id: 'pending',   labelKey: 'educatorClassRequests.tabs.pending' },
+  { id: 'confirmed', labelKey: 'educatorClassRequests.tabs.confirmed' },
+  { id: 'history',   labelKey: 'educatorClassRequests.tabs.history' },
 ];
 
 export default function EducatorClassRequests() {
@@ -151,7 +147,7 @@ export default function EducatorClassRequests() {
   const [activeTab, setActiveTab] = useState<FilterTab>('pending');
   const { data, isPending } = useEducatorClassRequests();
 
-  const all = data?.requests ?? [];
+  const all = data ?? [];
 
   const filtered = all.filter((r) => {
     if (activeTab === 'all')       return true;
@@ -165,21 +161,19 @@ export default function EducatorClassRequests() {
 
   return (
     <Layout>
-      {/* Sticky header */}
       <div
         className="sticky top-0 z-20 backdrop-blur-xl border-b border-white/[0.06]"
         style={{ backgroundColor: 'oklch(0.11 0.012 280 / 0.88)' }}
       >
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
-          {/* Top bar */}
           <div className="flex items-center justify-between h-14 gap-2">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors min-h-[44px] px-2 -ml-2 rounded-lg"
-              aria-label="Volver"
+              aria-label={t('educatorClassRequests.back')}
             >
               <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Volver</span>
+              <span className="hidden sm:inline">{t('educatorClassRequests.back')}</span>
             </button>
 
             <div className="flex items-center gap-2">
@@ -189,7 +183,7 @@ export default function EducatorClassRequests() {
                 className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] shrink-0"
               />
               <h1 className="font-title text-sm font-semibold text-white">
-                Solicitudes de Clases
+                {t('educatorClassRequests.title')}
               </h1>
               {pendingCount > 0 && (
                 <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 tabular-nums">
@@ -201,7 +195,6 @@ export default function EducatorClassRequests() {
             <div className="w-16 sm:w-20" aria-hidden="true" />
           </div>
 
-          {/* Filter tabs */}
           <div className="flex border-b border-white/[0.08] -mb-px">
             {TABS.map((tab) => {
               const count = tab.id === 'all' ? all.length
@@ -219,7 +212,7 @@ export default function EducatorClassRequests() {
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                   {count > 0 && (
                     <span className={`text-[10px] tabular-nums ${activeTab === tab.id ? 'text-purple-400' : 'text-slate-600'}`}>
                       {count}
@@ -232,7 +225,6 @@ export default function EducatorClassRequests() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-28">
         {isPending && (
           <div>
@@ -245,8 +237,8 @@ export default function EducatorClassRequests() {
             <Clock className="h-10 w-10 text-slate-700" />
             <p className="text-sm text-slate-500">
               {activeTab === 'pending'
-                ? 'No hay solicitudes pendientes'
-                : 'No hay solicitudes en esta sección'}
+                ? t('educatorClassRequests.empty.pending')
+                : t('educatorClassRequests.empty.other')}
             </p>
           </div>
         )}

@@ -18,15 +18,15 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell } from 'lucide-react';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell, User } from 'lucide-react';
 import { usePendingClassRequestsCount } from '@/hooks/usePendingClassRequestsCount';
+import { useEducatorClassRequests, type EducatorClassRequest } from '@/hooks/useEducatorClassRequests';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '@/contexts/AuthContext';
 import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
-import { ClassRequestsInbox } from '@/components/dashboard/ClassRequestsInbox';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
@@ -74,6 +74,80 @@ interface Talent {
     wallet_address: string;
     email: string;
   };
+}
+
+function NotificationBellPanel() {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { data, isPending } = useEducatorClassRequests();
+  const pending = (data ?? []).filter((r: EducatorClassRequest) => r.status === 'pending').slice(0, 5);
+  const locale = i18n.language.startsWith('es') ? 'es-MX' : 'en-US';
+
+  return (
+    <div>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <span className="text-sm font-semibold text-white">{t('educatorClassRequests.notifTitle')}</span>
+        {pending.length > 0 && (
+          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 tabular-nums">
+            {pending.length}
+          </span>
+        )}
+      </div>
+
+      {isPending ? (
+        <div className="py-5 px-4 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex gap-3 animate-pulse">
+              <div className="h-7 w-7 rounded-full bg-white/[0.06] shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-2.5 w-24 bg-white/[0.05] rounded-full" />
+                <div className="h-2 w-16 bg-white/[0.04] rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : pending.length === 0 ? (
+        <div className="py-8 flex flex-col items-center gap-2">
+          <Bell className="h-7 w-7 text-slate-700" />
+          <p className="text-xs text-slate-500">{t('educatorClassRequests.noPending')}</p>
+        </div>
+      ) : (
+        <div>
+          {pending.map((req: EducatorClassRequest) => (
+            <button
+              key={req.id}
+              onClick={() => navigate('/educator/class-requests')}
+              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/[0.04] border-b border-white/[0.04] last:border-b-0 transition-colors text-left"
+            >
+              <div className="h-7 w-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                <User className="h-3.5 w-3.5 text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate">
+                  {req.student_name || req.student_wallet.slice(0, 8) + '…'}
+                </p>
+                {req.class_name && (
+                  <p className="text-[11px] text-slate-500 truncate mt-px">{req.class_name}</p>
+                )}
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  {new Date(req.requested_date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · {req.start_time}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="px-4 py-3 border-t border-white/[0.06]">
+        <Link
+          to="/educator/class-requests"
+          className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+        >
+          {t('educatorClassRequests.viewAll')} →
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 const EducatorDashboard = () => {
@@ -533,19 +607,29 @@ const EducatorDashboard = () => {
               <div className="flex justify-end items-center gap-2">
                 <LanguageToggle />
 
-                {/* Notification badge — class requests */}
-                <Link
-                  to="/educator/class-requests"
-                  className="relative flex items-center justify-center h-9 w-9 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
-                  aria-label={`Solicitudes de clases${pendingRequestsCount > 0 ? ` (${pendingRequestsCount} pendientes)` : ''}`}
-                >
-                  <Bell className="h-4 w-4 text-slate-400" />
-                  {pendingRequestsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 min-w-[16px] px-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-black tabular-nums leading-none">
-                      {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
-                    </span>
-                  )}
-                </Link>
+                {/* Notification bell — class requests popup */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors min-h-[36px] px-2 rounded-lg"
+                      aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
+                    >
+                      <Bell className="h-[18px] w-[18px] shrink-0" />
+                      {pendingRequestsCount > 0 && (
+                        <span className="text-sm font-bold text-amber-400 tabular-nums leading-none">
+                          {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                        </span>
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-80 p-0 bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden"
+                    align="end"
+                    sideOffset={8}
+                  >
+                    <NotificationBellPanel />
+                  </PopoverContent>
+                </Popover>
 
                 <Popover>
                   <PopoverTrigger asChild>
@@ -646,6 +730,18 @@ const EducatorDashboard = () => {
                           </div>
                         )}
                         
+                        <Link to="/educator/class-requests" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                          <img src="/icons/maletinNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorClassRequests.title')}</p>
+                            <p className="text-sm text-slate-200">
+                              {pendingRequestsCount > 0
+                                ? `${pendingRequestsCount} ${t('educatorClassRequests.tabs.pending').toLowerCase()}`
+                                : t('educatorDashboard.noneYet')}
+                            </p>
+                          </div>
+                        </Link>
+
                         {isAdmin && (
                           <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
                             <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
@@ -714,9 +810,6 @@ const EducatorDashboard = () => {
                 </div>
               </div>
             </div>
-
-            {/* ── Class requests inbox ── */}
-            <ClassRequestsInbox />
 
             {/* ── Main grid ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
