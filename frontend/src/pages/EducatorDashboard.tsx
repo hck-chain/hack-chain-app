@@ -611,12 +611,12 @@ const EducatorDashboard = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
-                      className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors min-h-[36px] px-2 rounded-lg"
+                      className="relative flex items-center justify-center text-slate-300 hover:text-white transition-colors min-h-[36px] w-9 rounded-lg"
                       aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
                     >
                       <Bell className="h-[18px] w-[18px] shrink-0" />
                       {pendingRequestsCount > 0 && (
-                        <span className="text-sm font-bold text-amber-400 tabular-nums leading-none">
+                        <span className="absolute top-1 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums leading-[16px] text-center">
                           {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
                         </span>
                       )}
