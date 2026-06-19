@@ -224,7 +224,14 @@
     "sessionExpiredTitle": "Session expired",
     "sessionExpiredDesc": "Your session was closed due to inactivity.",
     "classesLabel": "Classes",
-    "classesHint": "View my requests"
+    "classesHint": "View my requests",
+    "bellAriaLabel": "Class notifications",
+    "bellTitle": "Class updates",
+    "bellEmpty": "No recent updates",
+    "bellViewAll": "View all my requests",
+    "bellStatusConfirmed": "Class confirmed",
+    "bellStatusCancelled": "Request cancelled",
+    "bellStatusCompleted": "Class completed"
   },
   "talentClasses": {
     "title": "My classes",
@@ -238,7 +245,12 @@
     "sectionActive": "Active",
     "sectionHistory": "History",
     "duration": "{{minutes}} min",
-    "price": "${{amount}}/h"
+    "price": "${{amount}}/h",
+    "cancelRequest": "Cancel",
+    "confirmCancel": "Withdraw?",
+    "cancelYes": "Yes",
+    "cancelNo": "No",
+    "cancelReasonPlaceholder": "Reason (optional)"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",
@@ -980,9 +992,23 @@
       "complete": "Complete",
       "cancel": "Cancel"
     },
+    "cancelReasonPlaceholder": "Cancellation reason (optional)",
+    "confirmCancel": "Cancel this class?",
+    "cancelYes": "Yes, cancel",
+    "cancelNo": "No",
     "empty": {
       "pending": "No pending requests",
       "other": "No requests in this section"
     }
+  },
+  "calendar": {
+    "addToCalendar": "Add to calendar",
+    "googleCalendar": "Google Calendar",
+    "downloadIcs": "Download .ics",
+    "today": "Today",
+    "noEvents": "No classes on this day.",
+    "emptyTalent": "No classes scheduled yet. Explore educators and book your first session.",
+    "emptyEducator": "No classes scheduled yet.",
+    "myCalendar": "My Calendar"
   }
 }

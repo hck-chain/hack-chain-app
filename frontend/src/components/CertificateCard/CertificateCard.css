@@ -300,6 +300,17 @@
 }
 
 /* --- Fix para Captura de Imagen (html2canvas) --- */
+.pc-card-wrapper.is-capturing {
+  /* Remove 3D context and zoom so html2canvas gets accurate bounding rects */
+  perspective: none !important;
+  transform: none !important;
+  zoom: 1 !important;
+}
+
+.pc-card-wrapper.is-capturing::before {
+  display: none !important;
+}
+
 .pc-card.is-capturing {
   transform: none !important;
   animation: none !important;
@@ -313,10 +324,6 @@
 
 .pc-card.is-capturing .pc-shine,
 .pc-card.is-capturing .pc-glare {
-  display: none !important;
-}
-
-.pc-card-wrapper.is-capturing::before {
   display: none !important;
 }
 

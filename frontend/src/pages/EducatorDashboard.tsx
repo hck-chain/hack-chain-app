@@ -179,6 +179,7 @@ const EducatorDashboard = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { createCertificate, isLoading } = useCreateCertificate();
+  const [isMinting, setIsMinting] = useState(false);
   const { toast } = useToast();
   const { data: pendingData } = usePendingClassRequestsCount();
   const pendingRequestsCount = pendingData?.count ?? 0;
@@ -332,6 +333,8 @@ const EducatorDashboard = () => {
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
+    if (isMinting) return;
+
     if (!userData?.walletAddress) {
       toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
       navigate('/login');
@@ -343,13 +346,18 @@ const EducatorDashboard = () => {
       return;
     }
 
+    setIsMinting(true);
     try {
       const container = cardRef.current;
       if (!container) return;
 
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+      const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
 
-      // ✅ Ocultamos shine y glare antes de capturar para evitar colores quemados
+      // Neutralize 3D context and CSS zoom on the wrapper — html2canvas reads bounding
+      // rects from the real DOM (which may be zoomed on mobile), but renders with
+      // windowWidth: 1920 (no zoom). Without this, the size mismatch clips the content.
+      if (wrapper) wrapper.classList.add('is-capturing');
       const shine = card.querySelector('.pc-shine') as HTMLElement | null;
       const glare = card.querySelector('.pc-glare') as HTMLElement | null;
       if (shine) shine.style.display = 'none';
@@ -368,13 +376,15 @@ const EducatorDashboard = () => {
         scale: 2,
         useCORS: true,
         logging: false,
-        windowWidth: 1920, // Forces desktop layout inside the capture iframe to avoid mobile zoom issues
+        windowWidth: 1920,
+        windowHeight: 1080,
       });
 
       // Restauramos shine y glare después de capturar
       if (shine) shine.style.display = '';
       if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
+      if (wrapper) wrapper.classList.remove('is-capturing');
 
       const imageBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
@@ -429,6 +439,8 @@ const EducatorDashboard = () => {
           if (shine) shine.style.display = '';
           if (glare) glare.style.display = '';
           card.classList.remove('is-capturing');
+          const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
+          if (wrapper) wrapper.classList.remove('is-capturing');
         }
       }
       console.error('Full creation process error:', error);
@@ -437,6 +449,8 @@ const EducatorDashboard = () => {
         description: error.message || t('educatorDashboard.errorUnexpected'),
         variant: "destructive",
       });
+    } finally {
+      setIsMinting(false);
     }
   };
 
@@ -446,10 +460,11 @@ const EducatorDashboard = () => {
     if (!container) return;
 
     const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+    const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
     const shine = card.querySelector('.pc-shine') as HTMLElement | null;
     const glare = card.querySelector('.pc-glare') as HTMLElement | null;
 
-    // Ocultamos shine y glare antes de capturar
+    if (wrapper) wrapper.classList.add('is-capturing');
     if (shine) shine.style.display = 'none';
     if (glare) glare.style.display = 'none';
     card.classList.add('is-capturing');
@@ -464,6 +479,8 @@ const EducatorDashboard = () => {
         logging: false,
         allowTaint: true,
         imageTimeout: 0,
+        windowWidth: 1920,
+        windowHeight: 1080,
       });
 
       const dataUrl = canvas.toDataURL('image/png');
@@ -485,10 +502,10 @@ const EducatorDashboard = () => {
         variant: "destructive",
       });
     } finally {
-      // Siempre restauramos shine y glare al terminar
       if (shine) shine.style.display = '';
       if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
+      if (wrapper) wrapper.classList.remove('is-capturing');
     }
   };
 
@@ -931,10 +948,10 @@ const EducatorDashboard = () => {
                       <Button
                         type="button"
                         onClick={handleCreateCertificate}
-                        disabled={isLoading}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        disabled={isMinting || isLoading}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
                       >
-                        {isLoading ? (
+                        {(isMinting || isLoading) ? (
                           <span className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             {t('educatorDashboard.creating')}

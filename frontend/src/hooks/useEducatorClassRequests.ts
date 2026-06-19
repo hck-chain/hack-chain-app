@@ -31,8 +31,11 @@ export function useUpdateClassRequestStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      api.patch(`/api/class-requests/${id}/status`, { status }),
+    mutationFn: ({ id, status, cancellationReason }: { id: number; status: string; cancellationReason?: string }) =>
+      api.patch(`/api/class-requests/${id}/status`, {
+        status,
+        cancellation_reason: cancellationReason || undefined,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['class-requests', 'educator-mine'] });
       queryClient.invalidateQueries({ queryKey: ['class-requests', 'pending-count'] });

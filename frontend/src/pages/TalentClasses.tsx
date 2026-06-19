@@ -1,116 +1,278 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, CalendarDays, Clock, BookOpen, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, CalendarDays, Clock, ChevronRight, CalendarPlus, Download, Calendar } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { useMyClassRequests, type MyClassRequest } from '@/hooks/useMyClassRequests';
+import { resolveIpfs } from '@/lib/ipfs';
+import { useMyClassRequests, useCancelClassRequest, type MyClassRequest } from '@/hooks/useMyClassRequests';
+import { buildGoogleCalendarUrl, downloadICS } from '@/utils/calendarUtils';
 
 type StatusKey = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
-const CARD_STYLES: Record<StatusKey, { wrapper: string; badge: string }> = {
-  pending:   { wrapper: 'bg-amber-500/[0.06] border-amber-500/20',    badge: 'bg-amber-500/15 text-amber-300 border-amber-500/25' },
-  confirmed: { wrapper: 'bg-emerald-500/[0.06] border-emerald-500/20', badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' },
-  cancelled: { wrapper: 'bg-white/[0.02] border-white/8',              badge: 'bg-white/5 text-slate-500 border-white/10' },
-  completed: { wrapper: 'bg-purple-500/[0.05] border-purple-500/15',   badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
+
+const STATUS_DOT: Record<StatusKey, string> = {
+  pending:   'bg-amber-400',
+  confirmed: 'bg-emerald-400',
+  cancelled: 'bg-slate-600',
+  completed: 'bg-slate-500',
+};
+
+const STATUS_TEXT: Record<StatusKey, string> = {
+  pending:   'text-amber-500',
+  confirmed: 'text-emerald-500',
+  cancelled: 'text-slate-600',
+  completed: 'text-slate-500',
 };
 
 function formatDate(dateStr: string) {
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
-function SkeletonCard() {
+function EduAvatar({ photo, label }: { photo: string | null; label: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const initial = label.trim()[0]?.toUpperCase() ?? '?';
+
+  const resolvedSrc = resolveIpfs(photo);
+
+  if (resolvedSrc && !imgFailed) {
+    return (
+      <img
+        src={resolvedSrc}
+        alt={label}
+        className="h-10 w-10 rounded-full object-cover shrink-0 border border-white/[0.08]"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
   return (
-    <div className="rounded-2xl bg-white/[0.03] border border-white/8 p-5 animate-pulse">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="h-4 w-36 bg-white/8 rounded-full" />
-        <div className="h-6 w-20 bg-white/8 rounded-lg shrink-0" />
-      </div>
-      <div className="h-3 w-28 bg-white/5 rounded-full mb-4" />
-      <div className="h-px bg-white/5 mb-4" />
-      <div className="flex items-center justify-between">
-        <div className="flex gap-3">
-          <div className="h-3 w-24 bg-white/5 rounded-full" />
-          <div className="h-3 w-12 bg-white/5 rounded-full" />
-        </div>
-        <div className="h-3 w-16 bg-white/5 rounded-full" />
-      </div>
+    <div className="h-10 w-10 rounded-full bg-white/[0.12] border border-white/[0.1] flex items-center justify-center shrink-0 select-none">
+      <span className="text-[13px] font-semibold text-slate-200 leading-none">{initial}</span>
     </div>
   );
 }
 
-function ClassCard({ req }: { req: MyClassRequest }) {
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-3 py-3.5 border-b border-white/[0.05] animate-pulse last:border-b-0">
+      <div className="h-10 w-10 rounded-full bg-white/[0.06] shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 w-36 bg-white/[0.07] rounded-full" />
+        <div className="h-2.5 w-52 bg-white/[0.04] rounded-full" />
+      </div>
+      <div className="h-3 w-14 bg-white/[0.04] rounded-full shrink-0" />
+    </div>
+  );
+}
+
+function CalendarActions({ req }: { req: MyClassRequest }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const status = req.status as StatusKey;
-  const styles = CARD_STYLES[status] ?? CARD_STYLES.cancelled;
-  const statusLabel = t(`classInbox.status.${req.status}`, req.status);
+  const shouldReduceMotion = useReducedMotion();
+
+  const title = req.class_name
+    ? `Clase: ${req.class_name}`
+    : req.issuer_organization
+    ? `Clase con ${req.issuer_organization}`
+    : 'Clase — HackChain';
+
+  const params = {
+    title,
+    requestedDate: req.requested_date,
+    startTime: req.start_time,
+    durationMinutes: req.duration_minutes,
+    description: [
+      req.issuer_organization ? `Educador: ${req.issuer_organization}` : null,
+      req.class_name ? `Clase: ${req.class_name}` : null,
+      'Sesión privada reservada a través de HackChain.',
+    ].filter(Boolean).join('\n'),
+    uid: `hackchain-class-${req.id}@hackchain.app`,
+  };
 
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 6 }}
+    <div className="flex items-center gap-0.5 mt-2">
+      <motion.a
+        href={buildGoogleCalendarUrl(params)}
+        target="_blank"
+        rel="noopener noreferrer"
+        whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+        transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+        className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px]"
+        style={{ transition: 'color 150ms ease-out, background-color 150ms ease-out' }}
+      >
+        <CalendarPlus className="h-3 w-3 shrink-0" />
+        {t('calendar.googleCalendar')}
+      </motion.a>
+      <motion.button
+        whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+        transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+        onClick={() => downloadICS(params)}
+        className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-300 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px]"
+        style={{ transition: 'color 150ms ease-out, background-color 150ms ease-out' }}
+        title={t('calendar.downloadIcs')}
+      >
+        <Download className="h-3 w-3 shrink-0" />
+        .ics
+      </motion.button>
+    </div>
+  );
+}
+
+function ClassRow({ req, index }: { req: MyClassRequest; index: number }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
+  const { mutate: cancelRequest, isPending: isCancelling } = useCancelClassRequest();
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const status = req.status as StatusKey;
+  const statusLabel = t(`classInbox.status.${status}`, status);
+  const label = req.issuer_organization || req.issuer_wallet;
+
+  return (
+    <motion.div
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className={`rounded-2xl border p-5 ${styles.wrapper}`}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, delay: Math.min(index, 5) * 0.038, ease: EASE }}
+      className="border-b border-white/[0.05] last:border-b-0 group"
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <p className="font-title text-[15px] font-semibold text-white leading-snug">
-          {req.issuer_organization || `${req.issuer_wallet.slice(0, 6)}…${req.issuer_wallet.slice(-4)}`}
-        </p>
-        <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold border tracking-wide ${styles.badge}`}>
-          {statusLabel}
-        </span>
-      </div>
+      <div className="flex items-start gap-3 py-3.5">
+        <EduAvatar photo={req.issuer_photo} label={label} />
 
-      {req.class_name && (
-        <div className="flex items-center gap-1.5 text-xs text-purple-400/80 mb-4">
-          <BookOpen className="h-3 w-3 shrink-0" />
-          <span className="truncate italic">{req.class_name}</span>
-        </div>
-      )}
+        <div className="flex-1 min-w-0">
+          {/* Row header: name + status */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-white truncate leading-snug">
+                {req.issuer_organization
+                  ? req.issuer_organization
+                  : `${req.issuer_wallet.slice(0, 6)}…${req.issuer_wallet.slice(-4)}`}
+              </p>
+              {req.class_name && (
+                <p className="text-xs text-slate-500 mt-0.5 truncate">{req.class_name}</p>
+              )}
+            </div>
 
-      <div className="h-px bg-white/[0.06] mb-4" />
+            {/* Status: dot + label — no border, no background */}
+            <div className="flex items-center gap-1.5 shrink-0 mt-[3px]">
+              <span className={`h-[6px] w-[6px] rounded-full shrink-0 ${STATUS_DOT[status]}`} />
+              <span className={`text-[11px] font-medium ${STATUS_TEXT[status]}`}>{statusLabel}</span>
+            </div>
+          </div>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="h-3 w-3 shrink-0 text-slate-500" />
-            {formatDate(req.requested_date)} · {req.start_time}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Clock className="h-3 w-3 shrink-0 text-slate-500" />
-            {t('talentClasses.duration', { minutes: req.duration_minutes })}
-          </span>
-          {req.hourly_rate_usd && (
-            <span className="text-slate-500 tabular-nums">
-              {t('talentClasses.price', { amount: parseFloat(req.hourly_rate_usd).toFixed(0) })}
+          {/* Meta: date + time + duration */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[12px] text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="h-[11px] w-[11px] shrink-0" />
+              {formatDate(req.requested_date)} · {req.start_time}
             </span>
-          )}
-        </div>
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-[11px] w-[11px] shrink-0" />
+              {req.duration_minutes} min
+            </span>
+            {req.hourly_rate_usd && (
+              <span className="tabular-nums">
+                ${parseFloat(String(req.hourly_rate_usd)).toFixed(0)} USD
+              </span>
+            )}
+          </div>
 
-        <button
-          onClick={() => navigate(`/educator/${req.issuer_wallet}`)}
-          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-purple-400 transition-colors min-h-[44px] px-2 rounded-lg hover:bg-white/5 active:bg-white/8 -mr-2"
-          aria-label={`Ver perfil de ${req.issuer_organization || req.issuer_wallet}`}
-        >
-          {t('talentClasses.viewProfile')}
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+          {/* Actions row */}
+          <div className="flex items-center justify-between mt-1.5">
+            <button
+              onClick={() => navigate(`/educator/${req.issuer_wallet}`)}
+              className="inline-flex items-center gap-0.5 text-[12px] text-slate-600 hover:text-slate-300 min-h-[36px] -ml-0.5 px-1 rounded-lg"
+              style={{ transition: 'color 150ms ease-out' }}
+              aria-label={`Ver perfil de ${label}`}
+            >
+              {t('talentClasses.viewProfile')}
+              <ChevronRight className="h-3 w-3 shrink-0" />
+            </button>
+
+            {/* Cancel — only for pending requests */}
+            {status === 'pending' && (
+              <AnimatePresence mode="wait" initial={false}>
+                {confirmCancel ? (
+                  <motion.div
+                    key="confirm"
+                    initial={{ opacity: 0, x: 6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 6 }}
+                    transition={{ duration: 0.14, ease: EASE }}
+                    className="flex flex-col items-end gap-1.5 w-full"
+                  >
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder={t('talentClasses.cancelReasonPlaceholder', 'Motivo (opcional)')}
+                      maxLength={500}
+                      rows={2}
+                      className="w-full text-[11px] text-slate-300 placeholder:text-slate-600 bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 resize-none focus:outline-none focus:border-white/[0.15] transition-colors duration-150"
+                    />
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] text-slate-500 mr-1">
+                        {t('talentClasses.confirmCancel', '¿Retirar?')}
+                      </span>
+                      <motion.button
+                        whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+                        transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+                        disabled={isCancelling}
+                        onClick={() => cancelRequest({ id: req.id, reason: cancelReason.trim() || undefined })}
+                        className="text-[11px] font-medium text-red-500 hover:text-red-400 min-h-[36px] px-2 rounded-lg hover:bg-red-500/[0.07] disabled:opacity-40 transition-colors duration-150"
+                      >
+                        {t('talentClasses.cancelYes', 'Sí')}
+                      </motion.button>
+                      <motion.button
+                        whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+                        transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+                        onClick={() => { setConfirmCancel(false); setCancelReason(''); }}
+                        className="text-[11px] text-slate-600 hover:text-slate-300 min-h-[36px] px-2 rounded-lg hover:bg-white/[0.05] transition-colors duration-150"
+                      >
+                        {t('talentClasses.cancelNo', 'No')}
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="trigger"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+                    onClick={() => setConfirmCancel(true)}
+                    className="text-[11px] text-slate-400 hover:text-red-400 min-h-[36px] px-2 rounded-lg hover:bg-red-500/[0.06] transition-colors duration-150"
+                  >
+                    {t('talentClasses.cancelRequest', 'Cancelar')}
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            )}
+          </div>
+
+          {/* Calendar shortcuts — confirmed only */}
+          {status === 'confirmed' && <CalendarActions req={req} />}
+        </div>
       </div>
-    </motion.article>
+    </motion.div>
   );
 }
 
 function SectionLabel({ label, count }: { label: string; count?: number }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</span>
-      {count !== undefined && count > 0 && (
-        <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-white/8 text-[9px] font-bold text-slate-500 tabular-nums">
-          {count}
-        </span>
+    <div className="flex items-center gap-2 pb-1 pt-2">
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+        {label}
+      </span>
+      {count != null && count > 0 && (
+        <span className="text-[10px] font-bold text-slate-700 tabular-nums">{count}</span>
       )}
     </div>
   );
@@ -119,105 +281,121 @@ function SectionLabel({ label, count }: { label: string; count?: number }) {
 export default function TalentClasses() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
   const { data: requests, isPending } = useMyClassRequests();
 
-  const active  = requests?.filter((r) => r.status === 'pending' || r.status === 'confirmed') ?? [];
-  const history = requests?.filter((r) => r.status === 'completed' || r.status === 'cancelled') ?? [];
-
-  const pendingCount   = requests?.filter((r) => r.status === 'pending').length ?? 0;
-  const confirmedCount = requests?.filter((r) => r.status === 'confirmed').length ?? 0;
-  const totalCount     = requests?.length ?? 0;
-
-  const hasAny = totalCount > 0;
+  const active  = requests?.filter(r => r.status === 'pending' || r.status === 'confirmed') ?? [];
+  const history = requests?.filter(r => r.status === 'completed' || r.status === 'cancelled') ?? [];
+  const pendingCount   = requests?.filter(r => r.status === 'pending').length ?? 0;
+  const confirmedCount = requests?.filter(r => r.status === 'confirmed').length ?? 0;
+  const hasAny = (requests?.length ?? 0) > 0;
 
   return (
     <Layout>
       <div className="min-h-screen font-body text-slate-200">
-        {/* Top bar */}
-        <div className="sticky top-0 z-20 backdrop-blur-xl border-b border-white/8" style={{ backgroundColor: 'oklch(0.11 0.012 280 / 0.85)' }}>
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-            <button
+        {/* Header */}
+        <div
+          className="sticky top-0 z-20 border-b border-white/[0.06]"
+          style={{
+            backgroundColor: 'oklch(0.11 0.012 280 / 0.92)',
+            backdropFilter: 'blur(20px) saturate(1.4)',
+          }}
+        >
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
+            <motion.button
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
               onClick={() => navigate('/dashboard/talent')}
-              className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors rounded-xl px-3 py-2.5 -ml-2 min-h-[44px]"
+              className="h-9 w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-white/[0.06] shrink-0"
+              style={{ transition: 'color 150ms ease-out, background-color 150ms ease-out' }}
               aria-label="Volver al dashboard"
             >
-              <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline text-sm">{t('talentClasses.backToDashboard')}</span>
-            </button>
+              <ArrowLeft className="h-4 w-4" />
+            </motion.button>
 
-            <div className="flex items-center gap-2">
-              <img src="/icons/libroNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.7)]" alt="" />
-              <span className="font-title text-sm font-semibold text-white">{t('talentClasses.title')}</span>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-title text-[15px] font-semibold text-white leading-none truncate">
+                {t('talentClasses.title')}
+              </h1>
               {confirmedCount > 0 && (
-                <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold tabular-nums">
-                  {confirmedCount}
-                </span>
+                <p className="text-[11px] text-emerald-500 mt-0.5 leading-none">
+                  {confirmedCount} {t('talentClasses.confirmed')}
+                </p>
               )}
             </div>
 
-            <div className="w-[72px]" aria-hidden="true" />
+            <motion.button
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+              onClick={() => navigate('/calendar')}
+              className="h-9 w-9 flex items-center justify-center rounded-full text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
+              aria-label="Ver calendario"
+            >
+              <Calendar className="h-4 w-4" />
+            </motion.button>
           </div>
         </div>
 
         <motion.main
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-28"
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.18 }}
+          className="max-w-2xl mx-auto px-4 sm:px-6 pt-3 pb-28"
         >
-          {/* Skeleton */}
+          {/* Loading */}
           {isPending && (
-            <div className="space-y-3">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
+            <div>
+              {[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}
             </div>
           )}
 
-          {/* Empty state */}
+          {/* Empty */}
           {!isPending && !hasAny && (
-            <div className="mt-16 flex flex-col items-center text-center px-4 space-y-5">
-              <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/8">
-                <CalendarDays className="h-7 w-7 text-slate-600" />
-              </div>
-              <div className="space-y-1.5 max-w-[260px]">
+            <motion.div
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, ease: EASE }}
+              className="mt-24 flex flex-col items-center text-center gap-3"
+            >
+              <CalendarDays className="h-7 w-7 text-slate-700" />
+              <div className="space-y-1 max-w-[220px]">
                 <p className="text-sm font-medium text-slate-400">{t('talentClasses.empty')}</p>
                 <p className="text-xs text-slate-600 leading-relaxed">{t('talentClasses.emptyHint')}</p>
               </div>
               <button
                 onClick={() => navigate('/educators')}
-                className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm text-purple-400 hover:bg-purple-500/15 hover:text-purple-300 transition-colors active:bg-purple-500/20"
+                className="inline-flex items-center gap-1 text-sm text-purple-400 hover:text-purple-300 mt-1 min-h-[44px]"
+                style={{ transition: 'color 150ms ease-out' }}
               >
                 {t('talentClasses.discover')}
                 <ChevronRight className="h-4 w-4" />
               </button>
-            </div>
+            </motion.div>
           )}
 
-          {/* Active section */}
+          {/* Active classes */}
           {!isPending && active.length > 0 && (
-            <section className="mb-8">
-              <SectionLabel label={t('talentClasses.sectionActive')} count={pendingCount || undefined} />
+            <section className="mb-5">
+              <SectionLabel
+                label={t('talentClasses.sectionActive')}
+                count={pendingCount || undefined}
+              />
               <AnimatePresence mode="popLayout">
-                <div className="space-y-3">
-                  {active.map((req) => (
-                    <ClassCard key={req.id} req={req} />
-                  ))}
-                </div>
+                {active.map((req, i) => (
+                  <ClassRow key={req.id} req={req} index={i} />
+                ))}
               </AnimatePresence>
             </section>
           )}
 
-          {/* History section */}
+          {/* History */}
           {!isPending && history.length > 0 && (
             <section>
               <SectionLabel label={t('talentClasses.sectionHistory')} />
               <AnimatePresence mode="popLayout">
-                <div className="space-y-3">
-                  {history.map((req) => (
-                    <ClassCard key={req.id} req={req} />
-                  ))}
-                </div>
+                {history.map((req, i) => (
+                  <ClassRow key={req.id} req={req} index={i} />
+                ))}
               </AnimatePresence>
             </section>
           )}

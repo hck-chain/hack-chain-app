@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Award, BadgeCheck, CalendarDays } from 'lucide-react';
+import { BadgeCheck, BookOpen } from 'lucide-react';
 import type { FeaturedEducator } from '@/types/dashboard';
 
 interface Props {
@@ -33,50 +32,81 @@ const FeaturedEducatorCard = ({ educator }: Props) => {
     educator.organization_name ||
     educator.wallet_address.slice(0, 8);
 
+  const showOrg =
+    educator.organization_name && educator.organization_name !== displayName;
+
+  const area = educator.knowledge_areas[0] ?? null;
+  const extraAreas = educator.knowledge_areas.length - 1;
+  const photoSrc = resolveIpfs(educator.photo_url);
+
   return (
     <button
       onClick={() => navigate(`/educator/${educator.wallet_address}`)}
-      className="w-full text-left flex items-start gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] hover:border-white/20 active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40"
+      className="group w-full text-left rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30"
+      style={{ transition: 'transform 120ms ease-out, border-color 150ms ease-out' }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)')}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
       aria-label={`${t('discover.viewProfile')} ${displayName}`}
     >
-      <Avatar className="h-11 w-11 shrink-0 ring-1 ring-white/10">
-        <AvatarImage src={resolveIpfs(educator.photo_url)} alt={displayName} />
-        <AvatarFallback className="bg-purple-950/80 text-purple-200 text-sm font-bold border border-purple-500/20">
-          {initials(educator.name, educator.organization_name)}
-        </AvatarFallback>
-      </Avatar>
+      {/* Photo */}
+      <div className="relative w-full aspect-[4/5] overflow-hidden bg-white/[0.06]">
+        {photoSrc ? (
+          <img
+            src={photoSrc}
+            alt={displayName}
+            className="w-full h-full object-cover object-center"
+            style={{ transition: 'transform 300ms ease-out' }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
+            <span className="text-4xl font-black text-white/20 select-none">
+              {initials(educator.name, educator.organization_name)}
+            </span>
+          </div>
+        )}
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-sm font-semibold text-white truncate leading-tight">{displayName}</p>
-          <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-purple-400" />
+        {/* Bottom gradient overlay with name */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <div className="flex items-center gap-1 min-w-0">
+            <p className="text-[13px] font-bold text-white leading-tight truncate drop-shadow-sm">
+              {displayName}
+            </p>
+            <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-purple-300/80" />
+          </div>
+          {showOrg && (
+            <p className="text-[11px] text-white/60 truncate mt-0.5 leading-tight">
+              {educator.organization_name}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Info strip below photo */}
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          {area ? (
+            <span className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
+              <BookOpen className="h-[10px] w-[10px] shrink-0" />
+              {area}
+              {extraAreas > 0 && ` +${extraAreas}`}
+            </span>
+          ) : educator.bio ? (
+            <span className="text-[11px] text-slate-500 truncate block">{educator.bio}</span>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
           {educator.has_classes && (
-            <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+            <span className="text-[10px] font-medium text-emerald-500">
               {t('discover.hasClasses')}
             </span>
           )}
-        </div>
-
-        {educator.organization_name && educator.organization_name !== displayName && (
-          <p className="text-xs text-slate-400 truncate leading-tight mt-0.5">
-            {educator.organization_name}
-          </p>
-        )}
-
-        {educator.bio && (
-          <p className="text-xs text-slate-500 mt-1 line-clamp-1">{educator.bio}</p>
-        )}
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
-          <span className="flex items-center gap-1 text-xs text-slate-500 tabular-nums">
-            <Award className="h-3 w-3" />
-            {educator.certificates_issued} {t('discover.certs')}
-          </span>
-          {educator.knowledge_areas.length > 0 && (
-            <span className="flex items-center gap-1 text-xs text-slate-500">
-              <CalendarDays className="h-3 w-3" />
-              {educator.knowledge_areas[0]}
-              {educator.knowledge_areas.length > 1 && ` +${educator.knowledge_areas.length - 1}`}
+          {educator.certificates_issued > 0 && (
+            <span className="text-[11px] text-slate-600 tabular-nums">
+              {educator.certificates_issued}c
             </span>
           )}
         </div>

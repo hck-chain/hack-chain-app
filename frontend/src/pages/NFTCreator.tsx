@@ -42,14 +42,16 @@ const NFTCreator = () => {
 
     // Target the actual card node
     const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+    const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
     const shine = card.querySelector('.pc-shine') as HTMLElement | null;
     const glare = card.querySelector('.pc-glare') as HTMLElement | null;
 
-    // Temporarily disable overlays/animations that can break rendering
     const prevShineDisplay = shine?.style.display;
     const prevGlareDisplay = glare?.style.display;
+    if (wrapper) wrapper.classList.add('is-capturing');
     if (shine) shine.style.display = 'none';
     if (glare) glare.style.display = 'none';
+    card.classList.add('is-capturing');
     card.classList.remove('active');
 
     try {
@@ -60,6 +62,7 @@ const NFTCreator = () => {
         logging: false,
         allowTaint: true,
         windowWidth: 1920,
+        windowHeight: 1080,
       });
       const dataUrl = canvas.toDataURL('image/png');
 
@@ -81,9 +84,10 @@ const NFTCreator = () => {
         variant: "destructive",
       });
     } finally {
-      // Restore
       if (shine) shine.style.display = prevShineDisplay ?? '';
       if (glare) glare.style.display = prevGlareDisplay ?? '';
+      card.classList.remove('is-capturing');
+      if (wrapper) wrapper.classList.remove('is-capturing');
     }
   };
 

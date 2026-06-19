@@ -31,6 +31,29 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 'pending',
       validate: { isIn: [['pending', 'confirmed', 'cancelled', 'completed']] },
     },
+    // Payment fields — populated when HackEscrow contract is deployed
+    payment_status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'unpaid',
+      validate: { isIn: [['unpaid', 'escrowed', 'released', 'refunded']] },
+    },
+    amount_hack: {
+      type: DataTypes.DECIMAL(28, 8),
+      allowNull: true,
+    },
+    escrow_tx_hash: {
+      type: DataTypes.STRING(66),
+      allowNull: true,
+    },
+    release_tx_hash: {
+      type: DataTypes.STRING(66),
+      allowNull: true,
+    },
+    cancellation_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   }, {
     tableName: 'class_requests',
     underscored: true,

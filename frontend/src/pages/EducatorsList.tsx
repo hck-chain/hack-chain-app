@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Search, X, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Layout from '@/components/Layout';
+import FeaturedEducatorCard from '@/components/FeaturedEducatorCard/FeaturedEducatorCard';
 import { useEducatorsList } from '@/hooks/useEducatorsList';
-import type { FeaturedEducator } from '@/types/dashboard';
+
+const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -17,98 +18,13 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-function resolveIpfs(url: string | null): string {
-  if (!url) return '';
-  return url.startsWith('ipfs://')
-    ? url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
-    : url;
-}
-
-function initials(name: string | null, org: string | null): string {
-  const source = name || org || '?';
-  return source.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
-}
-
-function EducatorRow({ educator }: { educator: FeaturedEducator }) {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-
-  const displayName =
-    [educator.name, educator.lastname].filter(Boolean).join(' ') ||
-    educator.organization_name ||
-    educator.wallet_address.slice(0, 8);
-
-  const showOrg = educator.organization_name && educator.organization_name !== displayName;
-
+function CardSkeleton() {
   return (
-    <button
-      onClick={() => navigate(`/educator/${educator.wallet_address}`)}
-      className="group w-full text-left flex items-center gap-4 py-4 border-b border-white/[0.05] last:border-b-0 hover:bg-white/[0.03] rounded-xl px-2 -mx-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30"
-      aria-label={`Ver perfil de ${displayName}`}
-    >
-      <Avatar className="h-11 w-11 shrink-0 ring-1 ring-white/10 group-hover:ring-white/20 transition-all">
-        <AvatarImage src={resolveIpfs(educator.photo_url)} alt={displayName} />
-        <AvatarFallback className="bg-purple-950/80 text-purple-200 text-sm font-bold border border-purple-500/20">
-          {initials(educator.name, educator.organization_name)}
-        </AvatarFallback>
-      </Avatar>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[15px] font-semibold text-white leading-tight truncate">
-            {displayName}
-          </span>
-          <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-purple-400" />
-          {educator.has_classes && (
-            <span className="inline-flex items-center px-1.5 py-px rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tracking-wide shrink-0">
-              {t('discover.hasClasses')}
-            </span>
-          )}
-        </div>
-
-        {showOrg && (
-          <p className="text-xs text-slate-400 truncate mt-0.5">{educator.organization_name}</p>
-        )}
-
-        {educator.knowledge_areas.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {educator.knowledge_areas.slice(0, 3).map((area) => (
-              <span key={area} className="text-[11px] text-slate-500 bg-white/[0.04] px-1.5 py-px rounded">
-                {area}
-              </span>
-            ))}
-            {educator.knowledge_areas.length > 3 && (
-              <span className="text-[11px] text-slate-600 self-center">
-                +{educator.knowledge_areas.length - 3}
-              </span>
-            )}
-          </div>
-        )}
+    <div className="rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.03] animate-pulse">
+      <div className="w-full aspect-[4/5] bg-white/[0.06]" />
+      <div className="px-3 py-2.5">
+        <div className="h-2.5 w-20 bg-white/[0.06] rounded-full" />
       </div>
-
-      <div className="shrink-0 flex items-center gap-3">
-        <span className="hidden sm:block text-xs text-slate-600 tabular-nums">
-          {educator.certificates_issued} <span className="text-slate-700 text-[10px] font-medium">NFT</span>
-        </span>
-        <ChevronRight className="h-4 w-4 text-slate-700 group-hover:text-slate-400 transition-colors" />
-      </div>
-    </button>
-  );
-}
-
-function RowSkeleton() {
-  return (
-    <div className="flex items-center gap-4 py-4 border-b border-white/[0.05] px-2 animate-pulse">
-      <div className="h-11 w-11 rounded-full bg-white/[0.05] shrink-0" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3.5 w-36 bg-white/[0.05] rounded-full" />
-        <div className="h-2.5 w-24 bg-white/[0.04] rounded-full" />
-        <div className="flex gap-1.5 mt-1">
-          <div className="h-4 w-16 bg-white/[0.03] rounded" />
-          <div className="h-4 w-14 bg-white/[0.03] rounded" />
-        </div>
-      </div>
-      <div className="h-3 w-5 bg-white/[0.04] rounded-full hidden sm:block" />
     </div>
   );
 }
@@ -143,7 +59,7 @@ export default function EducatorsList() {
         className="sticky top-0 z-20 backdrop-blur-xl border-b border-white/[0.06]"
         style={{ backgroundColor: 'oklch(0.11 0.012 280 / 0.88)' }}
       >
-        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 gap-2">
             <button
               onClick={() => navigate(-1)}
@@ -163,9 +79,13 @@ export default function EducatorsList() {
               <h1 className="font-title text-sm font-semibold text-white">
                 {t('discover.allEducators')}
               </h1>
+              {pagination && (
+                <span className="text-[11px] text-slate-600 tabular-nums">
+                  ({pagination.total})
+                </span>
+              )}
             </div>
 
-            {/* Balance spacer */}
             <div className="w-16 sm:w-20" aria-hidden="true" />
           </div>
 
@@ -202,20 +122,27 @@ export default function EducatorsList() {
       </div>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 pb-28">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-28">
 
+        {/* Skeleton */}
         {isPending && (
-          <div>
-            {[...Array(8)].map((_, i) => <RowSkeleton key={i} />)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {[...Array(8)].map((_, i) => <CardSkeleton key={i} />)}
           </div>
         )}
 
+        {/* Empty */}
         {!isPending && educators.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: EASE }}
+            className="flex flex-col items-center justify-center py-24 text-center gap-4"
+          >
             <img
               src="/icons/maletinNeon.avif"
               alt=""
-              className="h-10 w-10 object-contain opacity-20"
+              className="h-8 w-8 object-contain opacity-20"
             />
             <p className="text-sm text-slate-500">{t('discover.noResults')}</p>
             {areaInput && (
@@ -226,9 +153,10 @@ export default function EducatorsList() {
                 {t('common.clearSearch', 'Limpiar búsqueda')}
               </button>
             )}
-          </div>
+          </motion.div>
         )}
 
+        {/* Grid */}
         {!isPending && educators.length > 0 && (
           <AnimatePresence mode="wait">
             <motion.div
@@ -237,9 +165,17 @@ export default function EducatorsList() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
             >
-              {educators.map((educator) => (
-                <EducatorRow key={educator.wallet_address} educator={educator} />
+              {educators.map((educator, i) => (
+                <motion.div
+                  key={educator.wallet_address}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, delay: Math.min(i, 7) * 0.03, ease: EASE }}
+                >
+                  <FeaturedEducatorCard educator={educator} />
+                </motion.div>
               ))}
             </motion.div>
           </AnimatePresence>

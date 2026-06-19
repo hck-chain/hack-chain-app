@@ -1,4 +1,5 @@
 const { Resend } = require('resend');
+const { buildGoogleCalendarUrl, buildICSBuffer } = require('./calendarService');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM || 'onboarding@resend.dev';
@@ -494,6 +495,215 @@ async function notifyEducatorClassRequest({ to, educatorName, studentName, reque
   });
 }
 
+async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, className, requestedDate, startTime, durationMinutes, requestId, status, cancellationReason }) {
+  console.log(`[emailService] Notificando actualización de clase al talento: ${to} — status=${status}`);
+
+  const greeting = studentName ? `Hola, ${studentName}.` : "Hola.";
+  const dashboardUrl = `${FRONTEND_URL}/dashboard/talent/classes`;
+  const eventTitle = className
+    ? `Clase: ${className}`
+    : educatorName
+    ? `Clase con ${educatorName}`
+    : "Clase — HackChain";
+
+  const variants = {
+    confirmed: {
+      subject: "¡Tu solicitud de clase fue confirmada!",
+      headline: "¡Clase confirmada!",
+      accentColor: "#059669",
+      body: "Tu solicitud fue <strong>confirmada</strong>. Guardá el evento en tu calendario para no olvidar la fecha y horario.",
+    },
+    cancelled: {
+      subject: "Tu solicitud de clase fue cancelada",
+      headline: "Solicitud cancelada",
+      accentColor: "#64748b",
+      body: cancellationReason
+        ? `Tu solicitud fue <strong>cancelada</strong> por el educador.<br><br><em style="color:#94a3b8;">"${cancellationReason}"</em>`
+        : "Tu solicitud fue <strong>cancelada</strong> por el educador. Podés solicitar una nueva clase cuando quieras.",
+    },
+    completed: {
+      subject: "¡Tu clase fue completada!",
+      headline: "¡Clase completada!",
+      accentColor: "#680099",
+      body: "¡Tu clase fue <strong>completada</strong>! Esperamos que hayas tenido una excelente experiencia.",
+    },
+  };
+
+  const v = variants[status] || variants.confirmed;
+  const classLine = className
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+    : "";
+  const educatorLine = educatorName
+    ? `<tr><td style="padding:6px 0;color:#888;">Educador</td><td style="padding:6px 0;">${educatorName}</td></tr>`
+    : "";
+
+  // Calendar links — only included when the class was confirmed
+  let calendarHtml = "";
+  let icsAttachment = null;
+
+  if (status === "confirmed" && requestedDate && startTime && durationMinutes) {
+    const mins = parseInt(durationMinutes, 10) || 60;
+    const desc = [
+      educatorName ? `Educador: ${educatorName}` : null,
+      className ? `Clase: ${className}` : null,
+      "Sesión privada reservada a través de HackChain.",
+    ].filter(Boolean).join("\n");
+
+    const googleUrl = buildGoogleCalendarUrl({ title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
+    const icsBuffer = buildICSBuffer({ uid: `hackchain-class-${requestId}@hackchain.app`, title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
+
+    icsAttachment = {
+      filename: "clase-hackchain.ics",
+      content: icsBuffer,
+      contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+    };
+
+    calendarHtml = `
+      <p style="margin:24px 0 8px;text-align:center;">
+        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer"
+           style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;font-size:14px;">
+          📅 Agregar a Google Calendar
+        </a>
+      </p>
+      <p style="text-align:center;margin:0;font-size:12px;color:#888;">
+        El archivo .ics para Apple Calendar y Outlook está adjunto a este correo.
+      </p>`;
+  }
+
+  const payload = {
+    from: FROM,
+    to,
+    subject: v.subject,
+    text: `${greeting}\n\n${v.body.replace(/<[^>]+>/g, "")}\n\n${className ? `Clase: ${className}\n` : ""}${educatorName ? `Educador: ${educatorName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\n\nVer mis clases: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: v.subject,
+      headline: v.headline,
+      accentColor: v.accentColor,
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;">${v.body}</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               ${classLine}
+               ${educatorLine}
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+             </table>
+             ${calendarHtml}`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ver mis clases",
+    }),
+  };
+
+  if (icsAttachment) {
+    payload.attachments = [icsAttachment];
+  }
+
+  await resend.emails.send(payload);
+}
+
+async function notifyEducatorClassConfirmed({ to, educatorName, studentName, className, requestedDate, startTime, durationMinutes, requestId }) {
+  console.log(`[emailService] Enviando calendario al educador: ${to}`);
+
+  const greeting = educatorName ? `Hola, ${educatorName}.` : "Hola.";
+  const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
+  const eventTitle = className
+    ? `Clase: ${className}`
+    : studentName
+    ? `Clase con ${studentName}`
+    : "Clase — HackChain";
+
+  const mins = parseInt(durationMinutes, 10) || 60;
+  const desc = [
+    studentName ? `Estudiante: ${studentName}` : null,
+    className ? `Clase: ${className}` : null,
+    "Sesión privada — HackChain.",
+  ].filter(Boolean).join("\n");
+
+  const googleUrl = buildGoogleCalendarUrl({ title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
+  const icsBuffer = buildICSBuffer({ uid: `hackchain-class-educator-${requestId}@hackchain.app`, title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
+
+  const classLine = className
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+    : "";
+  const studentLine = studentName
+    ? `<tr><td style="padding:6px 0;color:#888;">Estudiante</td><td style="padding:6px 0;">${studentName}</td></tr>`
+    : "";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Clase confirmada${className ? ` — ${className}` : ""}${studentName ? ` con ${studentName}` : ""}`,
+    text: `${greeting}\n\nConfirmaste una clase${studentName ? ` con ${studentName}` : ""}. Guardá el evento en tu calendario.\n\n${className ? `Clase: ${className}\n` : ""}${studentName ? `Estudiante: ${studentName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Clase confirmada",
+      headline: "Clase confirmada",
+      accentColor: "#059669",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;">Confirmaste una clase${studentName ? ` con <strong>${studentName}</strong>` : ""}. Guardá la fecha en tu calendario para no perderla.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               ${classLine}
+               ${studentLine}
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${mins} min</td></tr>
+             </table>
+             <p style="margin:24px 0 8px;text-align:center;">
+               <a href="${googleUrl}" target="_blank" rel="noopener noreferrer"
+                  style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;font-size:14px;">
+                 📅 Agregar a Google Calendar
+               </a>
+             </p>
+             <p style="text-align:center;margin:0;font-size:12px;color:#888;">
+               El archivo .ics para Apple Calendar y Outlook está adjunto a este correo.
+             </p>`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ir al dashboard",
+    }),
+    attachments: [{
+      filename: "clase-hackchain.ics",
+      content: icsBuffer,
+      contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+    }],
+  });
+}
+
+async function notifyEducatorClassCancelled({ to, educatorName, studentName, className, requestedDate, startTime, durationMinutes, cancellationReason }) {
+  console.log(`[emailService] Notificando cancelación de clase a educador: ${to}`);
+  const greeting = educatorName ? `Hola, ${educatorName}.` : "Hola.";
+  const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
+
+  const classLine = className
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+    : "";
+
+  const reasonLine = cancellationReason
+    ? `<tr><td style="padding:6px 0;color:#888;vertical-align:top;">Motivo</td><td style="padding:6px 0;font-style:italic;">"${cancellationReason}"</td></tr>`
+    : "";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${studentName} canceló su solicitud de clase`,
+    text: `${greeting}\n\n${studentName} canceló su solicitud de clase privada contigo.\n\nFecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${durationMinutes} min${className ? `\nClase: ${className}` : ""}${cancellationReason ? `\nMotivo: "${cancellationReason}"` : ""}\n\nRevisa tus solicitudes en tu dashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Solicitud de clase cancelada",
+      headline: "Solicitud cancelada",
+      accentColor: "#64748b",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;"><strong>${studentName}</strong> canceló su solicitud de clase privada contigo.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               ${classLine}
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${durationMinutes} min</td></tr>
+               ${reasonLine}
+             </table>
+             <p style="margin:16px 0 0;">Podés ver tus solicitudes actualizadas desde tu dashboard.</p>`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ver solicitudes",
+    }),
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   notifyEducatorApproved,
@@ -503,4 +713,7 @@ module.exports = {
   sendInvite,
   notifyEducatorClaimed,
   notifyEducatorClassRequest,
+  notifyTalentClassRequestUpdate,
+  notifyEducatorClassConfirmed,
+  notifyEducatorClassCancelled,
 };

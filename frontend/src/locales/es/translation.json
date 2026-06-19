@@ -224,7 +224,14 @@
     "sessionExpiredTitle": "Sesión expirada",
     "sessionExpiredDesc": "Tu sesión se cerró por inactividad.",
     "classesLabel": "Clases",
-    "classesHint": "Ver mis solicitudes"
+    "classesHint": "Ver mis solicitudes",
+    "bellAriaLabel": "Notificaciones de clases",
+    "bellTitle": "Actualizaciones de clases",
+    "bellEmpty": "Sin actualizaciones recientes",
+    "bellViewAll": "Ver todas mis solicitudes",
+    "bellStatusConfirmed": "Clase confirmada",
+    "bellStatusCancelled": "Solicitud cancelada",
+    "bellStatusCompleted": "Clase completada"
   },
   "talentClasses": {
     "title": "Mis clases",
@@ -238,7 +245,12 @@
     "sectionActive": "En curso",
     "sectionHistory": "Historial",
     "duration": "{{minutes}} min",
-    "price": "${{amount}}/h"
+    "price": "${{amount}}/h",
+    "cancelRequest": "Cancelar",
+    "confirmCancel": "¿Retirar?",
+    "cancelYes": "Sí",
+    "cancelNo": "No",
+    "cancelReasonPlaceholder": "Motivo (opcional)"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",
@@ -980,9 +992,23 @@
       "complete": "Completar",
       "cancel": "Cancelar"
     },
+    "cancelReasonPlaceholder": "Motivo de cancelación (opcional)",
+    "confirmCancel": "¿Cancelar esta clase?",
+    "cancelYes": "Sí, cancelar",
+    "cancelNo": "No",
     "empty": {
       "pending": "No hay solicitudes pendientes",
       "other": "No hay solicitudes en esta sección"
     }
+  },
+  "calendar": {
+    "addToCalendar": "Agregar al calendario",
+    "googleCalendar": "Google Calendar",
+    "downloadIcs": "Descargar .ics",
+    "today": "Hoy",
+    "noEvents": "No hay clases este día.",
+    "emptyTalent": "Aún no tenés clases agendadas. Explorá educadores y agenda tu primera sesión.",
+    "emptyEducator": "Aún no tenés clases agendadas.",
+    "myCalendar": "Mi Calendario"
   }
 }
