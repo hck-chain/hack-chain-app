@@ -961,18 +961,14 @@ const EducatorDashboard = () => {
                 transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.4 }}
                 className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
               >
-                <div className="relative overflow-hidden bg-white/[0.02] backdrop-blur-sm border border-white/[0.07] rounded-[28px] sm:rounded-[40px] p-5 sm:p-8 lg:p-10 flex flex-col items-center justify-center min-h-[380px] lg:min-h-[620px]">
-                  <div className="absolute top-0 right-0 w-72 h-72 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-56 h-56 bg-fuchsia-500/10 rounded-full blur-[70px] pointer-events-none" />
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent" />
-
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
+                <div className="flex flex-col items-center justify-center min-h-[380px] lg:min-h-[620px] py-8">
+                  <div className="mb-5">
                     <span className="font-title text-[10px] font-bold tracking-[0.22em] uppercase text-white/30">
                       {t('educatorDashboard.livePreview')}
                     </span>
                   </div>
 
-                  <div className="transform transition-transform hover:scale-[1.02] duration-500 relative z-10" ref={cardRef}>
+                  <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
                     <CertificateCard
                       certificateType={form.certificateType || "Certificate of Completion"}
                       name={form.talentName || 'Talent Name'}
@@ -985,7 +981,7 @@ const EducatorDashboard = () => {
                     />
                   </div>
 
-                  <div className="mt-5 text-center max-w-md relative z-10">
+                  <div className="mt-5 text-center max-w-md">
                     <p className="font-title text-[10px] uppercase tracking-[0.22em] text-white/25 font-bold mb-1.5">
                       {t('educatorDashboard.reviewTitle')}
                     </p>

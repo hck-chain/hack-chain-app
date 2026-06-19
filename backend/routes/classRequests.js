@@ -40,8 +40,16 @@ router.post("/", authenticate, createLimiter, async (req, res) => {
       db.User.findOne({ where: { wallet_address: req.body.issuer_wallet_address?.toLowerCase() }, attributes: ["email", "name"] }),
       db.User.findOne({ where: { wallet_address: req.auth.wallet.toLowerCase() }, attributes: ["name", "lastname"] }),
     ]).then(([educatorUser, studentUser]) => {
-      if (!educatorUser?.email) return;
+      if (!educatorUser) {
+        console.warn(`[email] class-request: educator user not found for wallet ${req.body.issuer_wallet_address}`);
+        return;
+      }
+      if (!educatorUser.email) {
+        console.warn(`[email] class-request: educator has no email — skipping notification`);
+        return;
+      }
       const studentName = [studentUser?.name, studentUser?.lastname].filter(Boolean).join(" ") || req.auth.wallet.slice(0, 8);
+      console.log(`[email] class-request: sending notification to ${educatorUser.email}`);
       return notifyEducatorClassRequest({
         to: educatorUser.email,
         educatorName: educatorUser.name || null,
@@ -51,7 +59,7 @@ router.post("/", authenticate, createLimiter, async (req, res) => {
         durationMinutes: req.body.duration_minutes,
         className: result.data.class_name || null,
       });
-    }).catch((err) => console.error("[email] Error notificando solicitud de clase:", err));
+    }).catch((err) => console.error("[email] class-request: error sending notification:", err));
 
     return res.status(201).json(result.data);
   } catch (err) {
