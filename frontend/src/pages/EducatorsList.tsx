@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '@/components/Layout';
 import FeaturedEducatorCard from '@/components/FeaturedEducatorCard/FeaturedEducatorCard';
 import { useEducatorsList } from '@/hooks/useEducatorsList';
-import type { FeaturedEducator } from '@/types/dashboard';
+
+const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
@@ -26,30 +27,6 @@ function CardSkeleton() {
       <div className="px-3 py-2.5">
         <div className="h-2.5 w-20 bg-white/[0.06] rounded-full" />
       </div>
-
-      <div className="shrink-0 flex items-center gap-3">
-        <span className="hidden sm:block text-xs text-slate-600 tabular-nums">
-          {educator.certificates_issued} <span className="text-slate-700 text-[10px] font-medium">NFT</span>
-        </span>
-        <ChevronRight className="h-4 w-4 text-slate-700 group-hover:text-slate-400 transition-colors" />
-      </div>
-    </button>
-  );
-}
-
-function RowSkeleton() {
-  return (
-    <div className="flex items-center gap-4 py-4 border-b border-white/[0.05] px-2 animate-pulse">
-      <div className="h-11 w-11 rounded-full bg-white/[0.05] shrink-0" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3.5 w-36 bg-white/[0.05] rounded-full" />
-        <div className="h-2.5 w-24 bg-white/[0.04] rounded-full" />
-        <div className="flex gap-1.5 mt-1">
-          <div className="h-4 w-16 bg-white/[0.03] rounded" />
-          <div className="h-4 w-14 bg-white/[0.03] rounded" />
-        </div>
-      </div>
-      <div className="h-3 w-5 bg-white/[0.04] rounded-full hidden sm:block" />
     </div>
   );
 }
