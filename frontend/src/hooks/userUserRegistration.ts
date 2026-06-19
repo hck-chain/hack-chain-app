@@ -28,8 +28,7 @@ export const useUserRegistration = () => {
                 role: 'student',
             });
         },
-        onSuccess: (data: UserRegistrationResponse) => {
-            console.log("User registered successfully:", data.user.email);
+        onSuccess: (_data: UserRegistrationResponse) => {
         },
         onError: (error: Error) => {
             console.error("User registration failed:", error.message);
