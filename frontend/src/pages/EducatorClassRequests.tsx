@@ -302,6 +302,7 @@ export default function EducatorClassRequests() {
         style={{ backgroundColor: 'oklch(0.11 0.012 280 / 0.88)' }}
       >
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          {/* Top bar */}
           <div className="flex items-center justify-between h-14 gap-2">
             <motion.button
               whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
