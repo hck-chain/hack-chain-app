@@ -9,8 +9,6 @@ import { useEducatorsList } from '@/hooks/useEducatorsList';
 
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
-const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
-
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
