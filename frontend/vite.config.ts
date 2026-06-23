@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
   },
   build: {
+    // Strip all console.* calls from production bundles — prevents PII leaks in DevTools
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {

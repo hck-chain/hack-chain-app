@@ -1,10 +1,25 @@
 // backend/routes/issuers.js
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 const { Issuer, Student, User, Certificate } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
+const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
 const { authenticate } = require("../middleware/auth");
+const emailService = require("../services/emailService");
+const { getAdminEmails } = require("../services/adminService");
+
+// 2 re-applies per educator per week prevents approval-queue spam.
+const reapplyLimiter = rateLimit({
+  windowMs: 7 * 24 * 60 * 60 * 1000,
+  max: 2,
+  keyGenerator: (req) => String(req.auth.sub),
+  message: { error: "Too many re-apply requests. Try again next week." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !req.auth?.sub,
+});
 
 // GET /api/issuers/me — own full profile (authenticated)
 router.get("/me", authenticate, async (req, res) => {
@@ -38,6 +53,104 @@ router.get("/me", authenticate, async (req, res) => {
   }
 });
 
+// GET /api/issuers/me/status — educator approval status
+router.get("/me/status", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
+  }
+  try {
+    const user = await User.findByPk(req.auth.sub, {
+      attributes: ["educator_approval_status", "rejection_reason", "approved_at"],
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const status = user.educator_approval_status || "pending_approval";
+    const body = { status };
+    if (status === "rejected" && user.rejection_reason) {
+      body.reason = user.rejection_reason;
+    }
+    if (status === "approved" && user.approved_at) {
+      body.approved_at = user.approved_at;
+    }
+    return res.json(body);
+  } catch (err) {
+    console.error("GET /api/issuers/me/status error:", err);
+    return res.status(500).json({ error: "Failed to fetch status" });
+  }
+});
+
+// POST /api/issuers/me/reapply — re-submit for approval after rejection
+router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can use this endpoint" });
+  }
+  try {
+    const user = await User.findByPk(req.auth.sub, {
+      attributes: ["id", "educator_approval_status"],
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.educator_approval_status !== "rejected") {
+      return res.status(409).json({ error: "Only rejected accounts can re-apply" });
+    }
+
+    await user.update({
+      educator_approval_status: "pending_approval",
+      rejection_reason: null,
+    });
+
+    try {
+      const [fullUser, issuer, adminEmails] = await Promise.all([
+        User.findByPk(req.auth.sub, { attributes: ["name", "email", "wallet_address"] }),
+        Issuer.findOne({ where: { wallet_address: req.auth.wallet?.toLowerCase() }, attributes: ["organization_name"] }),
+        getAdminEmails(User),
+      ]);
+      await emailService.notifyAdminEducatorReapply({
+        to: adminEmails,
+        name: fullUser?.name || null,
+        email: fullUser?.email || null,
+        wallet: fullUser?.wallet_address || req.auth.wallet,
+        organization: issuer?.organization_name || null,
+      });
+    } catch (err) {
+      console.error("[reapply] notifyAdminEducatorReapply failed:", err && err.message);
+    }
+
+    return res.json({ status: "pending_approval" });
+  } catch (err) {
+    console.error("POST /api/issuers/me/reapply error:", err);
+    return res.status(500).json({ error: "Failed to re-apply" });
+  }
+});
+
+
+// 60 requests/min per IP — public endpoint, no auth needed
+const featuredLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: "Too many requests, slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// GET /api/issuers/featured — random approved educators for discovery widget
+// Must be registered before /:wallet_address to avoid param capture.
+// Query: count (1–6, default 3)
+router.get("/featured", featuredLimiter, async (req, res) => {
+  try {
+    const raw = parseInt(req.query.count);
+    const count = Number.isNaN(raw) ? 3 : Math.min(6, Math.max(1, raw));
+
+    const educators = await getFeaturedIssuers(count);
+    return res.json({ educators });
+  } catch (err) {
+    console.error("GET /api/issuers/featured error:", err);
+    return res.status(500).json({ error: "Failed to fetch featured educators" });
+  }
+});
+
 // GET /api/issuers  — public, paginated educator discovery
 // Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
 router.get("/", async (req, res) => {
@@ -46,34 +159,48 @@ router.get("/", async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
     const area  = typeof req.query.area === "string" ? req.query.area.trim() : null;
 
-    const where = {};
+    const { Op, where: seqWhere, fn, cast, col } = require("sequelize");
+
+    const userWhere = { educator_approval_status: "approved" };
+    const issuerWhere = {};
     if (area) {
-      const { Op } = require("sequelize");
-      where.knowledge_areas = { [Op.contains]: [area] };
+      const term = area.toLowerCase();
+      // OR across name, lastname, org name, and knowledge_areas (case-insensitive partial match).
+      // subQuery: false is required so that User columns are accessible in the main WHERE clause.
+      issuerWhere[Op.or] = [
+        seqWhere(fn("LOWER", cast(col("Issuer.knowledge_areas"), "text")), { [Op.like]: `%${term}%` }),
+        seqWhere(fn("LOWER", col("Issuer.organization_name")), { [Op.like]: `%${term}%` }),
+        seqWhere(fn("LOWER", col("User.name")), { [Op.like]: `%${term}%` }),
+        seqWhere(fn("LOWER", col("User.lastname")), { [Op.like]: `%${term}%` }),
+      ];
     }
 
     const { count, rows } = await Issuer.findAndCountAll({
-      where,
+      where: issuerWhere,
       include: [{
         model: User,
         attributes: ["name", "lastname", "created_at"],
+        where: userWhere,
+        required: true,
       }],
       order: [["certificates_issued", "DESC"]],
       limit,
       offset: (page - 1) * limit,
+      subQuery: false,
     });
 
     res.json({
       educators: rows.map((issuer) => ({
-        wallet_address:     issuer.wallet_address,
-        organization_name:  issuer.organization_name,
-        name:               issuer.User?.name     || null,
-        lastname:           issuer.User?.lastname  || null,
-        photo_url:          issuer.photo_url       || null,
-        bio:                issuer.bio             || null,
-        knowledge_areas:    issuer.knowledge_areas || [],
+        wallet_address:      issuer.wallet_address,
+        organization_name:   issuer.organization_name,
+        name:                issuer.User?.name     || null,
+        lastname:            issuer.User?.lastname  || null,
+        photo_url:           issuer.photo_url       || null,
+        bio:                 issuer.bio             || null,
+        knowledge_areas:     issuer.knowledge_areas || [],
         certificates_issued: issuer.certificates_issued,
-        joined_at:          issuer.User?.created_at || issuer.created_at,
+        has_classes:         issuer.class_settings !== null && issuer.class_settings !== undefined,
+        joined_at:           issuer.User?.created_at || issuer.created_at,
       })),
       pagination: {
         total: count,
@@ -385,7 +512,7 @@ router.get("/:wallet_address", async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["name", "lastname", "created_at"],
+          attributes: ["name", "lastname", "created_at", "educator_approval_status"],
         },
         {
           model: Certificate,
@@ -412,6 +539,7 @@ router.get("/:wallet_address", async (req, res) => {
         certificates_issued: issuer.certificates_issued,
         talents_formed,
         joined_at: issuer.User?.created_at || issuer.created_at,
+        is_approved: issuer.User?.educator_approval_status === 'approved',
         class_settings: issuer.class_settings ?? null,
       },
     });

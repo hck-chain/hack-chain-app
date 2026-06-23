@@ -3,13 +3,19 @@ import { api } from '@/services/api';
 import { appKit } from '@/config/walletConfig';
 
 // Opens the AppKit modal and resolves with the connected wallet address.
+// Pass forceNew=true during registration to always prompt wallet selection,
+// even if AppKit already has a session from a previous visit.
 // Rejects if the user closes the modal without connecting.
-export const getConnectedWallet = (): Promise<string> => {
+export const getConnectedWallet = (forceNew = false): Promise<string> => {
     return new Promise(async (resolve, reject) => {
-        const currentAddress = appKit.getAddress();
-        if (currentAddress) {
-            resolve(currentAddress);
-            return;
+        if (!forceNew) {
+            const currentAddress = appKit.getAddress();
+            if (currentAddress) {
+                resolve(currentAddress);
+                return;
+            }
+        } else {
+            await appKit.disconnect();
         }
 
         await appKit.open();

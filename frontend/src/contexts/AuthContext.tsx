@@ -85,7 +85,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 2. Función de Login
   const login = useCallback((newUser: AuthUser) => {
-    localStorage.setItem('user', JSON.stringify(newUser));
+    // Strip email before persisting — PII stays in memory only, not on disk.
+    // The JWT cookie rehydrates auth; email is re-populated on the next login.
+    const { email: _email, ...persistedUser } = newUser;
+    localStorage.setItem('user', JSON.stringify(persistedUser));
     setUser(newUser);
   }, []);
 

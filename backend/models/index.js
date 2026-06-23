@@ -84,6 +84,12 @@ db.TreasuryTransfer = require("./treasuryTransfers")(sequelize, DataTypes);
 db.Referral = require("./referrals")(sequelize, DataTypes);
 db.IncentivesPoolLedger = require("./incentivesPoolLedger")(sequelize, DataTypes);
 
+// Educator class catalog
+db.IssuerClass = require("./issuerClasses")(sequelize, DataTypes);
+
+// Class requests (talent → educator)
+db.ClassRequest = require("./classRequests")(sequelize, DataTypes);
+
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);

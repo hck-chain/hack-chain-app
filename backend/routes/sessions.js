@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { UserSession, User } = require("../models");
 const { authenticate } = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/requireAdmin");
+const { deleteSession } = require("../services/redis");
 
 // POST /api/sessions - Create new session
 router.post("/", authenticate, async (req, res) => {
@@ -117,6 +118,7 @@ router.delete("/:session_id", authenticate, async (req, res) => {
     }
 
     await session.destroy();
+    await deleteSession(session.wallet_address).catch(() => {});
 
     res.json({ message: "Session deleted successfully" });
 
@@ -138,6 +140,7 @@ router.delete("/user/:wallet_address", authenticate, async (req, res) => {
     const deletedCount = await UserSession.destroy({
       where: { wallet_address }
     });
+    await deleteSession(wallet_address).catch(() => {});
 
     res.json({
       message: `${deletedCount} sessions deleted successfully`

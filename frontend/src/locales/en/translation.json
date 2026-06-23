@@ -222,7 +222,35 @@
     "viewOnOpenSea": "View on OpenSea",
     "errorLoadUser": "Could not load user information.",
     "sessionExpiredTitle": "Session expired",
-    "sessionExpiredDesc": "Your session was closed due to inactivity."
+    "sessionExpiredDesc": "Your session was closed due to inactivity.",
+    "classesLabel": "Classes",
+    "classesHint": "View my requests",
+    "bellAriaLabel": "Class notifications",
+    "bellTitle": "Class updates",
+    "bellEmpty": "No recent updates",
+    "bellViewAll": "View all my requests",
+    "bellStatusConfirmed": "Class confirmed",
+    "bellStatusCancelled": "Request cancelled",
+    "bellStatusCompleted": "Class completed"
+  },
+  "talentClasses": {
+    "title": "My classes",
+    "backToDashboard": "Dashboard",
+    "confirmed": "confirmed",
+    "loading": "Loading...",
+    "empty": "You haven't requested any classes yet.",
+    "emptyHint": "Browse available educators and book your first session.",
+    "discover": "Explore educators",
+    "viewProfile": "View profile",
+    "sectionActive": "Active",
+    "sectionHistory": "History",
+    "duration": "{{minutes}} min",
+    "price": "${{amount}}/h",
+    "cancelRequest": "Cancel",
+    "confirmCancel": "Withdraw?",
+    "cancelYes": "Yes",
+    "cancelNo": "No",
+    "cancelReasonPlaceholder": "Reason (optional)"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",
@@ -240,6 +268,14 @@
   "educatorDashboard": {
     "title": "Educator Dashboard",
     "subtitle": "Create and issue blockchain-verified credentials with ease.",
+    "pendingApproval": "Account pending review by the HackChain team.",
+    "rejectedTitle": "Application rejected",
+    "reapplyBtn": "Request review",
+    "reapplying": "Sending…",
+    "reapplySuccess": "Request sent",
+    "reapplySuccessDesc": "Your account is back to pending review.",
+    "reapplyError": "Error",
+    "reapplyErrorDesc": "Could not send the request.",
     "welcome": "Welcome back,",
     "certificatesIssued": "Certificates Issued",
     "talentsAvailable": "Talents on Platform",
@@ -705,7 +741,18 @@
     "calendarTitle": "Educator calendar",
     "comingSoon": "Soon",
     "comingSoonTitle": "Booking coming soon",
-    "comingSoonHint": "We're building the booking system. For now, you can contact the educator directly from their profile."
+    "comingSoonHint": "We're building the booking system. For now, you can contact the educator directly from their profile.",
+    "selectClass": "Choose a class",
+    "changeClass": "Change",
+    "backToClasses": "Back to classes",
+    "confirmTitle": "Your selection",
+    "messageLabel": "Message (optional)",
+    "messagePlaceholder": "Tell the educator what you want to cover in the session...",
+    "confirmBtn": "Request class",
+    "sending": "Sending...",
+    "successTitle": "Request sent!",
+    "successHint": "The educator will confirm your class shortly.",
+    "errorSubmit": "Could not send the request. Please try again."
   },
   "editClasses": {
     "pageTitle": "Edit classes",
@@ -757,7 +804,43 @@
     "hidePreview": "Hide preview",
     "noDurations": "Select at least one session duration.",
     "invalidTimeRange": "Check the schedules: start must be before end for every enabled day.",
-    "invalidTimeRangeInline": "Start time must be before end time."
+    "invalidTimeRangeInline": "Start time must be before end time.",
+    "catalogSection": "My classes",
+    "catalogHint": "Define the classes you teach. Talents will choose one before booking a slot.",
+    "catalogLoading": "Loading classes...",
+    "catalogEmpty": "No classes yet. Add your first one.",
+    "catalogAddClass": "Add class",
+    "catalogAddBtn": "Add",
+    "catalogCancelBtn": "Cancel",
+    "catalogNamePlaceholder": "Class name (e.g. Smart Contract Security)",
+    "catalogDescPlaceholder": "Short description (optional)",
+    "catalogTopicsLabel": "Topics",
+    "catalogTopicsPlaceholder": "Type a topic and press Enter...",
+    "catalogTopicsHint": "Press Enter or comma to add. Up to 10 topics.",
+    "catalogDeactivate": "Deactivate",
+    "catalogActivate": "Activate",
+    "catalogDelete": "Delete"
+  },
+  "classInbox": {
+    "title": "Class requests",
+    "loading": "Loading requests...",
+    "empty": "No class requests yet.",
+    "min": "min",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "complete": "Complete",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "toast": {
+      "confirmed": "Request confirmed",
+      "cancelled": "Request cancelled",
+      "completed": "Class marked as completed",
+      "error": "Could not update the request"
+    }
   },
   "deleteAccount": {
     "title": "Delete educator account",
@@ -788,6 +871,8 @@
     "expertiseSection": "Expertise",
     "accountSection": "Account",
     "educatorRoleLabel": "Educator",
+    "verifiedLabel": "Verified",
+    "verifiedTooltip": "Educator verified by HackChain",
     "percentComplete": "% complete",
     "backToDashboard": "Back to dashboard",
     "uploadNewPhoto": "Upload new photo",
@@ -828,5 +913,102 @@
     "classesCta": "Private lessons",
     "classesBookCta": "Request private class",
     "classesSessionFormats": "available formats"
+  },
+  "referrals": {
+    "title": "Referrals",
+    "pageTitle": "Referral Program",
+    "pageSubtitle": "Invite other users to join HackChain. When they stake HACK, you both earn rewards.",
+    "viewAll": "View all",
+    "comingSoon": {
+      "title": "Staking is coming soon!",
+      "desc": "Soon your referrals will be able to stake and you'll start earning real rewards. Start referring now and build your network for Phase 2."
+    },
+    "shareCode": "Share your code",
+    "instructions": "Share this link. Your friend registers and stakes 1000 HACK for 30 days. You get 1000 HACK.",
+    "yourCode": "Your Code",
+    "inviteLink": "Invite Link",
+    "stats": {
+      "totalEarned": "Total Earned",
+      "monthly": "Monthly Limit",
+      "paymentsThisMonth": "Payments this month",
+      "pending": "Pending",
+      "paid": "Paid",
+      "queued": "Queued"
+    },
+    "list": {
+      "title": "My Referrals",
+      "total": "Total:"
+    },
+    "empty": {
+      "title": "You have no referrals yet",
+      "desc": "Share your invitation code to build your network and start earning rewards."
+    },
+    "table": {
+      "referred": "Referred",
+      "status": "Status",
+      "progress": "Progress",
+      "date": "Date",
+      "days": "days"
+    },
+    "pagination": "Page {{page}} of {{totalPages}}"
+  },
+  "discover": {
+    "viewAll": "View all educators",
+    "viewProfile": "View profile of",
+    "verified": "Verified",
+    "certs": "certs",
+    "hasClasses": "Takes classes",
+    "noEducators": "No educators available yet",
+    "noResults": "No educators match your search",
+    "allEducators": "All Educators",
+    "filterByArea": "Filter by knowledge area...",
+    "searchEducators": "Search by name or area..."
+  },
+  "common": {
+    "back": "Back",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "educatorClassRequests": {
+    "title": "Class Requests",
+    "back": "Back",
+    "viewAll": "View all requests",
+    "notifTitle": "Pending requests",
+    "noPending": "No pending requests",
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "history": "History"
+    },
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "actions": {
+      "confirm": "Confirm",
+      "complete": "Complete",
+      "cancel": "Cancel"
+    },
+    "cancelReasonPlaceholder": "Cancellation reason (optional)",
+    "confirmCancel": "Cancel this class?",
+    "cancelYes": "Yes, cancel",
+    "cancelNo": "No",
+    "empty": {
+      "pending": "No pending requests",
+      "other": "No requests in this section"
+    }
+  },
+  "calendar": {
+    "addToCalendar": "Add to calendar",
+    "googleCalendar": "Google Calendar",
+    "downloadIcs": "Download .ics",
+    "today": "Today",
+    "noEvents": "No classes on this day.",
+    "emptyTalent": "No classes scheduled yet. Explore educators and book your first session.",
+    "emptyEducator": "No classes scheduled yet.",
+    "myCalendar": "My Calendar"
   }
 }

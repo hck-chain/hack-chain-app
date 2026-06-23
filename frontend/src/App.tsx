@@ -39,8 +39,12 @@ const EducatorProfile = lazy(() => import("./pages/EducatorProfile"));
 const EditEducatorProfile = lazy(() => import("./pages/EditEducatorProfile"));
 const EditEducatorClasses = lazy(() => import("./pages/EditEducatorClasses"));
 const BookEducatorClass = lazy(() => import("./pages/BookEducatorClass"));
+const TalentClasses = lazy(() => import("./pages/TalentClasses"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Referrals = lazy(() => import("./pages/Referrals"));
+const EducatorsList = lazy(() => import("./pages/EducatorsList"));
+const EducatorClassRequests = lazy(() => import("./pages/EducatorClassRequests"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 
 // Admin dashboard — lazy-loaded shell + 4 sub-pages. AdminRoute pings the
 // backend on mount to verify the wallet is in ADMIN_WALLETS; failed probe
@@ -98,6 +102,11 @@ const App = () => {
                     <TalentDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/dashboard/talent/classes" element={
+                  <ProtectedRoute roles={['student']}>
+                    <TalentClasses />
+                  </ProtectedRoute>
+                } />
                 <Route path="/dashboard/recruiter" element={
                   <ProtectedRoute roles={['recruiter']}>
                     <RecruiterDashboard />
@@ -130,6 +139,11 @@ const App = () => {
                     <EditEducatorClasses />
                   </ProtectedRoute>
                 } />
+                <Route path="/educator/class-requests" element={
+                  <ProtectedRoute roles={['issuer']}>
+                    <EducatorClassRequests />
+                  </ProtectedRoute>
+                } />
 
                 {/* Email verification */}
                 <Route path="/verify-email" element={<VerifyEmail />} />
@@ -151,8 +165,19 @@ const App = () => {
                 </Route>
 
                 {/* Educator public profile */}
+                <Route path="/calendar" element={
+                  <ProtectedRoute roles={['student', 'issuer']}>
+                    <CalendarPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/educators" element={<EducatorsList />} />
                 <Route path="/educator/:wallet" element={<EducatorProfile />} />
-                <Route path="/educator/:wallet/book" element={<BookEducatorClass />} />
+                <Route path="/educator/:wallet/book" element={
+                  <ProtectedRoute roles={['student']}>
+                    <BookEducatorClass />
+                  </ProtectedRoute>
+                } />
 
                 {/* Legal routes */}
                 <Route path="/legal/cookies" element={<CookiePolicy />} />

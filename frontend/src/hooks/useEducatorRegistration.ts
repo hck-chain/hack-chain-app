@@ -20,7 +20,7 @@ export const useEducatorRegistration = () => {
     return useMutation({
         mutationFn: async (formData: EducatorRegistrationFormData) => {
             const requestData = transformEducatorFormDataToRequest(formData);
-            const walletAddress = await getConnectedWallet();
+            const walletAddress = await getConnectedWallet(true);
 
             return registerEducator({
                 ...requestData,

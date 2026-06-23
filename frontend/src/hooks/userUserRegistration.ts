@@ -20,7 +20,7 @@ export const useUserRegistration = () => {
     return useMutation({
         mutationFn: async (formData: UserRegistrationFormData) => {
             const requestData = transformFormDataToRequest(formData);
-            const walletAddress = await getConnectedWallet();
+            const walletAddress = await getConnectedWallet(true);
 
             return registerUser({
                 ...requestData,
@@ -28,8 +28,7 @@ export const useUserRegistration = () => {
                 role: 'student',
             });
         },
-        onSuccess: (data: UserRegistrationResponse) => {
-            console.log("User registered successfully:", data.user.email);
+        onSuccess: (_data: UserRegistrationResponse) => {
         },
         onError: (error: Error) => {
             console.error("User registration failed:", error.message);

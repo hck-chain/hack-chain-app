@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BadgeCheck, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -413,12 +413,22 @@ const EducatorProfile = () => {
                         >
                           {t('educatorProfile.educatorRoleLabel')}
                         </div>
-                        <h1
-                          className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
-                          style={{ color: P.textPrimary }}
-                        >
-                          {displayName}
-                        </h1>
+                        <div className="flex items-center gap-1.5">
+                          <h1
+                            className="text-[1.55rem] sm:text-[1.75rem] font-bold leading-tight"
+                            style={{ color: P.textPrimary }}
+                          >
+                            {displayName}
+                          </h1>
+                          {educator.is_approved && (
+                            <BadgeCheck
+                              className="h-6 w-6 shrink-0"
+                              style={{ color: '#a855f7' }}
+                              title={t('educatorProfile.verifiedTooltip')}
+                              aria-label={t('educatorProfile.verifiedTooltip')}
+                            />
+                          )}
+                        </div>
                         {educator.organization_name !== displayName && (
                           <p
                             className="text-sm font-medium mt-1"

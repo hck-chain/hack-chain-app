@@ -19,6 +19,7 @@ export interface Educator {
   certificates_issued: number;
   joined_at: string | null;
   certs_to_me: number;
+  is_approved?: boolean;
 }
 
 export interface EducatorProfile extends Omit<Educator, 'certs_to_me'> {
@@ -26,6 +27,7 @@ export interface EducatorProfile extends Omit<Educator, 'certs_to_me'> {
   website_url: string | null;
   linkedin_url: string | null;
   twitter_url: string | null;
+  is_approved?: boolean;
   class_settings: ClassSettings | null;
 }
 
@@ -45,6 +47,26 @@ export interface ClassSettings {
   durations: number[];
   availability: WeeklyAvailability;
   google_calendar_url: string | null;
+}
+
+export interface FeaturedEducator {
+  wallet_address: string;
+  organization_name: string | null;
+  name: string | null;
+  lastname: string | null;
+  photo_url: string | null;
+  bio: string | null;
+  knowledge_areas: string[];
+  certificates_issued: number;
+  has_classes: boolean;
+}
+
+export interface IssuerClass {
+  id: number;
+  name: string;
+  description: string | null;
+  topics: string[];
+  is_active?: boolean;
 }
 
 export interface TalentInfo {

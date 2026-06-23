@@ -18,7 +18,9 @@ import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
 import { useCreateCertificate } from '@/hooks/useCreateCertificate';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck } from 'lucide-react';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell, User } from 'lucide-react';
+import { usePendingClassRequestsCount } from '@/hooks/usePendingClassRequestsCount';
+import { useEducatorClassRequests, type EducatorClassRequest } from '@/hooks/useEducatorClassRequests';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCertificatesByEducator } from '@/utils/web3Service';
 import { api } from '@/services/api';
@@ -74,6 +76,80 @@ interface Talent {
   };
 }
 
+function NotificationBellPanel() {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { data, isPending } = useEducatorClassRequests();
+  const pending = (data ?? []).filter((r: EducatorClassRequest) => r.status === 'pending').slice(0, 5);
+  const locale = i18n.language.startsWith('es') ? 'es-MX' : 'en-US';
+
+  return (
+    <div>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <span className="text-sm font-semibold text-white">{t('educatorClassRequests.notifTitle')}</span>
+        {pending.length > 0 && (
+          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 tabular-nums">
+            {pending.length}
+          </span>
+        )}
+      </div>
+
+      {isPending ? (
+        <div className="py-5 px-4 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex gap-3 animate-pulse">
+              <div className="h-7 w-7 rounded-full bg-white/[0.06] shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-2.5 w-24 bg-white/[0.05] rounded-full" />
+                <div className="h-2 w-16 bg-white/[0.04] rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : pending.length === 0 ? (
+        <div className="py-8 flex flex-col items-center gap-2">
+          <Bell className="h-7 w-7 text-slate-700" />
+          <p className="text-xs text-slate-500">{t('educatorClassRequests.noPending')}</p>
+        </div>
+      ) : (
+        <div>
+          {pending.map((req: EducatorClassRequest) => (
+            <button
+              key={req.id}
+              onClick={() => navigate('/educator/class-requests')}
+              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/[0.04] border-b border-white/[0.04] last:border-b-0 transition-colors text-left"
+            >
+              <div className="h-7 w-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                <User className="h-3.5 w-3.5 text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate">
+                  {req.student_name || req.student_wallet.slice(0, 8) + '…'}
+                </p>
+                {req.class_name && (
+                  <p className="text-[11px] text-slate-500 truncate mt-px">{req.class_name}</p>
+                )}
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  {new Date(req.requested_date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · {req.start_time}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="px-4 py-3 border-t border-white/[0.06]">
+        <Link
+          to="/educator/class-requests"
+          className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+        >
+          {t('educatorClassRequests.viewAll')} →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 const EducatorDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -103,7 +179,10 @@ const EducatorDashboard = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { createCertificate, isLoading } = useCreateCertificate();
+  const [isMinting, setIsMinting] = useState(false);
   const { toast } = useToast();
+  const { data: pendingData } = usePendingClassRequestsCount();
+  const pendingRequestsCount = pendingData?.count ?? 0;
 
   useSessionTimeout({
     onExpired: () => {
@@ -254,6 +333,8 @@ const EducatorDashboard = () => {
   const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
+    if (isMinting) return;
+
     if (!userData?.walletAddress) {
       toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
       navigate('/login');
@@ -265,13 +346,18 @@ const EducatorDashboard = () => {
       return;
     }
 
+    setIsMinting(true);
     try {
       const container = cardRef.current;
       if (!container) return;
 
       const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+      const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
 
-      // ✅ Ocultamos shine y glare antes de capturar para evitar colores quemados
+      // Neutralize 3D context and CSS zoom on the wrapper — html2canvas reads bounding
+      // rects from the real DOM (which may be zoomed on mobile), but renders with
+      // windowWidth: 1920 (no zoom). Without this, the size mismatch clips the content.
+      if (wrapper) wrapper.classList.add('is-capturing');
       const shine = card.querySelector('.pc-shine') as HTMLElement | null;
       const glare = card.querySelector('.pc-glare') as HTMLElement | null;
       if (shine) shine.style.display = 'none';
@@ -290,13 +376,15 @@ const EducatorDashboard = () => {
         scale: 2,
         useCORS: true,
         logging: false,
-        windowWidth: 1920, // Forces desktop layout inside the capture iframe to avoid mobile zoom issues
+        windowWidth: 1920,
+        windowHeight: 1080,
       });
 
       // Restauramos shine y glare después de capturar
       if (shine) shine.style.display = '';
       if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
+      if (wrapper) wrapper.classList.remove('is-capturing');
 
       const imageBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
@@ -351,6 +439,8 @@ const EducatorDashboard = () => {
           if (shine) shine.style.display = '';
           if (glare) glare.style.display = '';
           card.classList.remove('is-capturing');
+          const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
+          if (wrapper) wrapper.classList.remove('is-capturing');
         }
       }
       console.error('Full creation process error:', error);
@@ -359,6 +449,8 @@ const EducatorDashboard = () => {
         description: error.message || t('educatorDashboard.errorUnexpected'),
         variant: "destructive",
       });
+    } finally {
+      setIsMinting(false);
     }
   };
 
@@ -368,10 +460,11 @@ const EducatorDashboard = () => {
     if (!container) return;
 
     const card = (container.querySelector('.pc-card') as HTMLElement) || container;
+    const wrapper = card.closest('.pc-card-wrapper') as HTMLElement | null;
     const shine = card.querySelector('.pc-shine') as HTMLElement | null;
     const glare = card.querySelector('.pc-glare') as HTMLElement | null;
 
-    // Ocultamos shine y glare antes de capturar
+    if (wrapper) wrapper.classList.add('is-capturing');
     if (shine) shine.style.display = 'none';
     if (glare) glare.style.display = 'none';
     card.classList.add('is-capturing');
@@ -386,6 +479,8 @@ const EducatorDashboard = () => {
         logging: false,
         allowTaint: true,
         imageTimeout: 0,
+        windowWidth: 1920,
+        windowHeight: 1080,
       });
 
       const dataUrl = canvas.toDataURL('image/png');
@@ -407,10 +502,10 @@ const EducatorDashboard = () => {
         variant: "destructive",
       });
     } finally {
-      // Siempre restauramos shine y glare al terminar
       if (shine) shine.style.display = '';
       if (glare) glare.style.display = '';
       card.classList.remove('is-capturing');
+      if (wrapper) wrapper.classList.remove('is-capturing');
     }
   };
 
@@ -528,6 +623,31 @@ const EducatorDashboard = () => {
 
               <div className="flex justify-end items-center gap-2">
                 <LanguageToggle />
+
+                {/* Notification bell — class requests popup */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="relative flex items-center justify-center text-slate-300 hover:text-white transition-colors min-h-[36px] w-9 rounded-lg"
+                      aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
+                    >
+                      <Bell className="h-[18px] w-[18px] shrink-0" />
+                      {pendingRequestsCount > 0 && (
+                        <span className="absolute top-1 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums leading-[16px] text-center">
+                          {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                        </span>
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-80 p-0 bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden"
+                    align="end"
+                    sideOffset={8}
+                  >
+                    <NotificationBellPanel />
+                  </PopoverContent>
+                </Popover>
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -627,6 +747,18 @@ const EducatorDashboard = () => {
                           </div>
                         )}
                         
+                        <Link to="/educator/class-requests" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
+                          <img src="/icons/maletinNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('educatorClassRequests.title')}</p>
+                            <p className="text-sm text-slate-200">
+                              {pendingRequestsCount > 0
+                                ? `${pendingRequestsCount} ${t('educatorClassRequests.tabs.pending').toLowerCase()}`
+                                : t('educatorDashboard.noneYet')}
+                            </p>
+                          </div>
+                        </Link>
+
                         {isAdmin && (
                           <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
                             <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
@@ -816,10 +948,10 @@ const EducatorDashboard = () => {
                       <Button
                         type="button"
                         onClick={handleCreateCertificate}
-                        disabled={isLoading}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        disabled={isMinting || isLoading}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-900/40 border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
                       >
-                        {isLoading ? (
+                        {(isMinting || isLoading) ? (
                           <span className="flex items-center gap-2">
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             {t('educatorDashboard.creating')}
@@ -846,18 +978,14 @@ const EducatorDashboard = () => {
                 transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.4 }}
                 className="lg:col-span-7 order-1 lg:order-2 lg:sticky lg:top-8"
               >
-                <div className="relative overflow-hidden bg-white/[0.02] backdrop-blur-sm border border-white/[0.07] rounded-[28px] sm:rounded-[40px] p-5 sm:p-8 lg:p-10 flex flex-col items-center justify-center min-h-[380px] lg:min-h-[620px]">
-                  <div className="absolute top-0 right-0 w-72 h-72 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-56 h-56 bg-fuchsia-500/10 rounded-full blur-[70px] pointer-events-none" />
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent" />
-
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
+                <div className="flex flex-col items-center justify-center min-h-[380px] lg:min-h-[620px] py-8">
+                  <div className="mb-5">
                     <span className="font-title text-[10px] font-bold tracking-[0.22em] uppercase text-white/30">
                       {t('educatorDashboard.livePreview')}
                     </span>
                   </div>
 
-                  <div className="transform transition-transform hover:scale-[1.02] duration-500 relative z-10" ref={cardRef}>
+                  <div className="transform transition-transform hover:scale-[1.02] duration-500" ref={cardRef}>
                     <CertificateCard
                       certificateType={form.certificateType || "Certificate of Completion"}
                       name={form.talentName || 'Talent Name'}
@@ -870,7 +998,7 @@ const EducatorDashboard = () => {
                     />
                   </div>
 
-                  <div className="mt-5 text-center max-w-md relative z-10">
+                  <div className="mt-5 text-center max-w-md">
                     <p className="font-title text-[10px] uppercase tracking-[0.22em] text-white/25 font-bold mb-1.5">
                       {t('educatorDashboard.reviewTitle')}
                     </p>

@@ -106,9 +106,12 @@ router.post(
       await baseUser.update({ nonce: crypto.randomBytes(16).toString('hex') });
 
       const found = await userService.findUserByWallet(normalizedWallet);
-      const { modelName, user } = found;
+      const { modelName } = found;
 
-      const payload = { sub: user.id, role: modelName, wallet: normalizedWallet };
+      // sub must be User.id (users table PK) — the refresh token path already
+      // does this correctly via User.findOne. Using a role-model PK here caused
+      // User.findByPk(sub) calls in downstream routes to hit the wrong row.
+      const payload = { sub: baseUser.id, role: modelName, wallet: normalizedWallet };
       const token = signToken(payload);
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -125,7 +128,7 @@ router.post(
       const refreshToken = signRefreshToken(payload);
       setAuthCookies(res, token, refreshToken);
 
-      const out = user.toJSON ? user.toJSON() : { ...user };
+      const out = baseUser.toJSON ? baseUser.toJSON() : { ...baseUser };
       delete out.passwordHash;
       delete out.privateKey;
 
@@ -166,7 +169,7 @@ router.post(
       if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
       const { currentPassword, newPassword } = req.body;
-      const result = await userService.getUserByIdAndRole(auth.sub, auth.role);
+      const result = await userService.findUserByWallet(auth.wallet);
       if (!result) return res.status(404).json({ error: "User not found" });
 
       const { user, modelName } = result;
