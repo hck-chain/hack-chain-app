@@ -7,6 +7,7 @@ const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
 const { authenticate } = require("../middleware/auth");
+const { requireAdmin } = require("../middleware/requireAdmin");
 const emailService = require("../services/emailService");
 const { getAdminEmails } = require("../services/adminService");
 
