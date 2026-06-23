@@ -95,6 +95,14 @@ describe("requestClass", () => {
     expect(result.code).toBe("INSUFFICIENT_LEAD_TIME");
   });
 
+  test("returns INSUFFICIENT_LEAD_TIME when slot is within 24 hours", async () => {
+    // Use requestedTimestampUtc (timezone-safe path) to avoid date string reconstruction bugs.
+    const soon = new Date(Date.now() + 23 * 60 * 60 * 1000);
+    const result = await requestClass({ ...base(), requestedTimestampUtc: soon.toISOString() });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("INSUFFICIENT_LEAD_TIME");
+  });
+
   test("returns EDUCATOR_NOT_FOUND when educator has no class_settings", async () => {
     const wallet = "0x" + "dd".repeat(20);
     await models.User.create({ wallet_address: wallet, role: "issuer", name: "NoSettings", nonce: crypto.randomBytes(16).toString("hex") });
