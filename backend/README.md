@@ -1,177 +1,137 @@
-# HackChain Backend
-This project uses **PostgreSQL** as the database and **Node.js + Sequelize** for the backend. You can run the **app locally** while the database runs in **Docker**.
+# HackChain — Backend
 
-##  Requirements
-- Docker and Docker Compose installed
-- Node.js ≥ 20
-- npm ≥ 9
+Express 5 REST API for the HackChain certification platform. Follows Clean Architecture.
 
-## How it Works
-### User Registration
-When a new user registers on HackChain, the backend automatically creates a **new Ethereum wallet** for them. This process involves:
+## Stack
 
-1. **Generating a wallet and private key**  
-   - A new Ethereum address and corresponding private key are created using the backend.
-   - The private key is securely stored or used only for testing purposes.
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js >= 18 |
+| Framework | Express 5 |
+| ORM | Sequelize 6 |
+| Database | PostgreSQL on NeonDB (serverless) |
+| Cache / Sessions | Redis (Upstash or self-hosted) |
+| Auth | JWT (access + refresh tokens) + bcrypt |
+| File uploads | Multer + Pinata SDK (IPFS) |
+| Email | Resend |
+| Blockchain | Ethers.js v6 |
+| Rate limiting | express-rate-limit (Redis-backed in production) |
+| Tests | Jest + Supertest + SQLite (in-memory) |
 
-2. **Funding the wallet**  
-   - The app uses the `SENDER_PRIVATE_KEY` (configured in `.env`) to send a small amount of ETH to the newly generated wallet.
-   - This ensures the user wallet has enough ETH to interact with the blockchain for testing purposes (e.g., on Sepolia testnet).
+## Folder Structure
 
-3. **User registration flow**  
-   - When a user signs up via the API, the backend generates their wallet.
-   - The wallet address is then returned in the registration response alongside the user data.
-   - Example response:
-   ```json
-   {
-       "message": "User registered",
-       "user": {
-           "email": "test@mail.com",
-           "walletAddress": "0xE27297141858118466e67c83405d37DeeDB9Dd94"
-       }
-   }
-    ```
-    This approach allows each user to have their own blockchain wallet without needing to manually create one or manage private keys, while keeping the process safe for testnet usage.
-
-4. **User types**
-There are three types of users that can be registered through this backend
-   - **Student:** Can get certificates.
-   - **Issuer:** An academic institution that issues certificates to the students.
-   - **Recruiter:** Can see students' certificates.
-
-### Pinata connection
-When posting a certificate through this app's API, it will connect to your pinata account and store the tokenURI there. Follow the instructions below for connecting with pinata by filling the `.env` file.
-
-## Configure and run the app
-
-### 1. Start the database in Docker
-Run the following command inside the `/backend` folder:
-```bash
-docker-compose up -d db
 ```
-This will start only the database in Docker, exposed at `localhost:5432`.
+backend/
+├── routes/           Express routers — no business logic, route definitions only
+├── middleware/        authenticate, requireRole, requireAdmin, rate limiters
+├── controllers/       (inline in routes) — translate HTTP to domain, call one use case
+├── usecases/          All business logic — pure functions, no Express, no direct DB imports
+│   ├── classes/
+│   └── referrals/
+├── services/          External integrations: emailService, redis, ipfsCertificateUploader,
+│                      paymentService, issuerDiscoveryService, calendarService
+├── adapters/          Thin wrappers around blockchain providers (polygonProvider, nftMintAdapter)
+├── models/            Sequelize model definitions and associations only
+├── scripts/           One-off migration scripts (idempotent — safe to re-run)
+├── workers/           Background processes
+└── harjoot/           Payment verification module (internal)
+```
 
-### 2. Configure Environment Variables
-Create an `.env` file in the backend root with the following content:
-```ini
-DB_HOST=localhost
-DB_PORT=5432 # or whatever you want
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=hackchain
-SENDER_PRIVATE_KEY=<wallet_with_funds_private_key>
-RPC_URL=https://sepolia.infura.io/v3/<your_infura_project_id>
+## Getting Started
+
+Run from the monorepo root:
+
+```bash
+# Install all workspaces
+npm install
+
+# Start the backend dev server (port 3001, nodemon)
+npm run dev --workspace=backend
+```
+
+Or from inside this directory:
+
+```bash
+npm run dev
+```
+
+## Environment Variables
+
+Create `backend/.env`:
+
+```bash
+# Database
+DATABASE_URL=postgresql://...              # NeonDB pooled connection string (use for runtime)
+DATABASE_URL_UNPOOLED=postgresql://...     # NeonDB direct connection string (use for migrations)
+
+# Authentication
+JWT_SECRET=...                             # Secret for signing access tokens (long random string)
+JWT_REFRESH_SECRET=...                     # Secret for signing refresh tokens
+
+# Redis
+REDIS_URL=redis://...                      # Redis connection URL (rate limiting + session cache)
+
+# IPFS / Pinata
+PINATA_API_KEY=...
+PINATA_SECRET_KEY=...
 PINATA_JWT=...
-GATEWAY_URL=...
-```
-#### ⚠️ PLEASE NOTE
-When a user creates an account at this platform, this app will create a wallet and **fund it by using the `SENDER_PRIVATE_KEY`**. Do this for testing purpouses using fake ETH (e.g, Sepolia).
+GATEWAY_URL=https://...                    # Pinata dedicated gateway URL
 
-### 3. Adjust the amount of ETH
-Look for this line in the `generateAndFundWallet.js` script and decide how much ETH you want to send to the wallets being generated each time a user registers:
-```javascript
-const amountToSend = "0.0000001"; // Adjust amount if needed
+# Blockchain
+POLYGON_RPC_URL=https://...               # Polygon RPC endpoint
+PRIVATE_KEY=0x...                          # Backend wallet private key (for contract interactions)
+CONTRACT_ADDRESS=0x...                     # HackCertificate contract address
+HACK_TOKEN_ADDRESS=0x...                  # HackToken (ERC20) contract address
+
+# Email
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@hackchain.app
+
+# Misc
+NODE_ENV=development
+PORT=3001
+FRONTEND_URL=http://localhost:5173
 ```
 
-### 4. Run the server
-Start the server with:
+## Available Scripts
+
 ```bash
-node index.js
+npm run dev      # Start with nodemon (auto-restart on change)
+npm start        # Start without nodemon (production)
+npm test         # Run Jest test suite
 ```
 
-## 🩺 Testing
-### Add a new user to the database
-```bash
-POST http//:localhost:3002/api/users
-```
-#### Request body
-```json
-{
-    "email": "test@mail.com",
-    "password": "password"
-}
-```
-#### Response example (201 Created)
-```json
-{
-    "message": "User registered",
-    "user": {
-        "email": "test@mail.com",
-        "walletAddress": "0xE27297141858118466e67c83405d37DeeDB9Dd94"
-    }
-}
-```
-### Add a duplicate email
-#### Request body
-Use a repeated email
-```json
-{
-    "email": "test@mail.com",
-    "password": "password"
-}
-```
-#### Response example (409 Conflict)
-```json
-{
-    "error": "User already registered"
-}
-```
-### Post a certificate
-```bash
-POST http://localhost:3002/api/certificates
-```
-#### Request body
-```json
-{
-  "name": "Example Perez",
-  "course": "Blockchain 101",
-  "professor": "Dr. Satoshi",
-  "date": "2025-07-26",
-  "imageCID": "bafybeia1234567890ksdjad"
-}
-```
-#### Response example
-```json
-{
-    "cid": "bafkreibsxymm6uxmqxlb5tyz23nhmo3i4degdgyjidadk6vqgbog4omojm",
-    "pinata": {
-        "id": "0198807e-f2ff-7796-a9ad-6a3a242eb83c",
-        "name": "data.json",
-        "size": 379,
-        "mime_type": "application/json",
-        "cid": "bafkreibsxymm6uxmqxlb5tyz23nhmo3i4degdgyjidadk6vqgbog4omojm",
-        "network": "public",
-        "number_of_files": 1,
-        "streamable": false,
-        "created_at": "2025-08-06T17:47:40.416Z",
-        "updated_at": "2025-08-06T17:47:40.416Z"
-    }
-}
-````
+## Running Database Migrations
 
-Verify that something similar to this has been generated in your Pinata account:
-```json
-{
-  "name": "Certificate for Example Perez",
-  "description": "Blockchain 101 impartido por Dr. Satoshi",
-  "image": "ipfs://bafybeibmeqeia5ta52vxbapor5mkens2uwau2xsy6oetrf6prlcfssm5le",
-  "attributes": [
-    {
-      "trait_type": "Student",
-      "value": "Example Perez"
-    },
-    {
-      "trait_type": "Course",
-      "value": "Blockchain 101"
-    },
-    {
-      "trait_type": "Professor",
-      "value": "Dr. Satoshi"
-    },
-    {
-      "trait_type": "Date",
-      "value": "2025-07-26"
-    }
-  ]
-}
+Migrations are standalone scripts in `backend/scripts/`. They are idempotent — running them twice is safe.
+
+```bash
+# Add payment-related columns to class_requests
+node backend/scripts/migrate-class-requests-add-payment.js
+
+# Add cancellation_reason column to class_requests
+node backend/scripts/migrate-class-requests-add-cancellation-reason.js
 ```
+
+Always use `DATABASE_URL_UNPOOLED` (direct connection) when running migrations. PgBouncer in transaction mode rejects DDL statements.
+
+## Testing
+
+Tests use Jest + Supertest. The database is an in-memory SQLite instance — no external DB required to run tests.
+
+```bash
+npm test
+
+# Run a specific test file
+npx jest backend/routes/__tests__/classRequests.test.js
+
+# Run tests matching a pattern (use explicit paths to avoid picking up frontend TS files)
+npx jest "backend/usecases/classes/__tests__/cancelClassRequest"
+```
+
+## Architecture Rules
+
+- A controller is an HTTP translator, not a business logic layer. If there is a business-rule conditional in a controller, move it to a use case.
+- Use cases receive all dependencies as parameters (repositories, services). They never import models directly. This makes them testable in isolation.
+- Services hold external integrations. Use cases call services — services do not call use cases.
+- Email notifications follow a fire-and-forget pattern: `Promise.all([...]).then(...).catch(console.error)` after the success response is sent. Email failures never block the main flow.
