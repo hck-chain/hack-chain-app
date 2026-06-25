@@ -1,7 +1,7 @@
 import Layout from '@/components/Layout';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -153,6 +153,9 @@ function NotificationBellPanel() {
 const EducatorDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const [classRequestId, setClassRequestId] = useState<number | null>(null);
+
   const [form, setForm] = useState({
     certificateType: '',
     certificateTitle: '',
@@ -193,6 +196,23 @@ const EducatorDashboard = () => {
       });
     },
   });
+
+  // Pre-fill form from class request context (navigated from EducatorClassRequests)
+  useEffect(() => {
+    const rid = searchParams.get('classRequestId');
+    const sw  = searchParams.get('studentWallet');
+    const sn  = searchParams.get('studentName');
+    const cn  = searchParams.get('className');
+    if (rid) setClassRequestId(parseInt(rid, 10));
+    if (sw || sn || cn) {
+      setForm(prev => ({
+        ...prev,
+        ...(sw ? { talentWallet: sw } : {}),
+        ...(sn ? { talentName: sn } : {}),
+        ...(cn ? { certificateTitle: cn } : {}),
+      }));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -407,6 +427,7 @@ const EducatorDashboard = () => {
         professorName: form.issuer,
         issueDate: form.issueDate,
         imageUri: realImageCID,
+        classRequestId,
       };
 
       const success = await createCertificate(certificateData, userData.walletAddress);

@@ -433,7 +433,7 @@ router.post("/database", authenticate, async (req, res) => {
     const {
       student_wallet_address, issuer_wallet_address, title,
       description, certificate_hash, blockchain_tx_hash,
-      token_id, issue_date
+      token_id, issue_date, class_request_id,
     } = req.body;
 
     if (!issuer_wallet_address || !issuer_wallet_address.startsWith("0x")) {
@@ -468,6 +468,8 @@ router.post("/database", authenticate, async (req, res) => {
       });
     }
 
+    const parsedClassRequestId = class_request_id ? parseInt(class_request_id, 10) : null;
+
     // 4. Creación del certificado
     const certificate = await Certificate.create({
       student_wallet_address: cleanStudentWallet,
@@ -478,8 +480,23 @@ router.post("/database", authenticate, async (req, res) => {
       blockchain_tx_hash,
       issue_date,
       token_id,
-      is_revoked: false
+      is_revoked: false,
+      class_request_id: parsedClassRequestId,
     });
+
+    // 5. Auto-complete the class request when a certificate is issued for it
+    if (parsedClassRequestId) {
+      await db.ClassRequest.update(
+        { status: 'completed' },
+        {
+          where: {
+            id: parsedClassRequestId,
+            issuer_wallet_address: cleanIssuerWallet,
+            status: 'confirmed',
+          },
+        }
+      );
+    }
 
     res.status(201).json({
       message: "Certificado sincronizado con éxito",

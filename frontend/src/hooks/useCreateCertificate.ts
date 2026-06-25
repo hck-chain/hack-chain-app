@@ -9,8 +9,9 @@ export interface CertificateData {
   talentWallet: string;
   courseName: string;
   imageUri: string;
-  professorName: string; 
+  professorName: string;
   issueDate: string;
+  classRequestId?: number | null;
 }
 
 interface CertificateMetadataResponse {
@@ -47,7 +48,8 @@ export const useCreateCertificate = () => {
         data.talentName,
         data.courseName,
         tokenUri,
-        professorWallet
+        professorWallet,
+        data.classRequestId ?? null
       );
 
       if (!mintSuccess) {

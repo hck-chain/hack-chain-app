@@ -279,7 +279,7 @@ export default function CalendarPage() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
   const directionRef = useRef(1);
 
   const { eventsByDate, isPending, isEducator } = useCalendarEvents();

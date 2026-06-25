@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import {
-  ArrowLeft, Clock, CheckCircle, XCircle,
+  ArrowLeft, Clock, CheckCircle, XCircle, Award,
   Calendar, CalendarPlus, Download, User,
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -222,6 +222,19 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Issue certificate — confirmed only */}
+          {status === 'confirmed' && !confirmCancel && (
+            <div className="mt-1.5">
+              <Link
+                to={`/dashboard/educator?classRequestId=${request.id}&studentWallet=${encodeURIComponent(request.student_wallet)}${request.student_name ? `&studentName=${encodeURIComponent(request.student_name)}` : ''}${request.class_name ? `&className=${encodeURIComponent(request.class_name)}` : ''}`}
+                className="inline-flex items-center gap-1.5 text-[12px] text-purple-400 hover:text-purple-300 px-2.5 py-1.5 rounded-lg hover:bg-purple-500/[0.08] min-h-[36px] transition-colors duration-150"
+              >
+                <Award className="h-3.5 w-3.5 shrink-0" />
+                {t('educatorClassRequests.actions.issueCertificate', 'Emitir Certificado')}
+              </Link>
+            </div>
+          )}
 
           {/* Calendar shortcuts — confirmed only */}
           {status === 'confirmed' && (

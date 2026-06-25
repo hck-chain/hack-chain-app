@@ -58,7 +58,8 @@ module.exports = (sequelize, DataTypes) => {
     harjoot_verification_url: { type: DataTypes.STRING, allowNull: true },
     harjoot_qr_url:           { type: DataTypes.STRING, allowNull: true },
     payment_id:               { type: DataTypes.INTEGER, allowNull: true },
-    status:                   { type: DataTypes.STRING, allowNull: true, defaultValue: 'issued' }
+    status:                   { type: DataTypes.STRING, allowNull: true, defaultValue: 'issued' },
+    class_request_id:         { type: DataTypes.INTEGER, allowNull: true }
   }, {
     tableName: 'certificates',
     underscored: true,
@@ -83,6 +84,13 @@ module.exports = (sequelize, DataTypes) => {
       Certificate.belongsTo(models.Payment, {
         foreignKey: 'payment_id',
         targetKey: 'id',
+      });
+    }
+
+    if (models.ClassRequest) {
+      Certificate.belongsTo(models.ClassRequest, {
+        foreignKey: 'class_request_id',
+        as: 'classRequest',
       });
     }
   };

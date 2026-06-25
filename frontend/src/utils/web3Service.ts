@@ -764,7 +764,8 @@ export const web3Service = {
         talentName: string,
         courseName: string,
         tokenUri: string,
-        issuerWallet: string
+        issuerWallet: string,
+        classRequestId?: number | null
     ): Promise<boolean> => {
         const walletProvider = appKit.getWalletProvider();
         if (!walletProvider) return false;
@@ -807,7 +808,8 @@ export const web3Service = {
                 certificate_hash: tokenUri,
                 blockchain_tx_hash: tx.hash,
                 token_id: tokenId,
-                issue_date
+                issue_date,
+                ...(classRequestId != null ? { class_request_id: classRequestId } : {}),
             });
 
             // alert("Certificate minted and saved successfully!");

@@ -77,6 +77,12 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'issuer_class_id',
       as: 'issuerClass',
     });
+    if (models.Certificate) {
+      ClassRequest.hasOne(models.Certificate, {
+        foreignKey: 'class_request_id',
+        as: 'certificate',
+      });
+    }
   };
 
   return ClassRequest;
