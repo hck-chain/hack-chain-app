@@ -736,30 +736,6 @@ const BookEducatorClass = () => {
               )}
             </AnimatePresence>
 
-            {/* Google Calendar embed */}
-            {cs.google_calendar_url && (
-              <div
-                className="rounded-2xl overflow-hidden"
-                style={{ border: `1px solid ${P.border}` }}
-              >
-                <div
-                  className="px-6 py-4"
-                  style={{ borderBottom: `1px solid ${P.borderSub}`, backgroundColor: P.card }}
-                >
-                  <p className="text-[11px] uppercase tracking-[0.18em] font-semibold" style={{ color: P.textMuted }}>
-                    {t('bookClass.calendarTitle')}
-                  </p>
-                </div>
-                <iframe
-                  src={cs.google_calendar_url}
-                  title="Educator calendar"
-                  className="w-full"
-                  style={{ height: 420, border: 0, backgroundColor: P.surface }}
-                  loading="lazy"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
-                />
-              </div>
-            )}
           </motion.main>
         )}
       </div>
