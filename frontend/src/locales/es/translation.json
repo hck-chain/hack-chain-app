@@ -999,8 +999,10 @@
     "actions": {
       "confirm": "Confirmar",
       "complete": "Completar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "issueCertificate": "Emitir Certificado"
     },
+    "topic": "Tema",
     "cancelReasonPlaceholder": "Motivo de cancelación (opcional)",
     "confirmCancel": "¿Cancelar esta clase?",
     "cancelYes": "Sí, cancelar",
