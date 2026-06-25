@@ -255,6 +255,9 @@ let server;
     // Promotes queued_next_month referrals to eligible at the start of the month.
     require("./workers/referralQueueFlusher").scheduleQueueFlusher();
 
+    // Class reminder worker — sends 24h-before emails to both parties of confirmed classes.
+    require("./workers/classReminderWorker").scheduleClassReminder();
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

@@ -505,6 +505,22 @@ router.post("/database", authenticate, async (req, res) => {
       );
     }
 
+    // 6. Notify talent — fire-and-forget, must not block the response
+    User.findOne({
+      where: { wallet_address: cleanStudentWallet },
+      attributes: ['email', 'name', 'lastname'],
+    }).then(studentUser => {
+      if (!studentUser?.email) return;
+      const studentName = [studentUser.name, studentUser.lastname].filter(Boolean).join(' ') || null;
+      return emailService.notifyTalentCertificateIssued({
+        to: studentUser.email,
+        studentName,
+        educatorName: issuer.organization_name || null,
+        certificateTitle: title || null,
+        dashboardUrl: `${process.env.FRONTEND_URL || 'https://www.hackchain.app'}/dashboard/talent`,
+      });
+    }).catch(err => console.error('[email] notifyTalentCertificateIssued failed:', err.message));
+
     res.status(201).json({
       message: "Certificado sincronizado con éxito",
       id: certificate.id

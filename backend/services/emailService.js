@@ -722,6 +722,92 @@ async function notifyEducatorClassCancelled({ to, educatorName, studentName, cla
   });
 }
 
+// Shared 24h reminder — role: 'student' | 'educator'
+async function notifyClassReminder({ to, recipientName, counterpartName, role, className, requestedDate, startTime, durationMinutes }) {
+  console.log(`[emailService] Recordatorio 24h → ${to} (${role})`);
+
+  const greeting = recipientName ? `Hola, ${esc(recipientName)}.` : "Hola.";
+  const mins = parseInt(durationMinutes, 10) || 60;
+  const isEducator = role === 'educator';
+
+  const eventTitle = className
+    ? `Clase: ${esc(className)}`
+    : counterpartName
+    ? `Clase con ${esc(counterpartName)}`
+    : "Clase — HackChain";
+
+  const desc = [
+    counterpartName ? `${isEducator ? 'Estudiante' : 'Educador'}: ${counterpartName}` : null,
+    className ? `Clase: ${className}` : null,
+    "Sesión privada — HackChain.",
+  ].filter(Boolean).join("\n");
+
+  const googleUrl = buildGoogleCalendarUrl({ title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
+  const ctaUrl = isEducator ? `${FRONTEND_URL}/educator/dashboard` : `${FRONTEND_URL}/dashboard/talent/classes`;
+  const ctaLabel = isEducator ? "Ver mis clases" : "Ver mis clases";
+
+  const counterpartLine = counterpartName
+    ? `<tr><td style="padding:6px 0;color:#888;">${isEducator ? 'Estudiante' : 'Educador'}</td><td style="padding:6px 0;">${esc(counterpartName)}</td></tr>`
+    : "";
+  const classLine = className
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${esc(className)}</td></tr>`
+    : "";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Recordatorio: tu clase es mañana${className ? ` — ${className}` : ""}`,
+    text: `${greeting}\n\nTe recordamos que mañana tenés una clase privada agendada en HackChain.\n\n${className ? `Clase: ${className}\n` : ""}${counterpartName ? `${isEducator ? 'Estudiante' : 'Educador'}: ${counterpartName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\n${ctaUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Recordatorio de clase",
+      headline: "Tu clase es mañana",
+      accentColor: "#7c3aed",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;">Te recordamos que <strong>mañana tenés una clase privada</strong> agendada en HackChain.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               ${classLine}
+               ${counterpartLine}
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${mins} min</td></tr>
+             </table>
+             <p style="margin:24px 0 8px;text-align:center;">
+               <a href="${googleUrl}" target="_blank" rel="noopener noreferrer"
+                  style="display:inline-block;background-color:#7c3aed;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;font-size:14px;">
+                 Agregar a Google Calendar
+               </a>
+             </p>`,
+      ctaUrl,
+      ctaLabel,
+    }),
+  });
+}
+
+async function notifyTalentCertificateIssued({ to, studentName, educatorName, certificateTitle, dashboardUrl }) {
+  console.log(`[emailService] Notificando certificado emitido → ${to}`);
+
+  const greeting = studentName ? `Hola, ${esc(studentName)}.` : "Hola.";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Recibiste un nuevo certificado${certificateTitle ? `: ${certificateTitle}` : ""}`,
+    text: `${greeting}\n\n${educatorName ? `${educatorName} ` : ""}emitió un certificado a tu nombre en HackChain.\n\n${certificateTitle ? `Certificado: ${certificateTitle}\n` : ""}Podés verlo en tu perfil: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Nuevo certificado recibido",
+      headline: "Recibiste un certificado",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;">${educatorName ? `<strong>${esc(educatorName)}</strong> ` : ""}emitió un certificado a tu nombre en HackChain. Ya está disponible en tu perfil público y verificable en blockchain.</p>
+             ${certificateTitle ? `<table style="width:100%;border-collapse:collapse;font-size:14px;">
+               <tr><td style="padding:6px 0;color:#888;">Certificado</td><td style="padding:6px 0;font-weight:700;">${esc(certificateTitle)}</td></tr>
+             </table>` : ""}`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ver mi certificado",
+    }),
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   notifyEducatorApproved,
@@ -734,4 +820,6 @@ module.exports = {
   notifyTalentClassRequestUpdate,
   notifyEducatorClassConfirmed,
   notifyEducatorClassCancelled,
+  notifyClassReminder,
+  notifyTalentCertificateIssued,
 };
