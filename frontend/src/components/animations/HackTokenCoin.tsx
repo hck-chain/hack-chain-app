@@ -15,76 +15,132 @@ function buildFace(): THREE.CanvasTexture {
   c.arc(cx, cy, R, 0, Math.PI * 2);
   c.clip();
 
-  // Base — dark, slightly cool
-  const base = c.createRadialGradient(cx, cy - 80, 0, cx, cy, R);
-  base.addColorStop(0,   '#161a22');
-  base.addColorStop(0.6, '#0c0e14');
-  base.addColorStop(1,   '#060709');
+  // 1. Base — Deep violet, neon purple, indigo gradient (Balanced)
+  const base = c.createRadialGradient(cx, cy, 0, cx, cy, R);
+  base.addColorStop(0,   '#310d54'); // Darker violet center
+  base.addColorStop(0.5, '#1b0638'); // Mid indigo
+  base.addColorStop(1,   '#0d031c'); // Dark edge
   c.fillStyle = base;
   c.fillRect(0, 0, S, S);
 
-  // Outer rim — silver gradient
+  // 2. Sophisticated digital circuit board
+  c.lineWidth = 2;
+  c.lineJoin = 'round';
+  const drawCircuit = (startX: number, startY: number, angle: number, color: string) => {
+    c.strokeStyle = color;
+    c.beginPath();
+    c.moveTo(startX, startY);
+    let x = startX + Math.cos(angle) * 80;
+    let y = startY + Math.sin(angle) * 80;
+    c.lineTo(x, y);
+    // Bend 45 degrees
+    const turn = angle + (Math.random() > 0.5 ? Math.PI / 4 : -Math.PI / 4);
+    x += Math.cos(turn) * 120;
+    y += Math.sin(turn) * 120;
+    c.lineTo(x, y);
+    // End node
+    c.stroke();
+    c.beginPath();
+    c.arc(x, y, 4, 0, Math.PI * 2);
+    c.fillStyle = color;
+    c.fill();
+  };
+
+  // Copper traces & Neon schematic lines
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 24) * Math.PI * 2;
+    const color = i % 3 === 0 ? 'rgba(0, 243, 255, 0.6)' : 'rgba(184, 115, 51, 0.4)'; // Neon Cyan & Copper
+    const startDist = 180 + Math.random() * 40;
+    drawCircuit(cx + Math.cos(angle) * startDist, cy + Math.sin(angle) * startDist, angle, color);
+  }
+
+  // 3. Central CPU chip background
+  c.fillStyle = '#0f111a';
+  c.strokeStyle = '#2d334a';
+  c.lineWidth = 4;
+  c.shadowColor = 'rgba(0, 243, 255, 0.3)';
+  c.shadowBlur = 20;
+  c.fillRect(cx - 160, cy - 160, 320, 320);
+  c.strokeRect(cx - 160, cy - 160, 320, 320);
+  c.shadowBlur = 0;
+
+  // Inner CPU details
+  c.strokeStyle = 'rgba(184, 115, 51, 0.5)'; // Copper pins
+  c.lineWidth = 3;
+  for (let i = -140; i <= 140; i += 20) {
+    // Top & Bottom pins
+    c.beginPath(); c.moveTo(cx + i, cy - 160); c.lineTo(cx + i, cy - 180); c.stroke();
+    c.beginPath(); c.moveTo(cx + i, cy + 160); c.lineTo(cx + i, cy + 180); c.stroke();
+    // Left & Right pins
+    c.beginPath(); c.moveTo(cx - 160, cy + i); c.lineTo(cx - 180, cy + i); c.stroke();
+    c.beginPath(); c.moveTo(cx + 160, cy + i); c.lineTo(cx + 180, cy + i); c.stroke();
+  }
+
+  // 4. Glowing Ring Gauges (HACK VALUE & NETWORK LOAD)
+  const drawGauge = (radius: number, start: number, end: number, color: string, glowColor: string, segments: number) => {
+    c.strokeStyle = 'rgba(40, 40, 60, 0.5)'; // background track
+    c.lineWidth = 14;
+    c.beginPath();
+    c.arc(cx, cy, radius, start, end);
+    c.stroke();
+
+    c.shadowColor = glowColor;
+    c.shadowBlur = 15;
+    c.strokeStyle = color;
+    c.lineWidth = 10;
+    // segmented active arc
+    const step = (end - start) / segments;
+    for (let i = 0; i < segments * 0.75; i++) { // 75% full
+      c.beginPath();
+      c.arc(cx, cy, radius, start + i * step + 0.02, start + (i + 1) * step - 0.02);
+      c.stroke();
+    }
+    c.shadowBlur = 0;
+  };
+
+  // Top-Right: Network Load (Neon Purple)
+  drawGauge(R - 120, -Math.PI / 2 + 0.2, Math.PI / 2 - 0.2, '#b026ff', 'rgba(176, 38, 255, 0.8)', 20);
+  // Bottom-Left: Hack Value (Neon Blue)
+  drawGauge(R - 120, Math.PI / 2 + 0.2, Math.PI * 1.5 - 0.2, '#00f3ff', 'rgba(0, 243, 255, 0.8)', 20);
+
+  // 5. Outer rim — Brushed steel finish
   const rim = c.createLinearGradient(0, 0, S, S);
-  rim.addColorStop(0,    '#f0f0f0');
-  rim.addColorStop(0.25, '#909090');
-  rim.addColorStop(0.5,  '#e8e8e8');
-  rim.addColorStop(0.75, '#707070');
-  rim.addColorStop(1,    '#e8e8e8');
+  rim.addColorStop(0,    '#d0d0d0');
+  rim.addColorStop(0.25, '#505050');
+  rim.addColorStop(0.5,  '#b0b0b0');
+  rim.addColorStop(0.75, '#404040');
+  rim.addColorStop(1,    '#c0c0c0');
   c.strokeStyle = rim;
-  c.lineWidth   = 8;
+  c.lineWidth   = 16;
   c.beginPath();
   c.arc(cx, cy, R - 18, 0, Math.PI * 2);
   c.stroke();
 
-  // Inner thin ring
-  c.strokeStyle = 'rgba(180,180,200,0.2)';
-  c.lineWidth   = 1.2;
-  c.beginPath();
-  c.arc(cx, cy, R - 80, 0, Math.PI * 2);
-  c.stroke();
+  // 6. Typography
 
-  // Tick marks — silver
-  const TICKS = 72;
-  for (let i = 0; i < TICKS; i++) {
-    const angle   = (i / TICKS) * Math.PI * 2;
-    const isMajor = i % 6 === 0;
-    const innerR  = isMajor ? R - 58 : R - 46;
-    c.strokeStyle = isMajor
-      ? 'rgba(220,220,240,0.8)'
-      : 'rgba(160,160,180,0.35)';
-    c.lineWidth = isMajor ? 2.2 : 1.1;
-    c.beginPath();
-    c.moveTo(cx + Math.cos(angle) * innerR,   cy + Math.sin(angle) * innerR);
-    c.lineTo(cx + Math.cos(angle) * (R - 22), cy + Math.sin(angle) * (R - 22));
-    c.stroke();
-  }
 
-  // Top-left specular sheen — gives the concave dish look
-  const sheen = c.createRadialGradient(cx - 160, cy - 180, 0, cx, cy, R - 40);
-  sheen.addColorStop(0,   'rgba(255,255,255,0.1)');
-  sheen.addColorStop(0.35,'rgba(200,210,255,0.04)');
-  sheen.addColorStop(1,   'rgba(200,210,255,0)');
-  c.fillStyle = sheen;
-  c.fillRect(0, 0, S, S);
-
-  // $HACK — bright white/silver with very subtle purple glow
+  // $HACK Logo
   c.save();
-  c.shadowColor  = 'rgba(180,140,255,0.5)';
-  c.shadowBlur   = 30;
-  c.fillStyle    = '#f0f0f8';
-  c.font         = `bold ${S * 0.165}px ui-monospace,"SF Mono",monospace`;
-  c.textAlign    = 'center';
-  c.textBaseline = 'middle';
-  c.fillText('$HACK', cx, cy - 16);
-  c.restore();
-
-  // Sub-label — muted silver
-  c.save();
-  c.fillStyle = 'rgba(160,165,190,0.65)';
-  c.font      = `bold ${S * 0.037}px ui-monospace,monospace`;
+  c.fillStyle = '#ffffff';
+  c.shadowColor = 'rgba(176, 38, 255, 0.9)'; // Neon purple glow
+  c.shadowBlur = 25;
+  c.font = `bold ${S * 0.16}px ui-monospace,"SF Mono",monospace`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.fillText('ERC-20  ·  POLYGON', cx, cy + S * 0.098);
+  c.fillText('$HACK', cx, cy + 15);
+  c.restore();
+
+  // Gauge Labels
+  c.save();
+  c.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  c.font = `bold ${S * 0.025}px ui-monospace,"SF Mono",monospace`;
+  c.textBaseline = 'middle';
+  // HACK VALUE label
+  c.textAlign = 'right';
+  c.fillText('HACK VALUE  [|||||  ]', cx - 220, cy + 280);
+  // NETWORK LOAD label
+  c.textAlign = 'left';
+  c.fillText('[|||||||]  NETWORK LOAD', cx + 220, cy - 280);
   c.restore();
 
   c.restore();
@@ -103,60 +159,80 @@ function buildBack(): THREE.CanvasTexture {
   c.arc(cx, cy, R, 0, Math.PI * 2);
   c.clip();
 
+  // Base — Cyberpunk dark server rack feel
   const base = c.createRadialGradient(cx, cy, 0, cx, cy, R);
-  base.addColorStop(0, '#12141c');
-  base.addColorStop(1, '#060709');
+  base.addColorStop(0, '#150824');
+  base.addColorStop(1, '#05020a');
   c.fillStyle = base;
   c.fillRect(0, 0, S, S);
 
+  // Background Grid / Server racks hint
+  c.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+  c.lineWidth = 2;
+  for (let i = 0; i < S; i += 40) {
+    c.beginPath(); c.moveTo(0, i); c.lineTo(S, i); c.stroke();
+    c.beginPath(); c.moveTo(i, 0); c.lineTo(i, S); c.stroke();
+  }
+
   // Outer rim — match front
   const rim = c.createLinearGradient(0, S, S, 0);
-  rim.addColorStop(0,   '#e8e8e8');
-  rim.addColorStop(0.5, '#909090');
-  rim.addColorStop(1,   '#e8e8e8');
+  rim.addColorStop(0,   '#d0d0d0');
+  rim.addColorStop(0.5, '#505050');
+  rim.addColorStop(1,   '#d0d0d0');
   c.strokeStyle = rim;
-  c.lineWidth   = 8;
+  c.lineWidth   = 16;
   c.beginPath();
   c.arc(cx, cy, R - 18, 0, Math.PI * 2);
   c.stroke();
 
-  // Hexagon — HackChain motif, silver
-  const hexR = 185;
-  c.strokeStyle = 'rgba(180,180,210,0.4)';
-  c.lineWidth   = 3.5;
+  // Cyber Hexagon Network
+  const hexR = 240;
+  c.strokeStyle = 'rgba(176, 38, 255, 0.5)'; // Neon Purple
+  c.shadowColor = 'rgba(176, 38, 255, 0.8)';
+  c.shadowBlur = 15;
+  c.lineWidth   = 4;
   c.beginPath();
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-    i === 0
-      ? c.moveTo(cx + Math.cos(a) * hexR, cy + Math.sin(a) * hexR)
-      : c.lineTo(cx + Math.cos(a) * hexR, cy + Math.sin(a) * hexR);
+    const px = cx + Math.cos(a) * hexR;
+    const py = cy + Math.sin(a) * hexR;
+    i === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
   }
   c.closePath();
   c.stroke();
 
-  // Inner hexagon
-  c.strokeStyle = 'rgba(150,150,180,0.18)';
-  c.lineWidth   = 1.5;
-  c.beginPath();
+  // Nodes at vertices
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-    i === 0
-      ? c.moveTo(cx + Math.cos(a) * hexR * 0.62, cy + Math.sin(a) * hexR * 0.62)
-      : c.lineTo(cx + Math.cos(a) * hexR * 0.62, cy + Math.sin(a) * hexR * 0.62);
+    c.beginPath();
+    c.arc(cx + Math.cos(a) * hexR, cy + Math.sin(a) * hexR, 12, 0, Math.PI * 2);
+    c.fillStyle = '#00f3ff';
+    c.shadowColor = '#00f3ff';
+    c.fill();
   }
-  c.closePath();
-  c.stroke();
 
-  // HC monogram — silver
+  // HC monogram — Tech style
   c.save();
-  c.shadowColor  = 'rgba(180,140,255,0.4)';
-  c.shadowBlur   = 24;
-  c.fillStyle    = 'rgba(200,205,230,0.75)';
-  c.font         = `bold ${S * 0.18}px ui-monospace,"SF Mono",monospace`;
+  c.shadowColor  = 'rgba(0, 243, 255, 0.6)';
+  c.shadowBlur   = 20;
+  c.fillStyle    = '#ffffff';
+  c.font         = `bold ${S * 0.22}px ui-monospace,"SF Mono",monospace`;
   c.textAlign    = 'center';
   c.textBaseline = 'middle';
   c.fillText('HC', cx, cy);
   c.restore();
+
+  // Data flow lines
+  c.strokeStyle = 'rgba(0, 243, 255, 0.3)';
+  c.lineWidth = 2;
+  c.shadowBlur = 0;
+  for(let i=0; i<6; i++) {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+    c.beginPath();
+    c.moveTo(cx + Math.cos(a) * 120, cy + Math.sin(a) * 120);
+    c.lineTo(cx + Math.cos(a) * hexR, cy + Math.sin(a) * hexR);
+    c.stroke();
+  }
 
   c.restore();
   return new THREE.CanvasTexture(cv);
@@ -168,26 +244,26 @@ function buildEdge(): THREE.CanvasTexture {
   cv.width = W; cv.height = H;
   const c  = cv.getContext('2d')!;
 
-  // Brushed silver bevel — bright center, dark at edges
+  // Brushed steel edge — dark cyber tones
   const g = c.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0,    '#1a1a22');
-  g.addColorStop(0.12, '#707080');
-  g.addColorStop(0.3,  '#b0b0c0');
-  g.addColorStop(0.5,  '#dcdce8');
-  g.addColorStop(0.7,  '#b0b0c0');
-  g.addColorStop(0.88, '#707080');
-  g.addColorStop(1,    '#1a1a22');
+  g.addColorStop(0,    '#0c0514');
+  g.addColorStop(0.2,  '#4a4a5a');
+  g.addColorStop(0.5,  '#808090');
+  g.addColorStop(0.8,  '#4a4a5a');
+  g.addColorStop(1,    '#0c0514');
   c.fillStyle = g;
   c.fillRect(0, 0, W, H);
 
-  // Reeding lines
-  for (let x = 0; x < W; x += 3.5) {
-    c.fillStyle = 'rgba(0,0,0,0.2)';
-    c.fillRect(x, 0, 1.5, H);
+  // Deep reeding lines
+  for (let x = 0; x < W; x += 4) {
+    c.fillStyle = 'rgba(0,0,0,0.4)';
+    c.fillRect(x, 0, 2, H);
   }
 
-  // Center highlight
-  c.fillStyle = 'rgba(255,255,255,0.18)';
+  // Glowing center ring (cyan)
+  c.fillStyle = 'rgba(0, 243, 255, 0.3)';
+  c.shadowColor = '#00f3ff';
+  c.shadowBlur = 5;
   c.fillRect(0, H / 2 - 1, W, 2);
 
   return new THREE.CanvasTexture(cv);
@@ -211,50 +287,67 @@ export default function HackTokenCoin() {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(W, H);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Mobile optimization: restrict pixel ratio on small screens to save battery/GPU
+    const isMobile = window.innerWidth < 768;
+    renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping         = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.2;
     el.appendChild(renderer.domElement);
 
     // Textures
     const faceT = buildFace();
+    
     const backT  = buildBack();
+    backT.center.set(0.5, 0.5);
+    backT.repeat.x = -1; // Fix mirrored text on the back face
+
     const edgeT  = buildEdge();
 
-    // Materials — MeshPhysicalMaterial for clearcoat + metalness
-    const sharedProps = { metalness: 0.8, roughness: 0.18, clearcoat: 0.9, clearcoatRoughness: 0.1 };
+    // Materials — High gloss metallic for the cyberpunk feel
+    // Balanced metalness and roughness
+    const sharedProps = { metalness: 0.6, roughness: 0.35, clearcoat: 0.5, clearcoatRoughness: 0.2 };
     const faceMat = new THREE.MeshPhysicalMaterial({ map: faceT, ...sharedProps });
     const backMat = new THREE.MeshPhysicalMaterial({ map: backT, ...sharedProps });
     const edgeMat = new THREE.MeshPhysicalMaterial({
       map: edgeT,
-      metalness: 0.95,
-      roughness: 0.06,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.04,
+      metalness: 0.85,
+      roughness: 0.15,
+      clearcoat: 0.8,
+      clearcoatRoughness: 0.1,
     });
 
-    // Coin — standing upright, face toward viewer
-    const coinGeo = new THREE.CylinderGeometry(1.72, 1.72, 0.13, 96, 1, false);
+    // Coin — reduced segments for mobile optimization (64 instead of 96)
+    const coinGeo = new THREE.CylinderGeometry(1.72, 1.72, 0.13, isMobile ? 48 : 64, 1, false);
     const coin    = new THREE.Mesh(coinGeo, [edgeMat, faceMat, backMat]);
     coin.rotation.x = Math.PI / 2;
-    scene.add(coin);
+    coin.rotation.y = Math.PI / 2; // Rotate 90 degrees so the text is horizontal
+    
+    const coinGroup = new THREE.Group();
+    coinGroup.add(coin);
+    scene.add(coinGroup);
 
-    // Lighting — no warm gold, keep cool/neutral to match site palette
-    scene.add(new THREE.AmbientLight(0x1a1a2e, 1.0));
+    // Lighting — Cyberpunk Palette
+    // Base dark ambiance (slightly lower)
+    scene.add(new THREE.AmbientLight(0x2b154a, 2.0));
 
-    // White/cool key light — top left
-    const keyLight = new THREE.PointLight(0xffffff, 4.5, 14);
+    // Front Light — Subtly illuminate the face
+    const frontLight = new THREE.DirectionalLight(0xffffff, 0.2); // Lowered again to remove any lingering washout
+    frontLight.position.set(0, 0, 5);
+    scene.add(frontLight);
+
+    // Key Light — Neon Cyan (Top Left)
+    const keyLight = new THREE.PointLight(0x00f3ff, 3.5, 15);
     keyLight.position.set(3.5, 3.5, 4.5);
     scene.add(keyLight);
 
-    // Cool blue-white fill — right
-    const fillLight = new THREE.PointLight(0xa0c4ff, 2.0, 12);
-    fillLight.position.set(-4, -1, 3);
+    // Fill Light — Neon Purple (Bottom Right)
+    const fillLight = new THREE.PointLight(0xb026ff, 5.0, 15);
+    fillLight.position.set(-4, -2, 3);
     scene.add(fillLight);
 
-    // Purple atmospheric rim — behind the coin
-    const rimLight = new THREE.PointLight(0x9333ea, 1.8, 9);
+    // Rim Light — Deep Indigo (Back)
+    const rimLight = new THREE.PointLight(0x4a00e0, 4.0, 10);
     rimLight.position.set(0, 0, -4);
     scene.add(rimLight);
 
@@ -265,9 +358,9 @@ export default function HackTokenCoin() {
     let velX        = 0;
     let velY        = 0;
     let targetRotY  = 0;
-    let targetRotX  = Math.PI / 2;
+    let targetRotX  = 0;
     let currentRotY = 0;
-    let currentRotX = Math.PI / 2;
+    let currentRotX = 0;
     let idleTimer   = 0;
 
     const onDown = (cx: number, cy: number) => {
@@ -282,7 +375,7 @@ export default function HackTokenCoin() {
       velX = (cx - prevX) * 0.013;
       velY = (cy - prevY) * 0.007;
       targetRotY += velX;
-      targetRotX  = Math.max(Math.PI / 2 - 0.55, Math.min(Math.PI / 2 + 0.55, targetRotX + velY));
+      targetRotX  = Math.max(-0.55, Math.min(0.55, targetRotX + velY));
       prevX = cx; prevY = cy;
     };
     const onUp = () => {
@@ -319,17 +412,18 @@ export default function HackTokenCoin() {
         targetRotX += velY;
         idleTimer  += 0.012;
         const snap  = Math.min(0.014, idleTimer * 0.0005);
-        targetRotX += (Math.PI / 2 - targetRotX) * snap;
-        targetRotY += 0.005;
+        targetRotX += (0 - targetRotX) * snap;
+        targetRotY += 0.002; // Reduced default rotation speed
       }
 
       currentRotY += (targetRotY - currentRotY) * 0.1;
       currentRotX += (targetRotX - currentRotX) * 0.1;
-      coin.rotation.y = currentRotY;
-      coin.rotation.x = currentRotX;
-      coin.position.y  = Math.sin(t * 0.7) * 0.07;
+      coinGroup.rotation.y = currentRotY;
+      coinGroup.rotation.x = currentRotX;
 
-      keyLight.intensity = 4.5 + Math.sin(t * 1.5) * 0.6;
+      // Pulse the key light to simulate a glowing/breathing dashboard
+      keyLight.intensity = 5.0 + Math.sin(t * 2.0) * 0.8;
+      fillLight.intensity = 4.0 + Math.cos(t * 1.5) * 0.6;
 
       renderer.render(scene, camera);
     };
