@@ -626,7 +626,7 @@ const TalentDashboard = () => {
                         <img src="/icons/maletinNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('talentDashboard.roleLabel')}</p>
-                          <p className="text-sm text-slate-200">{talent.role}</p>
+                          <p className="text-sm text-slate-200">{t('talentDashboard.talentFallback')}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
@@ -737,6 +737,7 @@ const TalentDashboard = () => {
 
               <TabsContent value="trayectoria">
                 <TrayectoriaSection wallet={talent.wallet_address} />
+                <ReferralsSection />
               </TabsContent>
               <TabsContent value="formacion">
                 <FormacionSection wallet={talent.wallet_address} />
@@ -766,7 +767,9 @@ const TalentDashboard = () => {
             </section>
           </div>
 
-          <ReferralsSection />
+          <div className="hidden md:block">
+            <ReferralsSection />
+          </div>
 
           {/* ── Descubrir Educadores — solo desktop (mobile lo tiene en tabs) ── */}
           <div className="hidden md:block mt-8">

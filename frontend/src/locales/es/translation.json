@@ -93,6 +93,9 @@
     "subtitle": "que hace realidad HackChain",
     "roles": {
       "ceo": "Fundador y CEO",
+      "ciso": "CISO & Blockchain Lead",
+      "cto": "Chief Technology Officer",
+      "cmo": "Chief Marketing Officer",
       "cybersecurityAnalyst": "Analista de Ciberseguridad",
       "frontendDeveloper": "Desarrollador Frontend",
       "brandManager": "Gerente de Marca",
@@ -214,6 +217,9 @@
     "sectionFormacion": "Formación",
     "sectionTrayectoria": "Trayectoria",
     "sectionDescubrir": "Descubrir Educadores",
+    "tabClases": "Clases",
+    "tabClasesHint": "Acá podés ver tus solicitudes y el calendario de tus clases confirmadas.",
+    "tabClasesLink": "Ir a mis clases",
     "noCertificates": "Sin certificados aún.",
     "noCertificatesHint": "Completa un curso para ganar tu primer NFT.",
     "noEducators": "Sin educadores aún.",
@@ -250,7 +256,10 @@
     "confirmCancel": "¿Retirar?",
     "cancelYes": "Sí",
     "cancelNo": "No",
-    "cancelReasonPlaceholder": "Motivo (opcional)"
+    "cancelReasonPlaceholder": "Motivo (opcional)",
+    "pendingTopicHint": "Tema: {{topic}}.",
+    "pendingStatusHint": "Podés ver si el educador aceptó o declinó tu solicitud aquí mismo.",
+    "viewCertificate": "Ver mis certificados"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",

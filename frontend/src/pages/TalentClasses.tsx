@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, CalendarDays, Clock, ChevronRight, CalendarPlus, Download, Calendar } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock, ChevronRight, CalendarPlus, Download, Calendar, Award } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { resolveIpfs } from '@/lib/ipfs';
 import { useMyClassRequests, useCancelClassRequest, type MyClassRequest } from '@/hooks/useMyClassRequests';
@@ -257,8 +257,32 @@ function ClassRow({ req, index }: { req: MyClassRequest; index: number }) {
             )}
           </div>
 
+          {/* Pending: remind the talent what class and where to check status */}
+          {status === 'pending' && (
+            <p className="mt-2 text-[11px] text-slate-600 leading-relaxed">
+              {req.class_name
+                ? t('talentClasses.pendingTopicHint', { topic: req.class_name })
+                : null}
+              {' '}{t('talentClasses.pendingStatusHint')}
+            </p>
+          )}
+
           {/* Calendar shortcuts — confirmed only */}
           {status === 'confirmed' && <CalendarActions req={req} />}
+
+          {/* Completed: link to certificates */}
+          {status === 'completed' && (
+            <motion.button
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+              onClick={() => navigate('/dashboard/talent')}
+              className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-purple-400 hover:text-purple-300 min-h-[36px] -ml-0.5 px-1 rounded-lg"
+              style={{ transition: 'color 150ms ease-out' }}
+            >
+              <Award className="h-3 w-3 shrink-0" />
+              {t('talentClasses.viewCertificate')}
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.div>

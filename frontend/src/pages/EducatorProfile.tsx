@@ -620,38 +620,6 @@ const EducatorProfile = () => {
                       </a>
                     </div>
 
-                    {contractAddress && (
-                      <div
-                        className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
-                        style={{ backgroundColor: P.surface, border: `1px solid ${P.border}` }}
-                      >
-                        <div className="min-w-0">
-                          <div
-                            className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1"
-                            style={{ color: P.textMuted }}
-                          >
-                            {t('educatorProfile.contractLabel')}
-                          </div>
-                          <div className="text-sm font-mono truncate" style={{ color: P.textSecondary }}>
-                            {shortAddress(contractAddress)}
-                          </div>
-                        </div>
-                        <a
-                          href={explorerUrl(contractAddress)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shrink-0 transition-colors"
-                          style={{
-                            backgroundColor: P.cardSoft,
-                            color: P.textSecondary,
-                            border: `1px solid ${P.border}`,
-                          }}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">{t('educatorProfile.viewOnExplorer')}</span>
-                        </a>
-                      </div>
-                    )}
                   </div>
                 </Section>
               </motion.div>
