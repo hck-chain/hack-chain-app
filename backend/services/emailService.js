@@ -529,7 +529,7 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
       subject: "¡Tu solicitud de clase fue confirmada!",
       headline: "¡Clase confirmada!",
       accentColor: "#059669",
-      body: "Tu solicitud fue <strong>confirmada</strong>. Guardá el evento en tu calendario para no olvidar la fecha y horario.",
+      body: "Tu solicitud fue <strong>confirmada</strong>. Guarda el evento en tu calendario para no olvidar la fecha y horario.",
     },
     cancelled: {
       subject: "Tu solicitud de clase fue cancelada",
@@ -537,7 +537,7 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
       accentColor: "#64748b",
       body: eCancellationReason
         ? `Tu solicitud fue <strong>cancelada</strong> por el educador.<br><br><em style="color:#94a3b8;">"${eCancellationReason}"</em>`
-        : "Tu solicitud fue <strong>cancelada</strong> por el educador. Podés solicitar una nueva clase cuando quieras.",
+        : "Tu solicitud fue <strong>cancelada</strong> por el educador. Puedes solicitar una nueva clase cuando quieras.",
     },
     completed: {
       subject: "¡Tu clase fue completada!",
@@ -549,7 +549,7 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
       subject: "Tu solicitud de clase venció sin respuesta",
       headline: "Solicitud vencida",
       accentColor: "#475569",
-      body: "El educador no respondió a tu solicitud antes de la fecha acordada, por lo que fue <strong>cancelada automáticamente</strong>. Podés solicitar una nueva clase cuando quieras.",
+      body: "El educador no respondió a tu solicitud antes de la fecha acordada, por lo que fue <strong>cancelada automáticamente</strong>. Puedes solicitar una nueva clase cuando quieras.",
     },
   };
 
@@ -656,13 +656,13 @@ async function notifyEducatorClassConfirmed({ to, educatorName, studentName, cla
     from: FROM,
     to,
     subject: `Clase confirmada${className ? ` — ${className}` : ""}${studentName ? ` con ${studentName}` : ""}`,
-    text: `${greeting}\n\nConfirmaste una clase${studentName ? ` con ${studentName}` : ""}. Guardá el evento en tu calendario.\n\n${className ? `Clase: ${className}\n` : ""}${studentName ? `Estudiante: ${studentName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nConfirmaste una clase${studentName ? ` con ${studentName}` : ""}. Guarda el evento en tu calendario.\n\n${className ? `Clase: ${className}\n` : ""}${studentName ? `Estudiante: ${studentName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Clase confirmada",
       headline: "Clase confirmada",
       accentColor: "#059669",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">Confirmaste una clase${studentName ? ` con <strong>${esc(studentName)}</strong>` : ""}. Guardá la fecha en tu calendario para no perderla.</p>
+             <p style="margin:0 0 16px;">Confirmaste una clase${studentName ? ` con <strong>${esc(studentName)}</strong>` : ""}. Guarda la fecha en tu calendario para no perderla.</p>
              <table style="width:100%;border-collapse:collapse;font-size:14px;">
                ${classLine}
                ${studentLine}
@@ -721,7 +721,7 @@ async function notifyEducatorClassCancelled({ to, educatorName, studentName, cla
                <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${durationMinutes} min</td></tr>
                ${reasonLine}
              </table>
-             <p style="margin:16px 0 0;">Podés ver tus solicitudes actualizadas desde tu dashboard.</p>`,
+             <p style="margin:16px 0 0;">Puedes ver tus solicitudes actualizadas desde tu dashboard.</p>`,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ver solicitudes",
     }),
@@ -763,13 +763,13 @@ async function notifyClassReminder({ to, recipientName, counterpartName, role, c
     from: FROM,
     to,
     subject: `Recordatorio: tu clase es mañana${className ? ` — ${className}` : ""}`,
-    text: `${greeting}\n\nTe recordamos que mañana tenés una clase privada agendada en HackChain.\n\n${className ? `Clase: ${className}\n` : ""}${counterpartName ? `${isEducator ? 'Estudiante' : 'Educador'}: ${counterpartName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\n${ctaUrl}\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nTe recordamos que mañana tienes una clase privada agendada en HackChain.\n\n${className ? `Clase: ${className}\n` : ""}${counterpartName ? `${isEducator ? 'Estudiante' : 'Educador'}: ${counterpartName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\n${ctaUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Recordatorio de clase",
       headline: "Tu clase es mañana",
       accentColor: "#7c3aed",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">Te recordamos que <strong>mañana tenés una clase privada</strong> agendada en HackChain.</p>
+             <p style="margin:0 0 16px;">Te recordamos que <strong>mañana tienes una clase privada</strong> agendada en HackChain.</p>
              <table style="width:100%;border-collapse:collapse;font-size:14px;">
                ${classLine}
                ${counterpartLine}
@@ -798,7 +798,7 @@ async function notifyTalentCertificateIssued({ to, studentName, educatorName, ce
     from: FROM,
     to,
     subject: `Recibiste un nuevo certificado${certificateTitle ? `: ${certificateTitle}` : ""}`,
-    text: `${greeting}\n\n${educatorName ? `${educatorName} ` : ""}emitió un certificado a tu nombre en HackChain.\n\n${certificateTitle ? `Certificado: ${certificateTitle}\n` : ""}Podés verlo en tu perfil: ${dashboardUrl}\n\n— Equipo HackChain`,
+    text: `${greeting}\n\n${educatorName ? `${educatorName} ` : ""}emitió un certificado a tu nombre en HackChain.\n\n${certificateTitle ? `Certificado: ${certificateTitle}\n` : ""}Puedes verlo en tu perfil: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Nuevo certificado recibido",
       headline: "Recibiste un certificado",
