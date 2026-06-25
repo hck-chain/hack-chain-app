@@ -745,6 +745,7 @@
     "nextDay": "Next day",
     "selectSlot": "Available slots",
     "noSlots": "No slots available for this format on that day.",
+    "slotUnavailable": "Slot unavailable — already booked.",
     "noAvailability": "This educator has no availability configured.",
     "notAvailable": "Booking page is not available.",
     "calendarTitle": "Educator calendar",

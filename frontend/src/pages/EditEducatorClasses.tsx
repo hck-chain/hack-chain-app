@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft, Loader2, DollarSign, Clock, CalendarDays,
-  Link as LinkIcon, ChevronDown, Check, AlertCircle,
+  Check, AlertCircle,
   BookOpen, Plus, X, Trash2, EyeOff,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -47,8 +47,6 @@ const DEFAULT_AVAILABILITY: WeeklyAvailability = {
   sun: { enabled: false, start: '09:00', end: '13:00' },
 };
 
-const GCAL_EMBED_PREFIX = 'https://calendar.google.com/calendar/embed';
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -69,11 +67,6 @@ function isRangeValid(start: string, end: string): boolean {
 
 function ratePerSession(hourlyRate: number, minutes: number): string {
   return ((hourlyRate * minutes) / 60).toFixed(2);
-}
-
-function isValidGcalUrl(url: string): boolean {
-  if (!url.trim()) return true;
-  return url.trim().startsWith(GCAL_EMBED_PREFIX);
 }
 
 // ---------------------------------------------------------------------------
@@ -499,17 +492,12 @@ const EditEducatorClasses = () => {
   const [acceptUsdc, setAcceptUsdc] = useState(false);
   const [durations, setDurations] = useState<number[]>([30, 60]);
   const [availability, setAvailability] = useState<WeeklyAvailability>(DEFAULT_AVAILABILITY);
-  const [calendarUrl, setCalendarUrl] = useState('');
-  const [calendarFocused, setCalendarFocused] = useState(false);
-  const [showCalendarPreview, setShowCalendarPreview] = useState(false);
-
   useEffect(() => {
     if (!settings) return;
     setHourlyRate(settings.hourly_rate_usd != null ? String(settings.hourly_rate_usd) : '');
     setAcceptUsdc(settings.accept_usdc ?? false);
     setDurations(settings.durations?.length ? settings.durations : [30, 60]);
     setAvailability({ ...DEFAULT_AVAILABILITY, ...(settings.availability ?? {}) });
-    setCalendarUrl(settings.google_calendar_url ?? '');
   }, [settings]);
 
   const isSaving = updateSettings.isPending;
@@ -546,10 +534,6 @@ const EditEducatorClasses = () => {
       toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidRate'), variant: 'destructive' });
       return;
     }
-    if (!isValidGcalUrl(calendarUrl)) {
-      toast({ title: t('editClasses.errorTitle'), description: t('editClasses.invalidCalendarUrl'), variant: 'destructive' });
-      return;
-    }
     if (durations.length === 0) {
       toast({ title: t('editClasses.errorTitle'), description: t('editClasses.noDurations'), variant: 'destructive' });
       return;
@@ -564,7 +548,6 @@ const EditEducatorClasses = () => {
       accept_usdc: acceptUsdc,
       durations,
       availability,
-      google_calendar_url: calendarUrl.trim() || null,
     };
 
     try {
@@ -576,10 +559,6 @@ const EditEducatorClasses = () => {
       toast({ title: t('editClasses.errorTitle'), description: message, variant: 'destructive' });
     }
   };
-
-  const calendarUrlValid = isValidGcalUrl(calendarUrl);
-  const calendarUrlFilled = calendarUrl.trim().length > 0;
-  const showCalendarError = !calendarFocused && calendarUrlFilled && !calendarUrlValid;
 
   if (isLoading) {
     return (
@@ -853,111 +832,6 @@ const EditEducatorClasses = () => {
             </div>
           </SectionCard>
 
-          {/* ── Google Calendar ── */}
-          <SectionCard
-            label={t('editClasses.calendarSection')}
-            description={t('editClasses.calendarHint')}
-            icon={<LinkIcon className="h-4 w-4" />}
-          >
-            <div className="space-y-4">
-              {/* URL input */}
-              <div>
-                <label
-                  className="block text-[11px] uppercase tracking-[0.16em] font-semibold mb-2"
-                  style={{ color: P.textMuted }}
-                >
-                  {t('editClasses.calendarUrlLabel')}
-                </label>
-                <input
-                  type="url"
-                  inputMode="url"
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={calendarUrl}
-                  onChange={(e) => setCalendarUrl(e.target.value)}
-                  onFocus={() => setCalendarFocused(true)}
-                  onBlur={() => setCalendarFocused(false)}
-                  disabled={isSaving}
-                  placeholder={t('editClasses.calendarUrlPlaceholder')}
-                  className="w-full rounded-xl outline-none py-3 px-3.5 text-sm font-mono disabled:opacity-50 transition-colors"
-                  style={{
-                    backgroundColor: P.surface,
-                    border: `1px solid ${calendarFocused ? P.borderFocus : showCalendarError ? 'oklch(0.65 0.18 25 / 0.55)' : P.border}`,
-                    color: P.textPrimary,
-                  }}
-                />
-                {showCalendarError && (
-                  <p className="mt-1.5 text-xs" style={{ color: 'oklch(0.75 0.16 25)' }}>
-                    {t('editClasses.calendarUrlError')}
-                  </p>
-                )}
-              </div>
-
-              {/* How-to instructions */}
-              <div
-                className="rounded-xl px-4 py-3 space-y-1.5"
-                style={{ backgroundColor: P.surface, border: `1px solid ${P.borderSub}` }}
-              >
-                <p className="text-[10px] uppercase tracking-[0.16em] font-semibold" style={{ color: P.textMuted }}>
-                  {t('editClasses.calendarInstructionsTitle')}
-                </p>
-                <ol className="space-y-1">
-                  {(t('editClasses.calendarInstructions', { returnObjects: true }) as string[]).map((step, i) => (
-                    <li key={i} className="flex gap-2 text-xs" style={{ color: P.textSecondary }}>
-                      <span className="font-mono tabular-nums shrink-0" style={{ color: P.textMuted }}>
-                        {i + 1}.
-                      </span>
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              {/* Live preview toggle */}
-              {calendarUrlFilled && calendarUrlValid && (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCalendarPreview((v) => !v)}
-                    className="flex items-center gap-2 text-sm transition-colors"
-                    style={{ color: P.accent }}
-                  >
-                    <ChevronDown
-                      className="h-4 w-4 transition-transform duration-200"
-                      style={{ transform: showCalendarPreview ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                    />
-                    {showCalendarPreview ? t('editClasses.hidePreview') : t('editClasses.showPreview')}
-                  </button>
-
-                  <AnimatePresence>
-                    {showCalendarPreview && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: prefersReduced ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
-                        className="overflow-hidden mt-3"
-                      >
-                        <div
-                          className="rounded-xl overflow-hidden"
-                          style={{ border: `1px solid ${P.border}` }}
-                        >
-                          <iframe
-                            src={calendarUrl}
-                            title="Google Calendar preview"
-                            className="w-full"
-                            style={{ height: 400, border: 0, backgroundColor: P.surface }}
-                            loading="lazy"
-                            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
-          </SectionCard>
         </motion.main>
 
         {/* ── Footer ── */}

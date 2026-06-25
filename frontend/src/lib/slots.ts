@@ -1,5 +1,11 @@
 import type { DayKey, WeeklyAvailability } from '@/types/dashboard';
 
+export interface BusySlot {
+  date: string;       // "YYYY-MM-DD"
+  startTime: string;  // "HH:MM"
+  durationMinutes: number;
+}
+
 export interface TimeSlot {
   start: string;
   end: string;
@@ -48,6 +54,33 @@ export function filterValidSlots(slots: TimeSlot[], date: Date): TimeSlot[] {
     const slotDateTime = new Date(date);
     slotDateTime.setHours(h, m, 0, 0);
     return slotDateTime >= cutoff;
+  });
+}
+
+function toDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Returns true when a slot overlaps with any busy period on the same date.
+// Overlap condition: slotStart < busyEnd && slotEnd > busyStart
+export function isSlotBusy(
+  slotStart: string,
+  slotDate: Date,
+  slotDuration: number,
+  busySlots: BusySlot[],
+): boolean {
+  const dateStr = toDateStr(slotDate);
+  const slotStartMin = timeToMinutes(slotStart);
+  const slotEndMin = slotStartMin + slotDuration;
+
+  return busySlots.some(busy => {
+    if (busy.date !== dateStr) return false;
+    const busyStartMin = timeToMinutes(busy.startTime);
+    const busyEndMin = busyStartMin + busy.durationMinutes;
+    return slotStartMin < busyEndMin && slotEndMin > busyStartMin;
   });
 }
 

@@ -745,6 +745,7 @@
     "nextDay": "Día siguiente",
     "selectSlot": "Horarios disponibles",
     "noSlots": "Sin slots disponibles para este formato en ese día.",
+    "slotUnavailable": "Horario no disponible — ya reservado.",
     "noAvailability": "Este educador no tiene disponibilidad configurada.",
     "notAvailable": "La página de reservas no está disponible.",
     "calendarTitle": "Calendario del educador",
