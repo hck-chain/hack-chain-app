@@ -199,17 +199,19 @@ const EducatorDashboard = () => {
 
   // Pre-fill form from class request context (navigated from EducatorClassRequests)
   useEffect(() => {
-    const rid = searchParams.get('classRequestId');
-    const sw  = searchParams.get('studentWallet');
-    const sn  = searchParams.get('studentName');
-    const cn  = searchParams.get('className');
+    const rid  = searchParams.get('classRequestId');
+    const sw   = searchParams.get('studentWallet');
+    const sn   = searchParams.get('studentName');
+    const cn   = searchParams.get('className');
+    const cd   = searchParams.get('classDate');
     if (rid) setClassRequestId(parseInt(rid, 10));
-    if (sw || sn || cn) {
+    if (sw || sn || cn || cd) {
       setForm(prev => ({
         ...prev,
         ...(sw ? { talentWallet: sw } : {}),
         ...(sn ? { talentName: sn } : {}),
         ...(cn ? { certificateTitle: cn } : {}),
+        ...(cd ? { issueDate: cd } : {}),
       }));
     }
   }, [searchParams]);
