@@ -8,6 +8,7 @@ import TokenDistributionChart from '@/components/TokenDistributionChart';
 import { Button } from '@/components/ui/button';
 import { FileText, ArrowRight } from 'lucide-react';
 import { AnimeParticles } from '@/components/animations/AnimeComponents';
+import HackTokenCoin from '@/components/animations/HackTokenCoin';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -162,25 +163,17 @@ const TokenHack = () => {
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
             </div>
 
-            {/* Token logo — levitando libre */}
+            {/* Token 3D — coin animado con Three.js */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.7, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1, type: 'spring', stiffness: 160 }}
-              className="flex justify-center mb-10"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.9, delay: 0.1, type: 'spring', stiffness: 120 }}
+              className="flex justify-center mb-6"
             >
-              <motion.div
-                animate={{ y: [0, -12, 0] }}
-                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-                className="relative w-32 h-32 sm:w-44 sm:h-44"
-              >
-                <div className="absolute inset-0 rounded-full bg-purple-500/30 blur-3xl scale-[1.9] pointer-events-none" />
-                <img
-                  src="/Token_2.png"
-                  alt="HACK Token"
-                  className="relative w-full h-full object-contain drop-shadow-[0_0_44px_rgba(168,85,247,0.85)]"
-                />
-              </motion.div>
+              <div className="relative w-72 h-72 sm:w-80 sm:h-80">
+                <div className="absolute inset-0 rounded-full bg-purple-600/20 blur-3xl scale-[1.4] pointer-events-none" />
+                <HackTokenCoin />
+              </div>
             </motion.div>
 
             {/* $HACK — signature ticker */}
