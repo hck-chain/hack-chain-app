@@ -800,6 +800,39 @@ Incrementa en 1 el contador de certificados emitidos por un emisor. Debe llamars
 
 ---
 
+### GET `/api/issuers/:wallet/busy-slots`
+
+Retorna los slots de tiempo ocupados de un educador (solicitudes pendientes o confirmadas). Endpoint público — usado por el talento para deshabilitar horarios ya reservados al agendar una clase.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet` | `string` | Wallet address del educador (0x…, 42 caracteres) |
+
+**Autenticación**: No requerida.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de slots ocupados |
+| `400` | Wallet address inválida |
+| `500` | Error interno |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "slots": [
+    { "date": "2026-07-10", "startTime": "10:00", "durationMinutes": 60 },
+    { "date": "2026-07-12", "startTime": "15:00", "durationMinutes": 90 }
+  ]
+}
+```
+
+---
+
 ### GET `/api/issuers/:wallet/certificates-count`
 
 Retorna el total de certificados emitidos por un emisor.
