@@ -163,16 +163,21 @@ const TokenHack = () => {
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
             </div>
 
-            {/* Token 3D — coin animado con Three.js */}
+            {/* Token 3D — moneda interactiva con Three.js */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.9, delay: 0.1, type: 'spring', stiffness: 120 }}
-              className="flex justify-center mb-6"
+              transition={{ duration: 1, delay: 0.1, type: 'spring', stiffness: 100, damping: 18 }}
+              className="flex justify-center mb-4"
             >
-              <div className="relative w-72 h-72 sm:w-80 sm:h-80">
-                <div className="absolute inset-0 rounded-full bg-purple-600/20 blur-3xl scale-[1.4] pointer-events-none" />
+              <div className="relative w-80 h-80 sm:w-96 sm:h-96">
+                {/* Warm gold ambient glow — not purple */}
+                <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-3xl scale-[1.5] pointer-events-none" />
                 <HackTokenCoin />
+                {/* Drag hint */}
+                <p className="absolute -bottom-7 left-0 right-0 text-center text-[11px] text-white/25 tracking-widest uppercase select-none pointer-events-none">
+                  arrastra para girar
+                </p>
               </div>
             </motion.div>
 
