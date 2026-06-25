@@ -545,6 +545,12 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
       accentColor: "#680099",
       body: "¡Tu clase fue <strong>completada</strong>! Esperamos que hayas tenido una excelente experiencia.",
     },
+    expired: {
+      subject: "Tu solicitud de clase venció sin respuesta",
+      headline: "Solicitud vencida",
+      accentColor: "#475569",
+      body: "El educador no respondió a tu solicitud antes de la fecha acordada, por lo que fue <strong>cancelada automáticamente</strong>. Podés solicitar una nueva clase cuando quieras.",
+    },
   };
 
   const v = variants[status] || variants.confirmed;

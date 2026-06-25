@@ -302,14 +302,19 @@ function SectionLabel({ label, count }: { label: string; count?: number }) {
   );
 }
 
+const HISTORY_PAGE_SIZE = 5;
+
 export default function TalentClasses() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const { data: requests, isPending } = useMyClassRequests();
+  const [historyVisible, setHistoryVisible] = useState(HISTORY_PAGE_SIZE);
 
   const active  = requests?.filter(r => r.status === 'pending' || r.status === 'confirmed') ?? [];
   const history = requests?.filter(r => r.status === 'completed' || r.status === 'cancelled') ?? [];
+  const historySlice = history.slice(0, historyVisible);
+  const hasMoreHistory = historyVisible < history.length;
   const pendingCount   = requests?.filter(r => r.status === 'pending').length ?? 0;
   const confirmedCount = requests?.filter(r => r.status === 'confirmed').length ?? 0;
   const hasAny = (requests?.length ?? 0) > 0;
@@ -415,12 +420,25 @@ export default function TalentClasses() {
           {/* History */}
           {!isPending && history.length > 0 && (
             <section>
-              <SectionLabel label={t('talentClasses.sectionHistory')} />
+              <SectionLabel label={t('talentClasses.sectionHistory')} count={history.length} />
               <AnimatePresence mode="popLayout">
-                {history.map((req, i) => (
+                {historySlice.map((req, i) => (
                   <ClassRow key={req.id} req={req} index={i} />
                 ))}
               </AnimatePresence>
+
+              {hasMoreHistory && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+                  transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+                  onClick={() => setHistoryVisible(v => v + HISTORY_PAGE_SIZE)}
+                  className="w-full mt-2 py-2.5 text-[12px] text-slate-500 hover:text-slate-300 rounded-lg hover:bg-white/[0.04] transition-colors duration-150"
+                >
+                  {t('talentClasses.showMore', { count: Math.min(HISTORY_PAGE_SIZE, history.length - historyVisible) })}
+                </motion.button>
+              )}
             </section>
           )}
         </motion.main>

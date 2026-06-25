@@ -250,6 +250,7 @@
     "viewProfile": "View profile",
     "sectionActive": "Active",
     "sectionHistory": "History",
+    "showMore": "Show {{count}} more",
     "duration": "{{minutes}} min",
     "price": "${{amount}}/h",
     "cancelRequest": "Cancel",

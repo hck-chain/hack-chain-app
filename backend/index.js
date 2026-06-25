@@ -258,6 +258,9 @@ let server;
     // Class reminder worker — sends 24h-before emails to both parties of confirmed classes.
     require("./workers/classReminderWorker").scheduleClassReminder();
 
+    // Class expiry worker — cancels pending requests whose date has already passed.
+    require("./workers/classExpiryWorker").scheduleClassExpiry();
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

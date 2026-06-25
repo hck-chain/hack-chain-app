@@ -250,6 +250,7 @@
     "viewProfile": "Ver perfil",
     "sectionActive": "En curso",
     "sectionHistory": "Historial",
+    "showMore": "Ver {{count}} más",
     "duration": "{{minutes}} min",
     "price": "${{amount}}/h",
     "cancelRequest": "Cancelar",
