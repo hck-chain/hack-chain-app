@@ -624,9 +624,9 @@ const EducatorDashboard = () => {
             </AnimatePresence>
 
             {/* ── Header ── */}
-            <header className="mb-8 grid grid-cols-2 md:grid-cols-3 items-center gap-4">
+            <header className="mb-8 flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-3 items-center gap-3 sm:gap-4">
 
-              <div className="flex flex-col">
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
                 <p className="font-title text-[10px] sm:text-xs uppercase tracking-[0.22em] text-white/35 font-bold mb-1.5 sm:mb-3">
                   {t('educatorDashboard.roleName')}
                 </p>
@@ -644,33 +644,39 @@ const EducatorDashboard = () => {
                 <img src={HackChainLogo} alt="HackChain" className="h-16 md:h-20 object-contain" />
               </div>
 
-              <div className="flex justify-end items-center gap-2">
-                <LanguageToggle />
+              {/* Mobile: justify-between — globe+bell flush left, profile flush right.
+                  sm+: justify-end — todos en fila a la derecha */}
+              <div className="w-full flex justify-between sm:justify-end items-center gap-2 sm:col-start-2 md:col-start-3">
+                {/* Globe + Bell — flush left on mobile, inline on sm+ */}
+                <div className="flex items-center gap-2 sm:contents">
+                  <LanguageToggle />
 
-                {/* Notification bell — class requests popup */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="relative flex items-center justify-center text-slate-300 hover:text-white transition-colors min-h-[36px] w-9 rounded-lg"
-                      aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
+                  {/* Notification bell — class requests popup */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        className="relative flex items-center justify-center text-slate-300 hover:text-white transition-colors min-h-[36px] w-9 rounded-lg"
+                        aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
+                      >
+                        <Bell className="h-[18px] w-[18px] shrink-0" />
+                        {pendingRequestsCount > 0 && (
+                          <span className="absolute top-1 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums leading-[16px] text-center">
+                            {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                          </span>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-80 p-0 bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden"
+                      align="end"
+                      sideOffset={8}
                     >
-                      <Bell className="h-[18px] w-[18px] shrink-0" />
-                      {pendingRequestsCount > 0 && (
-                        <span className="absolute top-1 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums leading-[16px] text-center">
-                          {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
-                        </span>
-                      )}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-80 p-0 bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden"
-                    align="end"
-                    sideOffset={8}
-                  >
-                    <NotificationBellPanel />
-                  </PopoverContent>
-                </Popover>
+                      <NotificationBellPanel />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
+                {/* Profile button — flush right on mobile */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -826,27 +832,27 @@ const EducatorDashboard = () => {
             </header>
 
             {/* ── Stat chips ── */}
-            <div className="flex flex-wrap gap-3 mb-10">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
-                <div className="h-8 w-8 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
-                  <img src="/icons/medalla.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-10">
+              <div className="flex items-center gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md min-w-0">
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
+                  <img src="/icons/medalla.avif" className="h-4 w-4 sm:h-5 sm:w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                 </div>
-                <div>
-                  <p className="font-title text-[10px] uppercase tracking-[0.18em] text-white/30 font-bold leading-none mb-1">
+                <div className="min-w-0">
+                  <p className="font-title text-[9px] sm:text-[10px] uppercase tracking-[0.14em] text-white/30 font-bold leading-none mb-1 truncate">
                     {t('educatorDashboard.certificatesIssued')}
                   </p>
-                  <p className="font-title text-lg font-black text-white leading-none">{certificatesIssued}</p>
+                  <p className="font-title text-base sm:text-lg font-black text-white leading-none">{certificatesIssued}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
-                <div className="h-8 w-8 rounded-xl bg-fuchsia-500/15 flex items-center justify-center shrink-0">
-                  <img src="/icons/talentsPlattform.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]" />
+              <div className="flex items-center gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md min-w-0">
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-fuchsia-500/15 flex items-center justify-center shrink-0">
+                  <img src="/icons/talentsPlattform.avif" className="h-4 w-4 sm:h-5 sm:w-5 object-contain drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]" />
                 </div>
-                <div>
-                  <p className="font-title text-[10px] uppercase tracking-[0.18em] text-white/30 font-bold leading-none mb-1">
+                <div className="min-w-0">
+                  <p className="font-title text-[9px] sm:text-[10px] uppercase tracking-[0.14em] text-white/30 font-bold leading-none mb-1 truncate">
                     {t('educatorDashboard.talentsAvailable', 'Talentos en plataforma')}
                   </p>
-                  <p className="font-title text-lg font-black text-white leading-none">{talents.length}</p>
+                  <p className="font-title text-base sm:text-lg font-black text-white leading-none">{talents.length}</p>
                 </div>
               </div>
             </div>
