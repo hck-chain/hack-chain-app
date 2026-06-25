@@ -1,111 +1,193 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-function buildFaceTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d')!;
-  const cx = 256, cy = 256, r = 256;
+// ── Texture builders ──────────────────────────────────────────────────────────
 
-  // Base — radial dark-purple gradient
-  const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  base.addColorStop(0,   '#1e0d4a');
-  base.addColorStop(0.6, '#130830');
-  base.addColorStop(1,   '#07030f');
+function buildFace(): THREE.CanvasTexture {
+  const S   = 1024;
+  const cx  = S / 2, cy = S / 2, R = S / 2;
+  const cvs = document.createElement('canvas');
+  cvs.width = cvs.height = S;
+  const ctx = cvs.getContext('2d')!;
+
+  // Circular clip — everything stays inside the coin face
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Base: very dark charcoal, slight warm tint at center
+  const base = ctx.createRadialGradient(cx, cy - 60, 0, cx, cy, R);
+  base.addColorStop(0,   '#1c1410');
+  base.addColorStop(0.6, '#0e0a08');
+  base.addColorStop(1,   '#050304');
   ctx.fillStyle = base;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillRect(0, 0, S, S);
 
-  // Outer decorative ring
-  ctx.strokeStyle = 'rgba(168,85,247,0.55)';
-  ctx.lineWidth = 6;
+  // Micro hex-grid background pattern
+  const hx = 42;
+  ctx.save();
+  ctx.globalAlpha = 0.045;
+  ctx.strokeStyle = '#d4a017';
+  ctx.lineWidth   = 0.8;
+  for (let row = -1; row < S / (hx * 1.5) + 2; row++) {
+    for (let col = -1; col < S / (hx * 1.73) + 2; col++) {
+      const px = col * hx * 1.732 + (row % 2) * hx * 0.866;
+      const py = row * hx * 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a  = (i / 6) * Math.PI * 2 - Math.PI / 6;
+        const x2 = px + Math.cos(a) * hx * 0.5;
+        const y2 = py + Math.sin(a) * hx * 0.5;
+        i === 0 ? ctx.moveTo(x2, y2) : ctx.lineTo(x2, y2);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // Outer rim — brushed gold
+  const rimGrad = ctx.createLinearGradient(0, 0, S, S);
+  rimGrad.addColorStop(0,    '#f5c842');
+  rimGrad.addColorStop(0.25, '#c9972a');
+  rimGrad.addColorStop(0.5,  '#f5c842');
+  rimGrad.addColorStop(0.75, '#a07820');
+  rimGrad.addColorStop(1,    '#f5c842');
+  ctx.strokeStyle = rimGrad;
+  ctx.lineWidth   = 9;
   ctx.beginPath();
-  ctx.arc(cx, cy, 234, 0, Math.PI * 2);
+  ctx.arc(cx, cy, R - 18, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Tick marks around the ring
-  const ticks = 36;
-  for (let i = 0; i < ticks; i++) {
-    const angle = (i / ticks) * Math.PI * 2;
-    const inner = i % 3 === 0 ? 210 : 220;
-    ctx.strokeStyle = i % 3 === 0
-      ? 'rgba(168,85,247,0.7)'
-      : 'rgba(168,85,247,0.3)';
-    ctx.lineWidth = i % 3 === 0 ? 2.5 : 1.5;
+  // Inner rim — thinner, darker gold
+  ctx.strokeStyle = 'rgba(201,151,42,0.35)';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 80, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Tick marks (like a watch dial)
+  const TICKS = 72;
+  for (let i = 0; i < TICKS; i++) {
+    const angle   = (i / TICKS) * Math.PI * 2;
+    const isMajor = i % 6 === 0;
+    const innerR  = isMajor ? R - 60 : R - 48;
+    ctx.strokeStyle = isMajor
+      ? 'rgba(245,200,66,0.85)'
+      : 'rgba(201,151,42,0.4)';
+    ctx.lineWidth = isMajor ? 2.5 : 1.2;
     ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
-    ctx.lineTo(cx + Math.cos(angle) * 234, cy + Math.sin(angle) * 234);
+    ctx.moveTo(cx + Math.cos(angle) * innerR,    cy + Math.sin(angle) * innerR);
+    ctx.lineTo(cx + Math.cos(angle) * (R - 22),  cy + Math.sin(angle) * (R - 22));
     ctx.stroke();
   }
 
-  // Inner ring
-  ctx.strokeStyle = 'rgba(139,92,246,0.25)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 195, 0, Math.PI * 2);
-  ctx.stroke();
+  // Cardinal diamonds
+  [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5].forEach(angle => {
+    const dr = R - 70;
+    const x  = cx + Math.cos(angle) * dr;
+    const y  = cy + Math.sin(angle) * dr;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = 'rgba(245,200,66,0.75)';
+    ctx.beginPath();
+    ctx.moveTo(0, -5);
+    ctx.lineTo(3, 0);
+    ctx.lineTo(0, 5);
+    ctx.lineTo(-3, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
 
-  // Subtle radial sheen
-  const sheen = ctx.createRadialGradient(cx - 60, cy - 60, 0, cx, cy, 200);
-  sheen.addColorStop(0,   'rgba(255,255,255,0.06)');
-  sheen.addColorStop(0.5, 'rgba(255,255,255,0.01)');
-  sheen.addColorStop(1,   'rgba(255,255,255,0)');
+  // Top-left specular sheen (simulates concave dish reflection)
+  const sheen = ctx.createRadialGradient(cx - 140, cy - 160, 0, cx, cy, R - 60);
+  sheen.addColorStop(0,   'rgba(255,235,140,0.12)');
+  sheen.addColorStop(0.4, 'rgba(255,210,80,0.04)');
+  sheen.addColorStop(1,   'rgba(255,210,80,0)');
   ctx.fillStyle = sheen;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 200, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillRect(0, 0, S, S);
 
-  // $HACK — main label with glow
+  // $HACK — main engraved gold text
   ctx.save();
-  ctx.shadowColor  = 'rgba(192,132,252,0.9)';
-  ctx.shadowBlur   = 28;
-  ctx.fillStyle    = '#ffffff';
-  ctx.font         = 'bold 88px ui-monospace, monospace';
+  ctx.shadowColor  = 'rgba(245,197,24,0.55)';
+  ctx.shadowBlur   = 36;
+  ctx.fillStyle    = '#f5c518';
+  ctx.font         = `bold ${S * 0.165}px ui-monospace,"SF Mono",monospace`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('$HACK', cx, cy - 10);
+  ctx.fillText('$HACK', cx, cy - 16);
   ctx.restore();
 
   // Sub-label
   ctx.save();
-  ctx.shadowColor  = 'rgba(168,85,247,0.6)';
-  ctx.shadowBlur   = 10;
-  ctx.fillStyle    = 'rgba(196,148,255,0.75)';
-  ctx.font         = 'bold 24px ui-monospace, monospace';
-  ctx.textAlign    = 'center';
+  ctx.shadowColor = 'rgba(201,151,42,0.5)';
+  ctx.shadowBlur  = 10;
+  ctx.fillStyle   = 'rgba(210,165,50,0.72)';
+  ctx.font        = `bold ${S * 0.038}px ui-monospace,monospace`;
+  ctx.textAlign   = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('ERC-20 · POLYGON', cx, cy + 60);
+  ctx.fillText('ERC-20  ·  POLYGON', cx, cy + S * 0.098);
   ctx.restore();
 
-  return new THREE.CanvasTexture(canvas);
+  ctx.restore(); // end circular clip
+  return new THREE.CanvasTexture(cvs);
 }
 
-function buildBackTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d')!;
-  const cx = 256, cy = 256;
+function buildBack(): THREE.CanvasTexture {
+  const S   = 1024;
+  const cx  = S / 2, cy = S / 2, R = S / 2;
+  const cvs = document.createElement('canvas');
+  cvs.width = cvs.height = S;
+  const ctx = cvs.getContext('2d')!;
 
-  const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, 256);
-  base.addColorStop(0,   '#1a0b40');
-  base.addColorStop(1,   '#07030f');
-  ctx.fillStyle = base;
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(cx, cy, 256, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.clip();
 
-  // Hexagon outline (HackChain motif)
-  const hexR = 110;
-  ctx.strokeStyle = 'rgba(168,85,247,0.45)';
-  ctx.lineWidth = 3;
+  // Same dark base
+  const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  base.addColorStop(0,   '#1a1108');
+  base.addColorStop(1,   '#050304');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, S, S);
+
+  // Outer rim — match front
+  const rimGrad = ctx.createLinearGradient(0, S, S, 0);
+  rimGrad.addColorStop(0,    '#f5c842');
+  rimGrad.addColorStop(0.5,  '#c9972a');
+  rimGrad.addColorStop(1,    '#f5c842');
+  ctx.strokeStyle = rimGrad;
+  ctx.lineWidth   = 9;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 18, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Large hexagon — HackChain motif
+  const hexR = 190;
+  ctx.strokeStyle = 'rgba(201,151,42,0.5)';
+  ctx.lineWidth   = 4;
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-    const x = cx + Math.cos(a) * hexR;
-    const y = cy + Math.sin(a) * hexR;
+    const a  = (i / 6) * Math.PI * 2 - Math.PI / 6;
+    const x  = cx + Math.cos(a) * hexR;
+    const y  = cy + Math.sin(a) * hexR;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Inner hexagon
+  ctx.strokeStyle = 'rgba(201,151,42,0.2)';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a  = (i / 6) * Math.PI * 2 - Math.PI / 6;
+    const x  = cx + Math.cos(a) * (hexR * 0.65);
+    const y  = cy + Math.sin(a) * (hexR * 0.65);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   }
   ctx.closePath();
@@ -113,49 +195,51 @@ function buildBackTexture(): THREE.CanvasTexture {
 
   // HC monogram
   ctx.save();
-  ctx.shadowColor = 'rgba(168,85,247,0.7)';
-  ctx.shadowBlur  = 18;
-  ctx.fillStyle   = 'rgba(196,148,255,0.8)';
-  ctx.font        = 'bold 80px ui-monospace, monospace';
-  ctx.textAlign   = 'center';
+  ctx.shadowColor  = 'rgba(245,197,24,0.5)';
+  ctx.shadowBlur   = 28;
+  ctx.fillStyle    = '#d4a017';
+  ctx.font         = `bold ${S * 0.18}px ui-monospace,"SF Mono",monospace`;
+  ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('HC', cx, cy);
   ctx.restore();
 
-  ctx.strokeStyle = 'rgba(168,85,247,0.4)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 230, 0, Math.PI * 2);
-  ctx.stroke();
-
-  return new THREE.CanvasTexture(canvas);
+  ctx.restore();
+  return new THREE.CanvasTexture(cvs);
 }
 
-function buildEdgeTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 64;
-  const ctx = canvas.getContext('2d')!;
+function buildEdge(): THREE.CanvasTexture {
+  const W = 256, H = 64;
+  const cvs = document.createElement('canvas');
+  cvs.width = W; cvs.height = H;
+  const ctx = cvs.getContext('2d')!;
 
-  const grad = ctx.createLinearGradient(0, 0, 0, 64);
-  grad.addColorStop(0,    '#0d061f');
-  grad.addColorStop(0.15, '#5b21b6');
-  grad.addColorStop(0.4,  '#a855f7');
-  grad.addColorStop(0.5,  '#c084fc');
-  grad.addColorStop(0.6,  '#a855f7');
-  grad.addColorStop(0.85, '#5b21b6');
-  grad.addColorStop(1,    '#0d061f');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 128, 64);
+  // Brushed gold gradient — bright at center, dark at edges (bevel)
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0,    '#3d2800');
+  g.addColorStop(0.1,  '#8b6010');
+  g.addColorStop(0.3,  '#d4a017');
+  g.addColorStop(0.5,  '#f5c842');
+  g.addColorStop(0.7,  '#d4a017');
+  g.addColorStop(0.9,  '#8b6010');
+  g.addColorStop(1,    '#3d2800');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
 
-  // Reeding lines (like a real coin edge)
-  for (let x = 0; x < 128; x += 4) {
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(x, 0, 2, 64);
+  // Reeding — fine vertical lines like a real coin edge
+  for (let x = 0; x < W; x += 3.5) {
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillRect(x, 0, 1.5, H);
   }
 
-  return new THREE.CanvasTexture(canvas);
+  // Center highlight line
+  ctx.fillStyle = 'rgba(255,240,160,0.25)';
+  ctx.fillRect(0, H / 2 - 1, W, 2);
+
+  return new THREE.CanvasTexture(cvs);
 }
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function HackTokenCoin() {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -164,106 +248,201 @@ export default function HackTokenCoin() {
     const el = mountRef.current;
     if (!el) return;
 
-    const w = el.clientWidth  || 360;
-    const h = el.clientHeight || 360;
+    const W = el.clientWidth  || 400;
+    const H = el.clientHeight || 400;
 
-    // ── Scene ────────────────────────────────────────────────────────────────
-    const scene = new THREE.Scene();
-
-    const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 50);
-    camera.position.set(0, 0.6, 5.5);
-    camera.lookAt(0, 0, 0);
+    // Scene
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera(38, W / H, 0.1, 50);
+    camera.position.set(0, 0, 5.2);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(w, h);
+    renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
     renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping     = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
     el.appendChild(renderer.domElement);
 
-    // ── Coin ─────────────────────────────────────────────────────────────────
-    const coinGeo  = new THREE.CylinderGeometry(1.7, 1.7, 0.14, 80, 1, false);
-    const faceT    = buildFaceTexture();
-    const backT    = buildBackTexture();
-    const edgeT    = buildEdgeTexture();
+    // ── Textures
+    const faceT = buildFace();
+    const backT  = buildBack();
+    const edgeT  = buildEdge();
 
-    const faceMat  = new THREE.MeshStandardMaterial({ map: faceT, metalness: 0.75, roughness: 0.25 });
-    const backMat  = new THREE.MeshStandardMaterial({ map: backT, metalness: 0.75, roughness: 0.25 });
-    const edgeMat  = new THREE.MeshStandardMaterial({ map: edgeT, metalness: 0.9,  roughness: 0.1  });
-
-    // CylinderGeometry groups: 0=side, 1=top, 2=bottom
-    const coin = new THREE.Mesh(coinGeo, [edgeMat, faceMat, backMat]);
-    coin.rotation.x = 0.38; // tilt toward viewer
-    scene.add(coin);
-
-    // ── Orbit rings ───────────────────────────────────────────────────────────
-    const ring1Geo = new THREE.TorusGeometry(2.5,  0.013, 16, 120);
-    const ring1Mat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.35 });
-    const ring1    = new THREE.Mesh(ring1Geo, ring1Mat);
-    ring1.rotation.x = Math.PI / 2.3;
-    scene.add(ring1);
-
-    const ring2Geo = new THREE.TorusGeometry(3.05, 0.008, 16, 120);
-    const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.2 });
-    const ring2    = new THREE.Mesh(ring2Geo, ring2Mat);
-    ring2.rotation.x = Math.PI / 2.6;
-    ring2.rotation.z = Math.PI / 5;
-    scene.add(ring2);
-
-    // ── Orbiting particles ────────────────────────────────────────────────────
-    const dotGeo = new THREE.SphereGeometry(0.055, 12, 12);
-    const dots   = [
-      { mat: new THREE.MeshBasicMaterial({ color: 0xe879f9 }), speed: 1.0, radius: 2.5, phase: 0 },
-      { mat: new THREE.MeshBasicMaterial({ color: 0x818cf8 }), speed: 0.7, radius: 3.0, phase: 2.1 },
-      { mat: new THREE.MeshBasicMaterial({ color: 0x34d399 }), speed: 1.3, radius: 2.2, phase: 4.2 },
-    ].map(({ mat, speed, radius, phase }) => {
-      const mesh = new THREE.Mesh(dotGeo, mat);
-      scene.add(mesh);
-      return { mesh, speed, radius, phase };
+    // ── Materials — MeshPhysicalMaterial for clearcoat shine
+    const faceMat = new THREE.MeshPhysicalMaterial({
+      map:        faceT,
+      metalness:  0.72,
+      roughness:  0.22,
+      clearcoat:  0.85,
+      clearcoatRoughness: 0.12,
+    });
+    const backMat = new THREE.MeshPhysicalMaterial({
+      map:        backT,
+      metalness:  0.72,
+      roughness:  0.22,
+      clearcoat:  0.85,
+      clearcoatRoughness: 0.12,
+    });
+    const edgeMat = new THREE.MeshPhysicalMaterial({
+      map:        edgeT,
+      metalness:  0.95,
+      roughness:  0.08,
+      clearcoat:  1.0,
+      clearcoatRoughness: 0.05,
     });
 
-    // ── Lighting ──────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0x4c1d95, 0.6));
+    // ── Coin geometry — standing upright (rotation.x = PI/2 makes face toward camera)
+    const coinGeo = new THREE.CylinderGeometry(1.72, 1.72, 0.13, 96, 1, false);
+    // CylinderGeometry groups: 0=side(edge), 1=top, 2=bottom
+    const coin    = new THREE.Mesh(coinGeo, [edgeMat, faceMat, backMat]);
+    coin.rotation.x = Math.PI / 2; // stand upright, face toward viewer
+    scene.add(coin);
 
-    const keyLight = new THREE.PointLight(0xffffff, 4, 14);
-    keyLight.position.set(3.5, 3, 4);
+    // ── Thin orbit ring
+    const ringGeo = new THREE.TorusGeometry(2.42, 0.009, 16, 160);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xd4a017,
+      transparent: true,
+      opacity: 0.22,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    scene.add(ring);
+
+    // Second tilted ring
+    const ring2Geo = new THREE.TorusGeometry(2.78, 0.006, 16, 160);
+    const ring2Mat = new THREE.MeshBasicMaterial({
+      color: 0x8b5e0a,
+      transparent: true,
+      opacity: 0.15,
+    });
+    const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+    ring2.rotation.x = Math.PI / 2.4;
+    ring2.rotation.z = Math.PI / 7;
+    scene.add(ring2);
+
+    // ── Lighting
+    // Warm golden key — top left
+    const keyLight = new THREE.PointLight(0xffd060, 5.5, 14);
+    keyLight.position.set(3.5, 3.5, 4);
     scene.add(keyLight);
 
-    const fillLight = new THREE.PointLight(0xa855f7, 2.5, 10);
-    fillLight.position.set(-3, -1, 3);
+    // Cool blue-white fill — right
+    const fillLight = new THREE.PointLight(0xc8deff, 2.2, 12);
+    fillLight.position.set(-4, -1, 3);
     scene.add(fillLight);
 
-    const rimLight = new THREE.PointLight(0x6d28d9, 1.5, 8);
-    rimLight.position.set(0, 0, -4);
-    scene.add(rimLight);
+    // Amber under-bounce
+    const bounceLight = new THREE.PointLight(0xff9a20, 1.2, 8);
+    bounceLight.position.set(0, -4, 2);
+    scene.add(bounceLight);
 
-    // ── Animation loop ────────────────────────────────────────────────────────
+    // Soft ambient
+    scene.add(new THREE.AmbientLight(0x2a1800, 0.9));
+
+    // ── Interaction state
+    let isDragging   = false;
+    let prevX        = 0;
+    let prevY        = 0;
+    let velX         = 0;
+    let velY         = 0;
+    let targetRotY   = 0;
+    let targetRotX   = Math.PI / 2;
+    let currentRotY  = 0;
+    let currentRotX  = Math.PI / 2;
+    let idleTimer    = 0;
+
+    const onDown = (clientX: number, clientY: number) => {
+      isDragging = true;
+      idleTimer  = 0;
+      prevX      = clientX;
+      prevY      = clientY;
+      velX = velY = 0;
+      renderer.domElement.style.cursor = 'grabbing';
+    };
+    const onMove = (clientX: number, clientY: number) => {
+      if (!isDragging) return;
+      const dx = clientX - prevX;
+      const dy = clientY - prevY;
+      velX       = dx * 0.012;
+      velY       = dy * 0.006;
+      targetRotY += dx * 0.012;
+      targetRotX += dy * 0.006;
+      // Clamp vertical tilt so it doesn't flip too far
+      targetRotX = Math.max(Math.PI / 2 - 0.6, Math.min(Math.PI / 2 + 0.6, targetRotX));
+      prevX = clientX;
+      prevY = clientY;
+    };
+    const onUp = () => {
+      isDragging = false;
+      renderer.domElement.style.cursor = 'grab';
+    };
+
+    // Mouse
+    renderer.domElement.style.cursor = 'grab';
+    const onMouseDown = (e: MouseEvent) => onDown(e.clientX, e.clientY);
+    const onMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+    const onMouseUp   = () => onUp();
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup',   onMouseUp);
+
+    // Touch
+    const onTouchStart = (e: TouchEvent) => { e.preventDefault(); onDown(e.touches[0].clientX, e.touches[0].clientY); };
+    const onTouchMove  = (e: TouchEvent) => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); };
+    const onTouchEnd   = () => onUp();
+    renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+    renderer.domElement.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    renderer.domElement.addEventListener('touchend',   onTouchEnd);
+
+    // ── Animation loop
     let raf: number;
-    let t = 0;
+    let t   = 0;
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
-      t += 0.01;
+      t  += 0.012;
 
-      coin.rotation.y  += 0.007;
-      coin.position.y   = Math.sin(t * 0.75) * 0.09;
+      if (!isDragging) {
+        // Apply momentum + decay
+        velX *= 0.94;
+        velY *= 0.94;
+        targetRotY += velX;
+        targetRotX += velY;
 
-      ring1.rotation.z += 0.002;
-      ring2.rotation.z -= 0.001;
+        // After momentum fades, drift back to upright tilt
+        idleTimer += 0.012;
+        const snapStr = Math.min(0.012, idleTimer * 0.0004);
+        targetRotX += (Math.PI / 2 - targetRotX) * snapStr;
 
-      dots.forEach(({ mesh, speed, radius, phase }) => {
-        const a = t * speed + phase;
-        mesh.position.x = Math.cos(a) * radius;
-        mesh.position.z = Math.sin(a) * radius * 0.4;
-        mesh.position.y = Math.sin(a * 2) * 0.25;
-      });
+        // Auto-rotate slowly
+        targetRotY += 0.006;
+      }
 
-      keyLight.intensity = 4 + Math.sin(t * 1.8) * 0.6;
+      // Lerp to target
+      currentRotY += (targetRotY - currentRotY) * 0.1;
+      currentRotX += (targetRotX - currentRotX) * 0.1;
+
+      coin.rotation.y = currentRotY;
+      coin.rotation.x = currentRotX;
+
+      // Subtle float
+      coin.position.y = Math.sin(t * 0.7) * 0.07;
+
+      // Rings drift
+      ring.rotation.z  += 0.0025;
+      ring2.rotation.z -= 0.0015;
+
+      // Key light shimmer (warm pulse)
+      keyLight.intensity = 5.5 + Math.sin(t * 1.6) * 0.7;
 
       renderer.render(scene, camera);
     };
     tick();
 
-    // ── Resize ────────────────────────────────────────────────────────────────
+    // ── Resize
     const onResize = () => {
       if (!el) return;
       const nw = el.clientWidth;
@@ -274,17 +453,29 @@ export default function HackTokenCoin() {
     };
     window.addEventListener('resize', onResize);
 
-    // ── Cleanup ───────────────────────────────────────────────────────────────
+    // ── Cleanup
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener('resize',    onResize);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup',   onMouseUp);
+      renderer.domElement.removeEventListener('mousedown',  onMouseDown);
+      renderer.domElement.removeEventListener('touchstart', onTouchStart);
+      renderer.domElement.removeEventListener('touchmove',  onTouchMove);
+      renderer.domElement.removeEventListener('touchend',   onTouchEnd);
       renderer.dispose();
-      [coinGeo, ring1Geo, ring2Geo, dotGeo].forEach(g => g.dispose());
-      [faceT, backT, edgeT].forEach(t => t.dispose());
-      [faceMat, backMat, edgeMat, ring1Mat, ring2Mat, ...dots.map(d => d.mat)].forEach(m => m.dispose());
+      [coinGeo, ringGeo, ring2Geo].forEach(g => g.dispose());
+      [faceT, backT, edgeT].forEach(tx => tx.dispose());
+      [faceMat, backMat, edgeMat, ringMat, ring2Mat].forEach(m => m.dispose());
       if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
     };
   }, []);
 
-  return <div ref={mountRef} className="w-full h-full" />;
+  return (
+    <div
+      ref={mountRef}
+      className="w-full h-full select-none"
+      style={{ touchAction: 'none' }}
+    />
+  );
 }
