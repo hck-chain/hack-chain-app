@@ -948,7 +948,7 @@ const EditEducatorClasses = () => {
                             className="w-full"
                             style={{ height: 400, border: 0, backgroundColor: P.surface }}
                             loading="lazy"
-                            sandbox="allow-scripts allow-same-origin"
+                            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
                           />
                         </div>
                       </motion.div>
