@@ -225,6 +225,12 @@ router.post("/register", registerLimiter, async (req, res) => {
 router.get("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
+    const isSelf = req.auth.wallet.toLowerCase() === wallet_address.toLowerCase();
+    const isAdmin = req.auth.role === 'admin';
+
+    if (!isSelf && !isAdmin) {
+      return res.status(403).json({ error: "Cannot access another user's profile" });
+    }
 
     const user = await User.findOne({
       where: { wallet_address },

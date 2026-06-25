@@ -399,13 +399,18 @@ router.post("/link", async (req, res) => {
   }
 })
 
+const OPENSEA_CERT_URL_RE = /^https:\/\/opensea\.io\/item\/polygon\/0x[a-fA-F0-9]{40}\/\d+$/;
+
 // POST /api/certificates/verify
-router.post("/verify", async (req, res) => {
+router.post("/verify", authenticate, async (req, res) => {
   try {
     const { link } = req.body;
-    const verified = await fetch(link, {
-      method: "GET"
-    });
+
+    if (!link || typeof link !== 'string' || !OPENSEA_CERT_URL_RE.test(link)) {
+      return res.status(400).json({ error: "Invalid certificate URL" });
+    }
+
+    const verified = await fetch(link, { method: "GET" });
     if (verified.ok) {
       return res.status(200).json({
         message: "This certificate is authentic",
@@ -415,7 +420,7 @@ router.post("/verify", async (req, res) => {
       return res.status(verified.status).json({
         error: "This certificate is not authentic",
         authenticity: false
-      })
+      });
     }
   } catch (error) {
     console.error("Error checking certificate authenticity:", error);
@@ -468,7 +473,9 @@ router.post("/database", authenticate, async (req, res) => {
       });
     }
 
-    const parsedClassRequestId = class_request_id ? parseInt(class_request_id, 10) : null;
+    const parsedClassRequestId = class_request_id != null
+      ? (() => { const n = parseInt(class_request_id, 10); return Number.isFinite(n) && n > 0 ? n : null; })()
+      : null;
 
     // 4. Creación del certificado
     const certificate = await Certificate.create({
@@ -511,13 +518,22 @@ router.post("/database", authenticate, async (req, res) => {
 
 // GET /api/certificates/database
 router.get("/database", authenticate, async (req, res) => {
+  if (req.auth.role !== 'issuer' && req.auth.role !== 'admin') {
+    return res.status(403).json({ error: "Access restricted" });
+  }
+
   try {
+    const where = req.auth.role === 'admin'
+      ? {}
+      : { issuer_wallet_address: req.auth.wallet.toLowerCase() };
+
     const certificates = await Certificate.findAll({
+      where,
       include: [{
         model: Issuer,
         include: [{
           model: User,
-          attributes: ['name', 'lastname', 'email']
+          attributes: ['name', 'lastname'],
         }]
       }],
       order: [['created_at', 'DESC']]
