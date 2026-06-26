@@ -1,6 +1,10 @@
 const { Resend } = require('resend');
 const { buildGoogleCalendarUrl, buildICSBuffer } = require('./calendarService');
 
+function esc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM || 'onboarding@resend.dev';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.hackchain.app';
@@ -464,11 +468,18 @@ async function notifyAdminEducatorReapply({ to, name, email, wallet, organizatio
 
 async function notifyEducatorClassRequest({ to, educatorName, studentName, requestedDate, startTime, durationMinutes, className }) {
   console.log(`[emailService] Notificando solicitud de clase a educador: ${to}`);
-  const greeting = educatorName ? `Hola, ${educatorName}.` : "Hola.";
+  const eEducatorName = esc(educatorName);
+  const eStudentName  = esc(studentName);
+  const eClassName    = esc(className);
+  const eDate         = esc(requestedDate);
+  const eTime         = esc(startTime);
+  const eDuration     = esc(durationMinutes);
+
+  const greeting = eEducatorName ? `Hola, ${eEducatorName}.` : "Hola.";
   const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
 
-  const classLine = className
-    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+  const classLine = eClassName
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${eClassName}</td></tr>`
     : "";
 
   await resend.emails.send({
@@ -481,12 +492,12 @@ async function notifyEducatorClassRequest({ to, educatorName, studentName, reque
       headline: "Nueva solicitud de clase privada",
       accentColor: "#680099",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;"><strong>${studentName}</strong> solicitó una clase privada contigo.</p>
+             <p style="margin:0 0 16px;"><strong>${eStudentName}</strong> solicitó una clase privada contigo.</p>
              <table style="width:100%;border-collapse:collapse;font-size:14px;">
                ${classLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${durationMinutes} min</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${eDate}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${eTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${eDuration} min</td></tr>
              </table>
              <p style="margin:16px 0 0;">Ingresa a tu dashboard para confirmar o rechazar la solicitud.</p>`,
       ctaUrl: dashboardUrl,
@@ -498,7 +509,14 @@ async function notifyEducatorClassRequest({ to, educatorName, studentName, reque
 async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, className, requestedDate, startTime, durationMinutes, requestId, status, cancellationReason }) {
   console.log(`[emailService] Notificando actualización de clase al talento: ${to} — status=${status}`);
 
-  const greeting = studentName ? `Hola, ${studentName}.` : "Hola.";
+  const eStudentName       = esc(studentName);
+  const eEducatorName      = esc(educatorName);
+  const eClassName         = esc(className);
+  const eDate              = esc(requestedDate);
+  const eTime              = esc(startTime);
+  const eCancellationReason = esc(cancellationReason);
+
+  const greeting = eStudentName ? `Hola, ${eStudentName}.` : "Hola.";
   const dashboardUrl = `${FRONTEND_URL}/dashboard/talent/classes`;
   const eventTitle = className
     ? `Clase: ${className}`
@@ -511,15 +529,15 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
       subject: "¡Tu solicitud de clase fue confirmada!",
       headline: "¡Clase confirmada!",
       accentColor: "#059669",
-      body: "Tu solicitud fue <strong>confirmada</strong>. Guardá el evento en tu calendario para no olvidar la fecha y horario.",
+      body: "Tu solicitud fue <strong>confirmada</strong>. Guarda el evento en tu calendario para no olvidar la fecha y horario.",
     },
     cancelled: {
       subject: "Tu solicitud de clase fue cancelada",
       headline: "Solicitud cancelada",
       accentColor: "#64748b",
-      body: cancellationReason
-        ? `Tu solicitud fue <strong>cancelada</strong> por el educador.<br><br><em style="color:#94a3b8;">"${cancellationReason}"</em>`
-        : "Tu solicitud fue <strong>cancelada</strong> por el educador. Podés solicitar una nueva clase cuando quieras.",
+      body: eCancellationReason
+        ? `Tu solicitud fue <strong>cancelada</strong> por el educador.<br><br><em style="color:#94a3b8;">"${eCancellationReason}"</em>`
+        : "Tu solicitud fue <strong>cancelada</strong> por el educador. Puedes solicitar una nueva clase cuando quieras.",
     },
     completed: {
       subject: "¡Tu clase fue completada!",
@@ -527,14 +545,20 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
       accentColor: "#680099",
       body: "¡Tu clase fue <strong>completada</strong>! Esperamos que hayas tenido una excelente experiencia.",
     },
+    expired: {
+      subject: "Tu solicitud de clase venció sin respuesta",
+      headline: "Solicitud vencida",
+      accentColor: "#475569",
+      body: "El educador no respondió a tu solicitud antes de la fecha acordada, por lo que fue <strong>cancelada automáticamente</strong>. Puedes solicitar una nueva clase cuando quieras.",
+    },
   };
 
   const v = variants[status] || variants.confirmed;
-  const classLine = className
-    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+  const classLine = eClassName
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${eClassName}</td></tr>`
     : "";
-  const educatorLine = educatorName
-    ? `<tr><td style="padding:6px 0;color:#888;">Educador</td><td style="padding:6px 0;">${educatorName}</td></tr>`
+  const educatorLine = eEducatorName
+    ? `<tr><td style="padding:6px 0;color:#888;">Educador</td><td style="padding:6px 0;">${eEducatorName}</td></tr>`
     : "";
 
   // Calendar links — only included when the class was confirmed
@@ -584,8 +608,8 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
              <table style="width:100%;border-collapse:collapse;font-size:14px;">
                ${classLine}
                ${educatorLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${eDate}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${eTime}</td></tr>
              </table>
              ${calendarHtml}`,
       ctaUrl: dashboardUrl,
@@ -622,28 +646,28 @@ async function notifyEducatorClassConfirmed({ to, educatorName, studentName, cla
   const icsBuffer = buildICSBuffer({ uid: `hackchain-class-educator-${requestId}@hackchain.app`, title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
 
   const classLine = className
-    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${esc(className)}</td></tr>`
     : "";
   const studentLine = studentName
-    ? `<tr><td style="padding:6px 0;color:#888;">Estudiante</td><td style="padding:6px 0;">${studentName}</td></tr>`
+    ? `<tr><td style="padding:6px 0;color:#888;">Estudiante</td><td style="padding:6px 0;">${esc(studentName)}</td></tr>`
     : "";
 
   await resend.emails.send({
     from: FROM,
     to,
     subject: `Clase confirmada${className ? ` — ${className}` : ""}${studentName ? ` con ${studentName}` : ""}`,
-    text: `${greeting}\n\nConfirmaste una clase${studentName ? ` con ${studentName}` : ""}. Guardá el evento en tu calendario.\n\n${className ? `Clase: ${className}\n` : ""}${studentName ? `Estudiante: ${studentName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nConfirmaste una clase${studentName ? ` con ${studentName}` : ""}. Guarda el evento en tu calendario.\n\n${className ? `Clase: ${className}\n` : ""}${studentName ? `Estudiante: ${studentName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Clase confirmada",
       headline: "Clase confirmada",
       accentColor: "#059669",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">Confirmaste una clase${studentName ? ` con <strong>${studentName}</strong>` : ""}. Guardá la fecha en tu calendario para no perderla.</p>
+             <p style="margin:0 0 16px;">Confirmaste una clase${studentName ? ` con <strong>${esc(studentName)}</strong>` : ""}. Guarda la fecha en tu calendario para no perderla.</p>
              <table style="width:100%;border-collapse:collapse;font-size:14px;">
                ${classLine}
                ${studentLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
                <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${mins} min</td></tr>
              </table>
              <p style="margin:24px 0 8px;text-align:center;">
@@ -672,11 +696,11 @@ async function notifyEducatorClassCancelled({ to, educatorName, studentName, cla
   const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
 
   const classLine = className
-    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${className}</td></tr>`
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${esc(className)}</td></tr>`
     : "";
 
   const reasonLine = cancellationReason
-    ? `<tr><td style="padding:6px 0;color:#888;vertical-align:top;">Motivo</td><td style="padding:6px 0;font-style:italic;">"${cancellationReason}"</td></tr>`
+    ? `<tr><td style="padding:6px 0;color:#888;vertical-align:top;">Motivo</td><td style="padding:6px 0;font-style:italic;">"${esc(cancellationReason)}"</td></tr>`
     : "";
 
   await resend.emails.send({
@@ -689,17 +713,103 @@ async function notifyEducatorClassCancelled({ to, educatorName, studentName, cla
       headline: "Solicitud cancelada",
       accentColor: "#64748b",
       body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;"><strong>${studentName}</strong> canceló su solicitud de clase privada contigo.</p>
+             <p style="margin:0 0 16px;"><strong>${esc(studentName)}</strong> canceló su solicitud de clase privada contigo.</p>
              <table style="width:100%;border-collapse:collapse;font-size:14px;">
                ${classLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${requestedDate}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${startTime}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
                <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${durationMinutes} min</td></tr>
                ${reasonLine}
              </table>
-             <p style="margin:16px 0 0;">Podés ver tus solicitudes actualizadas desde tu dashboard.</p>`,
+             <p style="margin:16px 0 0;">Puedes ver tus solicitudes actualizadas desde tu dashboard.</p>`,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ver solicitudes",
+    }),
+  });
+}
+
+// Shared 24h reminder — role: 'student' | 'educator'
+async function notifyClassReminder({ to, recipientName, counterpartName, role, className, requestedDate, startTime, durationMinutes }) {
+  console.log(`[emailService] Recordatorio 24h → ${to} (${role})`);
+
+  const greeting = recipientName ? `Hola, ${esc(recipientName)}.` : "Hola.";
+  const mins = parseInt(durationMinutes, 10) || 60;
+  const isEducator = role === 'educator';
+
+  const eventTitle = className
+    ? `Clase: ${esc(className)}`
+    : counterpartName
+    ? `Clase con ${esc(counterpartName)}`
+    : "Clase — HackChain";
+
+  const desc = [
+    counterpartName ? `${isEducator ? 'Estudiante' : 'Educador'}: ${counterpartName}` : null,
+    className ? `Clase: ${className}` : null,
+    "Sesión privada — HackChain.",
+  ].filter(Boolean).join("\n");
+
+  const googleUrl = buildGoogleCalendarUrl({ title: eventTitle, requestedDate, startTime, durationMinutes: mins, description: desc });
+  const ctaUrl = isEducator ? `${FRONTEND_URL}/educator/dashboard` : `${FRONTEND_URL}/dashboard/talent/classes`;
+  const ctaLabel = isEducator ? "Ver mis clases" : "Ver mis clases";
+
+  const counterpartLine = counterpartName
+    ? `<tr><td style="padding:6px 0;color:#888;">${isEducator ? 'Estudiante' : 'Educador'}</td><td style="padding:6px 0;">${esc(counterpartName)}</td></tr>`
+    : "";
+  const classLine = className
+    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${esc(className)}</td></tr>`
+    : "";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Recordatorio: tu clase es mañana${className ? ` — ${className}` : ""}`,
+    text: `${greeting}\n\nTe recordamos que mañana tienes una clase privada agendada en HackChain.\n\n${className ? `Clase: ${className}\n` : ""}${counterpartName ? `${isEducator ? 'Estudiante' : 'Educador'}: ${counterpartName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\n${ctaUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Recordatorio de clase",
+      headline: "Tu clase es mañana",
+      accentColor: "#7c3aed",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;">Te recordamos que <strong>mañana tienes una clase privada</strong> agendada en HackChain.</p>
+             <table style="width:100%;border-collapse:collapse;font-size:14px;">
+               ${classLine}
+               ${counterpartLine}
+               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
+               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${mins} min</td></tr>
+             </table>
+             <p style="margin:24px 0 8px;text-align:center;">
+               <a href="${googleUrl}" target="_blank" rel="noopener noreferrer"
+                  style="display:inline-block;background-color:#7c3aed;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;font-size:14px;">
+                 Agregar a Google Calendar
+               </a>
+             </p>`,
+      ctaUrl,
+      ctaLabel,
+    }),
+  });
+}
+
+async function notifyTalentCertificateIssued({ to, studentName, educatorName, certificateTitle, dashboardUrl }) {
+  console.log(`[emailService] Notificando certificado emitido → ${to}`);
+
+  const greeting = studentName ? `Hola, ${esc(studentName)}.` : "Hola.";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Recibiste un nuevo certificado${certificateTitle ? `: ${certificateTitle}` : ""}`,
+    text: `${greeting}\n\n${educatorName ? `${educatorName} ` : ""}emitió un certificado a tu nombre en HackChain.\n\n${certificateTitle ? `Certificado: ${certificateTitle}\n` : ""}Puedes verlo en tu perfil: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Nuevo certificado recibido",
+      headline: "Recibiste un certificado",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 12px;">${greeting}</p>
+             <p style="margin:0 0 16px;">${educatorName ? `<strong>${esc(educatorName)}</strong> ` : ""}emitió un certificado a tu nombre en HackChain. Ya está disponible en tu perfil público y verificable en blockchain.</p>
+             ${certificateTitle ? `<table style="width:100%;border-collapse:collapse;font-size:14px;">
+               <tr><td style="padding:6px 0;color:#888;">Certificado</td><td style="padding:6px 0;font-weight:700;">${esc(certificateTitle)}</td></tr>
+             </table>` : ""}`,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ver mi certificado",
     }),
   });
 }
@@ -716,4 +826,6 @@ module.exports = {
   notifyTalentClassRequestUpdate,
   notifyEducatorClassConfirmed,
   notifyEducatorClassCancelled,
+  notifyClassReminder,
+  notifyTalentCertificateIssued,
 };

@@ -18,39 +18,21 @@ const AboutUs = () => {
     },
     {
       name: 'Ainhoa López',
-      role: t('team.roles.cybersecurityAnalyst'),
+      role: t('team.roles.ciso'),
       imageUrl: '/images/team/Ainhoa Lopez.png',
       linkedinUrl: 'https://www.linkedin.com/in/ainhoa-lópez-perelló-2351b72ba/'
     },
     {
-      name: 'Hector Ledesma',
-      role: t('team.roles.frontendDeveloper'),
+      name: 'Héctor Ledesma',
+      role: t('team.roles.cto'),
       imageUrl: '/images/team/Hector Ledesma.png',
       linkedinUrl: 'www.linkedin.com/in/héctor-raciel-ledesma-vázquez-a67136311'
     },
     {
       name: 'Giana',
-      role: t('team.roles.brandManager'),
+      role: t('team.roles.cmo'),
       imageUrl: '/images/team/Giana Cantarini.png',
       linkedinUrl: 'https://www.linkedin.com/in/giana-cantarini/'
-    },
-    {
-      name: 'Kelvin',
-      role: t('team.roles.businessDevelopment'),
-      imageUrl: '/images/team/Kelvin.png',
-      linkedinUrl: 'https://www.linkedin.com/in/kelvin-ozurumba-a66a5b3a1/'
-    },
-    {
-      name: 'Nancy Gutiérrez',
-      role: t('team.roles.cybersecurityAnalyst'),
-      imageUrl: '/images/team/nancy.png',
-      linkedinUrl: 'https://www.linkedin.com/in/cibersecurityninja-90899a24b/'
-    },
-    {
-      name: 'Hector Garcia',
-      role: t('team.roles.devOpsEngineer'),
-      imageUrl: '/images/team/Hector Garcia.png',
-      linkedinUrl: 'https://www.linkedin.com/in/héctor-garcia-401873207/'
     }
   ];
 

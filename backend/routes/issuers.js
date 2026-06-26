@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
-const { Issuer, Student, User, Certificate } = require("../models");
+const { Issuer, Student, User, Certificate, ClassRequest } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
@@ -606,6 +606,36 @@ router.post("/increment-certificates", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Increment error:", error);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// GET /api/issuers/:wallet/busy-slots — public, returns occupied time slots for booking UI
+// Only exposes date + time + duration, never student data.
+router.get("/:wallet/busy-slots", async (req, res) => {
+  try {
+    const wallet = req.params.wallet.toLowerCase();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+
+    const requests = await ClassRequest.findAll({
+      where: {
+        issuer_wallet_address: wallet,
+        status: ['pending', 'confirmed'],
+      },
+      attributes: ['requested_date', 'start_time', 'duration_minutes'],
+    });
+
+    const slots = requests.map(r => ({
+      date: r.requested_date,
+      startTime: r.start_time,
+      durationMinutes: r.duration_minutes,
+    }));
+
+    return res.json({ slots });
+  } catch (err) {
+    console.error("GET /api/issuers/:wallet/busy-slots error:", err);
+    return res.status(500).json({ error: "Failed to fetch busy slots" });
   }
 });
 

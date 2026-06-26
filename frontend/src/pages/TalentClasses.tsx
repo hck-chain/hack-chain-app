@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, CalendarDays, Clock, ChevronRight, CalendarPlus, Download, Calendar } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock, ChevronRight, CalendarPlus, Download, Calendar, Award } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { resolveIpfs } from '@/lib/ipfs';
 import { useMyClassRequests, useCancelClassRequest, type MyClassRequest } from '@/hooks/useMyClassRequests';
@@ -257,8 +257,32 @@ function ClassRow({ req, index }: { req: MyClassRequest; index: number }) {
             )}
           </div>
 
+          {/* Pending: remind the talent what class and where to check status */}
+          {status === 'pending' && (
+            <p className="mt-2 text-[11px] text-slate-600 leading-relaxed">
+              {req.class_name
+                ? t('talentClasses.pendingTopicHint', { topic: req.class_name })
+                : null}
+              {' '}{t('talentClasses.pendingStatusHint')}
+            </p>
+          )}
+
           {/* Calendar shortcuts — confirmed only */}
           {status === 'confirmed' && <CalendarActions req={req} />}
+
+          {/* Completed: link to certificates */}
+          {status === 'completed' && (
+            <motion.button
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+              onClick={() => navigate('/dashboard/talent')}
+              className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-purple-400 hover:text-purple-300 min-h-[36px] -ml-0.5 px-1 rounded-lg"
+              style={{ transition: 'color 150ms ease-out' }}
+            >
+              <Award className="h-3 w-3 shrink-0" />
+              {t('talentClasses.viewCertificate')}
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -278,14 +302,19 @@ function SectionLabel({ label, count }: { label: string; count?: number }) {
   );
 }
 
+const HISTORY_PAGE_SIZE = 5;
+
 export default function TalentClasses() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const { data: requests, isPending } = useMyClassRequests();
+  const [historyVisible, setHistoryVisible] = useState(HISTORY_PAGE_SIZE);
 
   const active  = requests?.filter(r => r.status === 'pending' || r.status === 'confirmed') ?? [];
   const history = requests?.filter(r => r.status === 'completed' || r.status === 'cancelled') ?? [];
+  const historySlice = history.slice(0, historyVisible);
+  const hasMoreHistory = historyVisible < history.length;
   const pendingCount   = requests?.filter(r => r.status === 'pending').length ?? 0;
   const confirmedCount = requests?.filter(r => r.status === 'confirmed').length ?? 0;
   const hasAny = (requests?.length ?? 0) > 0;
@@ -391,12 +420,25 @@ export default function TalentClasses() {
           {/* History */}
           {!isPending && history.length > 0 && (
             <section>
-              <SectionLabel label={t('talentClasses.sectionHistory')} />
+              <SectionLabel label={t('talentClasses.sectionHistory')} count={history.length} />
               <AnimatePresence mode="popLayout">
-                {history.map((req, i) => (
+                {historySlice.map((req, i) => (
                   <ClassRow key={req.id} req={req} index={i} />
                 ))}
               </AnimatePresence>
+
+              {hasMoreHistory && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+                  transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+                  onClick={() => setHistoryVisible(v => v + HISTORY_PAGE_SIZE)}
+                  className="w-full mt-2 py-2.5 text-[12px] text-slate-500 hover:text-slate-300 rounded-lg hover:bg-white/[0.04] transition-colors duration-150"
+                >
+                  {t('talentClasses.showMore', { count: Math.min(HISTORY_PAGE_SIZE, history.length - historyVisible) })}
+                </motion.button>
+              )}
             </section>
           )}
         </motion.main>

@@ -563,8 +563,8 @@ const TalentDashboard = () => {
           className="relative z-10 px-4 sm:px-6 md:px-10 pt-5 sm:pt-8 md:pt-10 pb-20 max-w-[1600px] mx-auto"
         >
           {/* ── Header ── */}
-          <header className="mb-5 md:mb-8 grid grid-cols-2 md:grid-cols-3 items-center gap-3 md:gap-4">
-            <div className="flex flex-col">
+          <header className="mb-5 md:mb-8 flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-3 items-center gap-3 md:gap-4">
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
               <p className="font-title text-[10px] sm:text-xs uppercase tracking-[0.22em] text-white/35 font-bold mb-1.5 sm:mb-3">
                 {t('talentDashboard.talentFallback')}
               </p>
@@ -582,9 +582,14 @@ const TalentDashboard = () => {
               <img src={HackChainLogo} alt="HackChain" className="h-16 md:h-20 object-contain" />
             </div>
 
-            <div className="flex justify-end items-center gap-2">
-              <LanguageToggle />
-              <TalentNotificationBell />
+            <div className="w-full flex justify-between sm:justify-end items-center gap-2 sm:col-start-2 md:col-start-3">
+              {/* Globe + Bell — flush left on mobile, inline on sm+ */}
+              <div className="flex items-center gap-2 sm:contents">
+                <LanguageToggle />
+                <TalentNotificationBell />
+              </div>
+
+              {/* Profile button — flush right on mobile */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -626,7 +631,7 @@ const TalentDashboard = () => {
                         <img src="/icons/maletinNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="text-xs uppercase text-slate-500 font-semibold tracking-wider mb-1">{t('talentDashboard.roleLabel')}</p>
-                          <p className="text-sm text-slate-200">{talent.role}</p>
+                          <p className="text-sm text-slate-200">{t('talentDashboard.talentFallback')}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
@@ -737,6 +742,7 @@ const TalentDashboard = () => {
 
               <TabsContent value="trayectoria">
                 <TrayectoriaSection wallet={talent.wallet_address} />
+                <ReferralsSection />
               </TabsContent>
               <TabsContent value="formacion">
                 <FormacionSection wallet={talent.wallet_address} />
@@ -766,7 +772,9 @@ const TalentDashboard = () => {
             </section>
           </div>
 
-          <ReferralsSection />
+          <div className="hidden md:block">
+            <ReferralsSection />
+          </div>
 
           {/* ── Descubrir Educadores — solo desktop (mobile lo tiene en tabs) ── */}
           <div className="hidden md:block mt-8">

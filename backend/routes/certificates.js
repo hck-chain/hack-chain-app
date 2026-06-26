@@ -399,13 +399,18 @@ router.post("/link", async (req, res) => {
   }
 })
 
+const OPENSEA_CERT_URL_RE = /^https:\/\/opensea\.io\/item\/polygon\/0x[a-fA-F0-9]{40}\/\d+$/;
+
 // POST /api/certificates/verify
-router.post("/verify", async (req, res) => {
+router.post("/verify", authenticate, async (req, res) => {
   try {
     const { link } = req.body;
-    const verified = await fetch(link, {
-      method: "GET"
-    });
+
+    if (!link || typeof link !== 'string' || !OPENSEA_CERT_URL_RE.test(link)) {
+      return res.status(400).json({ error: "Invalid certificate URL" });
+    }
+
+    const verified = await fetch(link, { method: "GET" });
     if (verified.ok) {
       return res.status(200).json({
         message: "This certificate is authentic",
@@ -415,7 +420,7 @@ router.post("/verify", async (req, res) => {
       return res.status(verified.status).json({
         error: "This certificate is not authentic",
         authenticity: false
-      })
+      });
     }
   } catch (error) {
     console.error("Error checking certificate authenticity:", error);
@@ -433,7 +438,7 @@ router.post("/database", authenticate, async (req, res) => {
     const {
       student_wallet_address, issuer_wallet_address, title,
       description, certificate_hash, blockchain_tx_hash,
-      token_id, issue_date
+      token_id, issue_date, class_request_id,
     } = req.body;
 
     if (!issuer_wallet_address || !issuer_wallet_address.startsWith("0x")) {
@@ -468,6 +473,10 @@ router.post("/database", authenticate, async (req, res) => {
       });
     }
 
+    const parsedClassRequestId = class_request_id != null
+      ? (() => { const n = parseInt(class_request_id, 10); return Number.isFinite(n) && n > 0 ? n : null; })()
+      : null;
+
     // 4. Creación del certificado
     const certificate = await Certificate.create({
       student_wallet_address: cleanStudentWallet,
@@ -478,8 +487,39 @@ router.post("/database", authenticate, async (req, res) => {
       blockchain_tx_hash,
       issue_date,
       token_id,
-      is_revoked: false
+      is_revoked: false,
+      class_request_id: parsedClassRequestId,
     });
+
+    // 5. Auto-complete the class request when a certificate is issued for it
+    if (parsedClassRequestId) {
+      await db.ClassRequest.update(
+        { status: 'completed' },
+        {
+          where: {
+            id: parsedClassRequestId,
+            issuer_wallet_address: cleanIssuerWallet,
+            status: 'confirmed',
+          },
+        }
+      );
+    }
+
+    // 6. Notify talent — fire-and-forget, must not block the response
+    User.findOne({
+      where: { wallet_address: cleanStudentWallet },
+      attributes: ['email', 'name', 'lastname'],
+    }).then(studentUser => {
+      if (!studentUser?.email) return;
+      const studentName = [studentUser.name, studentUser.lastname].filter(Boolean).join(' ') || null;
+      return emailService.notifyTalentCertificateIssued({
+        to: studentUser.email,
+        studentName,
+        educatorName: issuer.organization_name || null,
+        certificateTitle: title || null,
+        dashboardUrl: `${process.env.FRONTEND_URL || 'https://www.hackchain.app'}/dashboard/talent`,
+      });
+    }).catch(err => console.error('[email] notifyTalentCertificateIssued failed:', err.message));
 
     res.status(201).json({
       message: "Certificado sincronizado con éxito",
@@ -494,13 +534,22 @@ router.post("/database", authenticate, async (req, res) => {
 
 // GET /api/certificates/database
 router.get("/database", authenticate, async (req, res) => {
+  if (req.auth.role !== 'issuer' && req.auth.role !== 'admin') {
+    return res.status(403).json({ error: "Access restricted" });
+  }
+
   try {
+    const where = req.auth.role === 'admin'
+      ? {}
+      : { issuer_wallet_address: req.auth.wallet.toLowerCase() };
+
     const certificates = await Certificate.findAll({
+      where,
       include: [{
         model: Issuer,
         include: [{
           model: User,
-          attributes: ['name', 'lastname', 'email']
+          attributes: ['name', 'lastname'],
         }]
       }],
       order: [['created_at', 'DESC']]

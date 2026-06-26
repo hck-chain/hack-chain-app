@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import {
-  ArrowLeft, Clock, CheckCircle, XCircle, Flag,
+  ArrowLeft, Clock, CheckCircle, XCircle, Award,
   Calendar, CalendarPlus, Download, User,
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -71,9 +71,8 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
     ? request.student_name
     : `${request.student_wallet.slice(0, 6)}…${request.student_wallet.slice(-4)}`;
 
-  const canConfirm  = status === 'pending';
-  const canCancel   = status === 'pending' || status === 'confirmed';
-  const canComplete = status === 'confirmed';
+  const canConfirm = status === 'pending';
+  const canCancel  = status === 'pending' || status === 'confirmed';
 
   const calendarParams = {
     title: request.class_name
@@ -109,7 +108,10 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
                 {displayName}
               </p>
               {request.class_name && (
-                <p className="text-xs text-slate-500 mt-0.5 truncate">{request.class_name}</p>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">
+                  <span className="text-slate-600 font-medium">{t('educatorClassRequests.topic', 'Tema')}:</span>{' '}
+                  {request.class_name}
+                </p>
               )}
             </div>
 
@@ -144,7 +146,7 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
           )}
 
           {/* Actions */}
-          {(canConfirm || canCancel || canComplete) && !confirmCancel && (
+          {(canConfirm || canCancel) && !confirmCancel && (
             <div className="flex items-center gap-0.5 mt-2.5">
               {canConfirm && (
                 <motion.button
@@ -156,18 +158,6 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
                 >
                   <CheckCircle className="h-3.5 w-3.5 shrink-0" />
                   {t('educatorClassRequests.actions.confirm')}
-                </motion.button>
-              )}
-              {canComplete && (
-                <motion.button
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
-                  transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                  disabled={isUpdating}
-                  onClick={() => updateStatus({ id: request.id, status: 'completed' })}
-                  className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-purple-400 px-2.5 py-1.5 rounded-lg hover:bg-purple-500/[0.06] min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
-                >
-                  <Flag className="h-3.5 w-3.5 shrink-0" />
-                  {t('educatorClassRequests.actions.complete')}
                 </motion.button>
               )}
               {canCancel && (
@@ -232,6 +222,19 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Issue certificate — confirmed only */}
+          {status === 'confirmed' && !confirmCancel && (
+            <div className="mt-1.5">
+              <Link
+                to={`/educator/dashboard?classRequestId=${request.id}&studentWallet=${encodeURIComponent(request.student_wallet)}&classDate=${encodeURIComponent(request.requested_date)}${request.student_name ? `&studentName=${encodeURIComponent(request.student_name)}` : ''}${request.class_name ? `&className=${encodeURIComponent(request.class_name)}` : ''}`}
+                className="inline-flex items-center gap-1.5 text-[12px] text-purple-400 hover:text-purple-300 px-2.5 py-1.5 rounded-lg hover:bg-purple-500/[0.08] min-h-[36px] transition-colors duration-150"
+              >
+                <Award className="h-3.5 w-3.5 shrink-0" />
+                {t('educatorClassRequests.actions.issueCertificate', 'Emitir Certificado')}
+              </Link>
+            </div>
+          )}
 
           {/* Calendar shortcuts — confirmed only */}
           {status === 'confirmed' && (

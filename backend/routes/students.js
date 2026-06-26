@@ -12,11 +12,11 @@ router.get("/", authenticate, async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+          attributes: ['id', 'wallet_address', 'name', 'lastname', 'is_active', 'created_at']
         },
         {
           model: Certificate,
-          as: "certificates", // 🔑 Usa el alias correcto
+          as: "certificates",
           attributes: ['id']  // Solo necesitamos contar
         }
       ]
@@ -51,7 +51,7 @@ router.get("/:wallet_address", authenticate, async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['id', 'wallet_address', 'name', 'lastname', 'email', 'is_active', 'created_at']
+          attributes: ['id', 'wallet_address', 'name', 'lastname', 'is_active', 'created_at']
         }
       ]
     });

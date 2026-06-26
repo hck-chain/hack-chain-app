@@ -15,8 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { resolveIpfs } from '@/lib/ipfs';
-import { generateSlots, getUpcomingDays, filterValidSlots } from '@/lib/slots';
-import type { UpcomingDay } from '@/lib/slots';
+import { generateSlots, getUpcomingDays, filterValidSlots, isSlotBusy } from '@/lib/slots';
+import type { UpcomingDay, BusySlot } from '@/lib/slots';
+import { useBusySlots } from '@/hooks/useBusySlots';
 import type { ClassSettings, IssuerClass } from '@/types/dashboard';
 
 // ---------------------------------------------------------------------------
@@ -83,10 +84,11 @@ interface SlotPickerProps {
   t: (key: string) => string;
   prefersReduced: boolean | null;
   selectedSlot: string | null;
+  busySlots: BusySlot[];
   onSelect: (info: SlotSelection | null) => void;
 }
 
-function SlotPicker({ settings, locale, t, prefersReduced, selectedSlot, onSelect }: SlotPickerProps) {
+function SlotPicker({ settings, locale, t, prefersReduced, selectedSlot, busySlots, onSelect }: SlotPickerProps) {
   const { durations, availability } = settings;
 
   const upcomingDays: UpcomingDay[] = availability ? getUpcomingDays(availability, 21) : [];
@@ -234,20 +236,26 @@ function SlotPicker({ settings, locale, t, prefersReduced, selectedSlot, onSelec
             ) : (
               slots.map((slot) => {
                 const isSelected = selectedSlot === slot.start;
+                const isBusy = selectedDay
+                  ? isSlotBusy(slot.start, selectedDay.date, selectedDuration, busySlots)
+                  : false;
                 return (
                   <button
                     key={slot.start}
                     type="button"
+                    disabled={isBusy}
+                    title={isBusy ? t('bookClass.slotUnavailable') : undefined}
                     onClick={() =>
                       isSelected
                         ? onSelect(null)
-                        : onSelect({ date: selectedDay.date, startTime: slot.start, durationMinutes: selectedDuration })
+                        : onSelect({ date: selectedDay!.date, startTime: slot.start, durationMinutes: selectedDuration })
                     }
-                    className="px-4 py-2.5 rounded-xl text-sm font-mono tabular-nums transition-all active:scale-[0.97]"
+                    className="px-4 py-2.5 rounded-xl text-sm font-mono tabular-nums transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
                     style={{
-                      backgroundColor: isSelected ? P.accent : P.surface,
-                      border: `1px solid ${isSelected ? P.accent : P.border}`,
-                      color: isSelected ? P.bg : P.textSecondary,
+                      backgroundColor: isBusy ? P.surface : isSelected ? P.accent : P.surface,
+                      border: `1px solid ${isBusy ? P.borderSub : isSelected ? P.accent : P.border}`,
+                      color: isBusy ? P.textMuted : isSelected ? P.bg : P.textSecondary,
+                      textDecoration: isBusy ? 'line-through' : 'none',
                     }}
                   >
                     {slot.start}
@@ -275,6 +283,7 @@ const BookEducatorClass = () => {
   const { data: educator, isPending, isError } = useEducatorProfile(wallet);
   const { data: classesData, isPending: classesLoading } = useIssuerClasses(wallet);
   const { mutate: requestClass, isPending: isSending } = useRequestClass();
+  const { data: busySlots = [] } = useBusySlots(wallet);
 
   const availableClasses = classesData?.classes ?? [];
   const hasClasses = !classesLoading && availableClasses.length > 0;
@@ -633,6 +642,7 @@ const BookEducatorClass = () => {
                       t={t}
                       prefersReduced={prefersReduced}
                       selectedSlot={selectedClass?.startTime ?? null}
+                      busySlots={busySlots}
                       onSelect={setSelectedClass}
                     />
                   </div>
@@ -726,30 +736,6 @@ const BookEducatorClass = () => {
               )}
             </AnimatePresence>
 
-            {/* Google Calendar embed */}
-            {cs.google_calendar_url && (
-              <div
-                className="rounded-2xl overflow-hidden"
-                style={{ border: `1px solid ${P.border}` }}
-              >
-                <div
-                  className="px-6 py-4"
-                  style={{ borderBottom: `1px solid ${P.borderSub}`, backgroundColor: P.card }}
-                >
-                  <p className="text-[11px] uppercase tracking-[0.18em] font-semibold" style={{ color: P.textMuted }}>
-                    {t('bookClass.calendarTitle')}
-                  </p>
-                </div>
-                <iframe
-                  src={cs.google_calendar_url}
-                  title="Educator calendar"
-                  className="w-full"
-                  style={{ height: 420, border: 0, backgroundColor: P.surface }}
-                  loading="lazy"
-                  sandbox="allow-scripts allow-same-origin"
-                />
-              </div>
-            )}
           </motion.main>
         )}
       </div>

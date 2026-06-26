@@ -43,7 +43,7 @@ const Footer: React.FC = () => {
   const isEs = i18n.language.startsWith('es');
 
   return (
-    <footer className="py-14 glass border-t border-white/10">
+    <footer className="py-14 bg-black border-t border-white/10 relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
         {/* Brand */}

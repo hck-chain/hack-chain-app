@@ -93,6 +93,9 @@
     "subtitle": "que hace realidad HackChain",
     "roles": {
       "ceo": "Fundador y CEO",
+      "ciso": "CISO & Blockchain Lead",
+      "cto": "Chief Technology Officer",
+      "cmo": "Chief Marketing Officer",
       "cybersecurityAnalyst": "Analista de Ciberseguridad",
       "frontendDeveloper": "Desarrollador Frontend",
       "brandManager": "Gerente de Marca",
@@ -214,6 +217,9 @@
     "sectionFormacion": "Formación",
     "sectionTrayectoria": "Trayectoria",
     "sectionDescubrir": "Descubrir Educadores",
+    "tabClases": "Clases",
+    "tabClasesHint": "Acá podés ver tus solicitudes y el calendario de tus clases confirmadas.",
+    "tabClasesLink": "Ir a mis clases",
     "noCertificates": "Sin certificados aún.",
     "noCertificatesHint": "Completa un curso para ganar tu primer NFT.",
     "noEducators": "Sin educadores aún.",
@@ -244,13 +250,17 @@
     "viewProfile": "Ver perfil",
     "sectionActive": "En curso",
     "sectionHistory": "Historial",
+    "showMore": "Ver {{count}} más",
     "duration": "{{minutes}} min",
     "price": "${{amount}}/h",
     "cancelRequest": "Cancelar",
     "confirmCancel": "¿Retirar?",
     "cancelYes": "Sí",
     "cancelNo": "No",
-    "cancelReasonPlaceholder": "Motivo (opcional)"
+    "cancelReasonPlaceholder": "Motivo (opcional)",
+    "pendingTopicHint": "Tema: {{topic}}.",
+    "pendingStatusHint": "Podés ver si el educador aceptó o declinó tu solicitud aquí mismo.",
+    "viewCertificate": "Ver mis certificados"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",
@@ -736,6 +746,7 @@
     "nextDay": "Día siguiente",
     "selectSlot": "Horarios disponibles",
     "noSlots": "Sin slots disponibles para este formato en ese día.",
+    "slotUnavailable": "Horario no disponible — ya reservado.",
     "noAvailability": "Este educador no tiene disponibilidad configurada.",
     "notAvailable": "La página de reservas no está disponible.",
     "calendarTitle": "Calendario del educador",
@@ -990,8 +1001,10 @@
     "actions": {
       "confirm": "Confirmar",
       "complete": "Completar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "issueCertificate": "Emitir Certificado"
     },
+    "topic": "Tema",
     "cancelReasonPlaceholder": "Motivo de cancelación (opcional)",
     "confirmCancel": "¿Cancelar esta clase?",
     "cancelYes": "Sí, cancelar",

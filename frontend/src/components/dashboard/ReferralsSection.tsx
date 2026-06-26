@@ -44,7 +44,7 @@ export function ReferralsSection() {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="border border-white/10 rounded-3xl p-6">
+        <div className="border border-white/10 rounded-3xl p-6 overflow-hidden min-w-0">
           <h3 className="font-title text-2xl font-bold mb-2 text-white tracking-tight">{t('referrals.shareCode', 'Comparte tu código')}</h3>
           <p className="font-body text-sm text-slate-400 mb-6">
             {t('referrals.instructions', 'Comparte este link. Tu amigo se registra y hace stake de 1000 HACK por 30 días. Tú te llevas 1000 HACK.')}
@@ -63,23 +63,23 @@ export function ReferralsSection() {
             </div>
             <div>
               <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">{t('referrals.inviteLink', 'Link de invitación')}</label>
-              <div className="flex items-center gap-2 bg-black/40 rounded-2xl p-2 pl-4 border border-white/5 min-h-[48px]">
+              <div className="flex items-center gap-2 bg-black/40 rounded-2xl p-2 pl-4 border border-white/5 min-h-[48px] overflow-hidden">
                 {codeLoading
                   ? <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
-                  : <><span className="truncate text-sm text-slate-300 font-mono flex-1">{shareUrl}</span>
-                     <CopyButton value={shareUrl} className="bg-white/5 hover:bg-white/10 text-white rounded-xl" /></>
+                  : <><span className="truncate text-sm text-slate-300 font-mono flex-1 min-w-0">{shareUrl}</span>
+                     <CopyButton value={shareUrl} className="bg-white/5 hover:bg-white/10 text-white rounded-xl shrink-0" /></>
                 }
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 border border-white/[0.07] rounded-3xl p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border border-white/[0.07] rounded-3xl p-5">
           {statsLoading ? (
             <>
               <div className="rounded-2xl p-5 border border-white/10 animate-pulse h-24" />
               <div className="rounded-2xl p-5 border border-white/5 animate-pulse h-24" />
-              <div className="col-span-2 rounded-2xl px-5 py-4 border border-white/5 animate-pulse h-12" />
+              <div className="sm:col-span-2 rounded-2xl px-5 py-4 border border-white/5 animate-pulse h-12" />
             </>
           ) : (
             <>
@@ -90,13 +90,13 @@ export function ReferralsSection() {
                 </span>
               </div>
               <div className="rounded-2xl p-5 border border-white/5 flex flex-col justify-center">
-                <span className="font-title text-[10px] uppercase tracking-[0.15em] text-white/50 font-bold flex items-center gap-2 mb-2"><CheckCircle size={14}/> {t('referrals.stats.monthly', 'Mensual')}</span>
+                <span className="font-title text-[10px] uppercase tracking-[0.2em] text-white/50 font-bold flex items-center gap-2 mb-2"><CheckCircle size={14}/> {t('referrals.stats.monthly', 'Mensual')}</span>
                 <span className="text-2xl font-title font-bold text-white">
                   {stats.monthlyClaimedCount} <span className="text-sm text-slate-500">/ {stats.monthlyClaimedCount + stats.monthlyCapRemaining}</span>
                 </span>
                 <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">{t('referrals.stats.paymentsThisMonth', 'Pagos este mes')}</span>
               </div>
-              <div className="col-span-2 flex flex-wrap gap-4 text-xs text-slate-400 rounded-2xl px-5 py-4 border border-white/5 font-title font-bold uppercase tracking-wider">
+              <div className="sm:col-span-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-400 rounded-2xl px-4 py-4 border border-white/5 font-title font-bold uppercase tracking-wider">
                 <div className="flex items-center gap-2"><Users size={14} className="text-blue-400"/> <span className="text-white">{stats.pendingCount}</span> {t('referrals.stats.pending', 'Pendientes')}</div>
                 <div className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400"/> <span className="text-white">{stats.claimedCount}</span> {t('referrals.stats.paid', 'Pagados')}</div>
                 <div className="flex items-center gap-2"><Clock size={14} className="text-yellow-400"/> <span className="text-white">{stats.eligibleCount}</span> {t('referrals.stats.queued', 'En cola')}</div>
