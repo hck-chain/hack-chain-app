@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,7 @@ import { api } from '@/services/api';
 import type { TalentInfo } from '@/types/dashboard';
 import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 import { useMyClassRequests, type MyClassRequest } from '@/hooks/useMyClassRequests';
+import { useCertificateEvents } from '@/hooks/useCertificateEvents';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -512,6 +513,15 @@ const TalentDashboard = () => {
       });
     },
   });
+
+  const handleNewCertificate = useCallback(() => {
+    toast({
+      title: t('talentDashboard.newCertificateTitle', '¡Nuevo certificado!'),
+      description: t('talentDashboard.newCertificateDesc', 'Recibiste un nuevo certificado. Tu sección de Trayectoria se actualizó.'),
+    });
+  }, [toast, t]);
+
+  useCertificateEvents(talent?.wallet_address, handleNewCertificate);
 
   useEffect(() => {
     api

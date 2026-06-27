@@ -8,7 +8,7 @@ export function useTalentCertificates(wallet: string | undefined) {
     queryFn: () =>
       api.post<OpenSeaCertificate[]>('/api/opensea/certificates/', { address: wallet }),
     enabled: !!wallet,
-    refetchInterval: 15_000,
+    refetchInterval: 10_000,
     refetchOnWindowFocus: true,
     staleTime: 10_000,
     retry: 0,
