@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ethers } from 'ethers';
 import { useToast } from "@/components/ui/use-toast";
 import { web3Service } from '@/utils/web3Service';
@@ -20,9 +20,12 @@ interface CertificateMetadataResponse {
 
 export const useCreateCertificate = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const pendingRef = useRef(false);
   const { toast } = useToast();
 
   const createCertificate = async (data: CertificateData, professorWallet: string) => {
+    if (pendingRef.current) return false;
+    pendingRef.current = true;
     setIsLoading(true);
     try {
       // 0. Validate Inputs
@@ -73,6 +76,7 @@ export const useCreateCertificate = () => {
       return false;
     } finally {
       setIsLoading(false);
+      pendingRef.current = false;
     }
   };
 
