@@ -521,6 +521,7 @@ router.post("/database", authenticate, async (req, res) => {
       });
     }).catch(err => console.error('[email] notifyTalentCertificateIssued failed:', err.message));
 
+
     res.status(201).json({
       message: "Certificado sincronizado con éxito",
       id: certificate.id

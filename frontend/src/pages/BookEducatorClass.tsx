@@ -33,18 +33,6 @@ interface SlotSelection {
 type BookingStep = 'class' | 'slot';
 
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface SlotSelection {
-  date: Date;
-  startTime: string;
-  durationMinutes: number;
-}
-
-type BookingStep = 'class' | 'slot';
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -735,6 +723,8 @@ const BookEducatorClass = () => {
                 </motion.div>
               )}
             </AnimatePresence>
+
+
 
           </motion.main>
         )}
