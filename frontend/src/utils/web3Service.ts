@@ -783,11 +783,10 @@ export const web3Service = {
             // tx.wait() depends on the wallet provider's event system, which AppKit/WalletConnect
             // doesn't reliably deliver — the tx goes on-chain but the promise never resolves.
             // Poll with a dedicated public RPC instead.
-            const publicProvider = new ethers.providers.JsonRpcProvider('https://polygon-rpc.com');
+            const publicProvider = new ethers.providers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
             const receipt = await publicProvider.waitForTransaction(tx.hash, 1, 120_000);
             if (!receipt) throw new Error('Transaction confirmation timed out after 2 minutes');
-            console.log("Transaction confirmed:", tx.hash);
-
+            if (receipt.status === 0) throw new Error(`Transaction reverted on-chain (tx: ${tx.hash})`);
 
             await api.post('/api/issuers/increment-certificates', {
                 issuerWallet: issuerWallet.toLowerCase()
@@ -820,9 +819,9 @@ export const web3Service = {
 
             // alert("Certificate minted and saved successfully!");
             return true;
-        } catch (err) {
-            console.error("Minting or DB saving failed:", err);
-            return false;
+        } catch (err: any) {
+            const message = err?.reason || err?.message || 'Unknown blockchain error';
+            throw new Error(message);
         }
     }
 };
