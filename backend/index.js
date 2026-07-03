@@ -8,7 +8,7 @@ const { RedisStore } = require("rate-limit-redis");
 const cron = require("node-cron");
 const db = require("./models");
 const path = require("path");
-const { getRedis } = require("./services/redis");
+const { getRedis, isRedisHealthy } = require("./services/redis");
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -55,6 +55,10 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
+  // Fail open: skip rate limiting when Redis is unreachable so a Redis outage
+  // never takes down the API. The store is still wired so limiting resumes
+  // automatically once Redis recovers.
+  skip: () => !isRedisHealthy(),
   store: new RedisStore({
     sendCommand: (...args) => getRedis().call(...args),
   }),

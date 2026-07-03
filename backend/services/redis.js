@@ -1,6 +1,7 @@
 const Redis = require("ioredis");
 
 let client;
+let healthy = false;
 
 function getRedis() {
   if (!client) {
@@ -13,11 +14,18 @@ function getRedis() {
       lazyConnect: false,
     });
 
+    client.on("ready", () => { healthy = true; });
     client.on("error", (err) => {
+      healthy = false;
       console.error("Redis error:", err.message);
     });
+    client.on("close", () => { healthy = false; });
   }
   return client;
+}
+
+function isRedisHealthy() {
+  return healthy;
 }
 
 const SESSION_PREFIX = "session:";
@@ -39,4 +47,4 @@ async function deleteSession(walletAddress) {
   await getRedis().del(sessionKey(walletAddress));
 }
 
-module.exports = { getRedis, cacheSession, sessionExists, deleteSession };
+module.exports = { getRedis, isRedisHealthy, cacheSession, sessionExists, deleteSession };
