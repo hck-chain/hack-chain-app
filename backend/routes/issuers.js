@@ -532,6 +532,7 @@ router.get("/:wallet_address", async (req, res) => {
         bio: issuer.bio || null,
         knowledge_areas: issuer.knowledge_areas || [],
         certificates_issued: issuer.certificates_issued,
+        share_count: issuer.share_count,
         talents_formed,
         joined_at: issuer.User?.created_at || issuer.created_at,
         is_approved: issuer.User?.educator_approval_status === 'approved',
@@ -656,6 +657,40 @@ router.get("/:wallet/certificates-count", async (req, res) => {
   } catch (e) {
     console.error("Error fetching certificates:", e);
     res.status(500).json({ total: 0 });
+  }
+});
+
+// 60 requests/min per IP — public endpoint, mirrors featuredLimiter.
+const shareLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: "Too many requests, slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// POST /api/issuers/:wallet/share — public, increments the profile share counter.
+// No auth: anyone sharing a public profile bumps the count. No per-user tracking (MVP).
+router.post("/:wallet/share", shareLimiter, async (req, res) => {
+  try {
+    const wallet = req.params.wallet.toLowerCase();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+
+    const issuer = await Issuer.findOne({
+      where: { wallet_address: wallet },
+      attributes: ["id", "share_count"],
+    });
+    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
+
+    await issuer.increment("share_count");
+    await issuer.reload();
+
+    return res.json({ success: true, share_count: issuer.share_count });
+  } catch (err) {
+    console.error("POST /api/issuers/:wallet/share error:", err);
+    return res.status(500).json({ error: "Failed to register share" });
   }
 });
 

@@ -677,19 +677,24 @@ Valida que el estudiante y el emisor (profesor) existen en la base de datos ante
 
 ### GET `/api/issuers/:wallet_address`
 
-Obtiene el detalle completo de un emisor por su wallet address, incluyendo su usuario y los certificados emitidos.
+Obtiene el perfil público de un emisor por su wallet address. No expone email ni otros datos
+personales. Los certificados se resumen como conteo (`certificates_issued`) y número de talentos
+distintos formados (`talents_formed`); este endpoint no devuelve la lista de certificados.
 
 **Parámetros de ruta**
 
 | Parámetro | Tipo | Descripción |
 |---|---|---|
-| `wallet_address` | `string` | Wallet address del emisor |
+| `wallet_address` | `string` | Wallet address del emisor (0x…, 42 caracteres) |
+
+**Autenticación**: No requerida.
 
 **Respuestas**
 
 | Código | Descripción |
 |---|---|
-| `200` | Detalle del emisor con usuario y certificados |
+| `200` | Perfil público del emisor |
+| `400` | Wallet address inválida |
 | `404` | Emisor no encontrado |
 | `500` | Error al obtener el emisor |
 
@@ -698,28 +703,19 @@ Obtiene el detalle completo de un emisor por su wallet address, incluyendo su us
 ```json
 {
   "issuer": {
-    "id": 1,
     "wallet_address": "0x...",
     "organization_name": "Universidad HackChain",
-    "user": {
-      "id": 3,
-      "name": "Ana",
-      "lastname": "López",
-      "email": "ana@hackchain.io",
-      "is_active": true,
-      "created_at": "2025-01-10T08:00:00.000Z"
-    },
-    "certificates": [
-      {
-        "id": 7,
-        "title": "Blockchain Basics",
-        "description": "Certificado Tokenizado HackChain",
-        "issue_date": "2025-01-15",
-        "is_revoked": false,
-        "created_at": "2025-01-15T10:00:00.000Z"
-      }
-    ],
-    "created_at": "2025-01-10T08:00:00.000Z"
+    "name": "Ana",
+    "lastname": "López",
+    "photo_url": "ipfs://<cid>",
+    "bio": "Educadora de blockchain",
+    "knowledge_areas": ["Blockchain", "Ciberseguridad"],
+    "certificates_issued": 2,
+    "share_count": 5,
+    "talents_formed": 2,
+    "joined_at": "2025-01-10T08:00:00.000Z",
+    "is_approved": true,
+    "class_settings": null
   }
 }
 ```
@@ -860,10 +856,45 @@ Retorna el total de certificados emitidos por un emisor.
 
 ---
 
+### POST `/api/issuers/:wallet/share`
+
+Incrementa en 1 el contador de veces que se ha compartido el perfil de un emisor. Endpoint
+público — cualquier visitante que comparta un perfil suma al contador. No hay seguimiento por
+usuario (MVP). Limitado a 60 solicitudes por minuto por IP.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet` | `string` | Wallet address del emisor (0x…, 42 caracteres) |
+
+**Autenticación**: No requerida.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Contador incrementado; retorna el nuevo valor |
+| `400` | Wallet address inválida |
+| `404` | Emisor no encontrado |
+| `429` | Demasiadas solicitudes (rate limit) |
+| `500` | Error al registrar el share |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "success": true,
+  "share_count": 6
+}
+```
+
+---
+
 ### Notas generales
 
-- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /mint`, `POST /increment-certificates` y `GET /:wallet/certificates-count` antes de consultar la base de datos.
-- El endpoint `GET /:wallet_address` incluye tanto el `User` asociado al emisor como todos sus `Certificates`.
+- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /mint`, `POST /increment-certificates`, `GET /:wallet/certificates-count` y `POST /:wallet/share` antes de consultar la base de datos.
+- El endpoint `GET /:wallet_address` es público y devuelve solo campos públicos del emisor (sin email ni lista de certificados); los certificados se resumen en `certificates_issued` y `talents_formed`, e incluye `share_count`.
 - `POST /authorize` delega la lógica de blockchain al servicio `authorizeIssuer`.
 - `POST /mint` solo realiza validaciones previas al minteo; el minteo real ocurre en el frontend o en un servicio externo.
 - Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.

@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     organization_name: { type: DataTypes.STRING(255), allowNull: false },
     certificates_issued: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
+    share_count: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
     photo_url: { type: DataTypes.STRING(500), allowNull: true },
     bio: { type: DataTypes.TEXT, allowNull: true },
     knowledge_areas: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
