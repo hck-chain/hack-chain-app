@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
+const buildRateLimitStore = require("../lib/rateLimitStore");
 const { Issuer, Student, User, Certificate, ClassRequest } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
@@ -127,13 +128,16 @@ router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
 });
 
 
-// 60 requests/min per IP — public endpoint, no auth needed
+// 60 requests/min per IP — public endpoint, no auth needed.
+// Redis-backed store so the limit is shared across instances (memory store
+// would give effective_max = max × instance_count behind a load balancer).
 const featuredLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   message: { error: "Too many requests, slow down" },
   standardHeaders: true,
   legacyHeaders: false,
+  store: buildRateLimitStore("/api/issuers/featured"),
 });
 
 // GET /api/issuers/featured — random approved educators for discovery widget
@@ -661,12 +665,14 @@ router.get("/:wallet/certificates-count", async (req, res) => {
 });
 
 // 60 requests/min per IP — public endpoint, mirrors featuredLimiter.
+// Redis-backed store so the limit is shared across instances.
 const shareLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   message: { error: "Too many requests, slow down" },
   standardHeaders: true,
   legacyHeaders: false,
+  store: buildRateLimitStore("/api/issuers/share"),
 });
 
 // POST /api/issuers/:wallet/share — public, increments the profile share counter.
