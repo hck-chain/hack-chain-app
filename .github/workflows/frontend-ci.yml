@@ -35,7 +35,7 @@ jobs:
       run: bun x tsc --noEmit
 
     - name: Run Unit Tests
-      run: bun run test || echo 'No unit tests configured yet, but it should run them!'
+      run: bun run test
 
     - name: Build project
       run: bun run build
