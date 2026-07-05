@@ -63,4 +63,6 @@ jobs:
         DB_NAME: hackchain_test
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: super_secret_test_key
+        REFRESH_SECRET: test-refresh-secret
       run: npm test --if-present
+   
