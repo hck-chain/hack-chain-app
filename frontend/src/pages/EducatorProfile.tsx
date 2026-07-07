@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { resolveIpfs } from '@/lib/ipfs';
+import { ShareProfileButton } from '@/components/ShareProfileButton';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -283,7 +284,7 @@ const EducatorProfile = () => {
   const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS as string | undefined;
   const hasAnyLinks =
     !!educator?.website_url || !!educator?.linkedin_url || !!educator?.twitter_url;
-
+  const profileUrl = `${window.location.origin}/issuers/${wallet}`;
   return (
     <Layout>
       <GrainOverlay />
@@ -460,6 +461,7 @@ const EducatorProfile = () => {
                         />
                         {t('since')} {formatDate(educator.joined_at)}
                       </div>
+                      <ShareProfileButton profileUrl={profileUrl} displayName={displayName} issuerId={educator.wallet_address} />
                     </div>
                   </div>
                 </article>
@@ -590,7 +592,7 @@ const EducatorProfile = () => {
                 >
                   <div className="space-y-3">
                     <div
-                      className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+                      className="flex flex-col gap-3 rounded-xl px-4 py-3 sm:flex-row sm:items-center justify-between"
                       style={{ backgroundColor: P.surface, border: `1px solid ${P.border}` }}
                     >
                       <div className="min-w-0">
@@ -600,7 +602,7 @@ const EducatorProfile = () => {
                         >
                           {t('educatorProfile.issuerWalletLabel')}
                         </div>
-                        <div className="text-sm font-mono truncate" style={{ color: P.textSecondary }}>
+                        <div className="text-sm font-mono break-all" style={{ color: P.textSecondary }}>
                           {educator.wallet_address}
                         </div>
                       </div>

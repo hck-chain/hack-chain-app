@@ -150,6 +150,14 @@ async function del<T>(path: string, body?: unknown): Promise<T> {
   }));
 }
 
+async function registerProfileShare(issuerId: string): Promise<void> {
+  try {
+    await post<void>(`/api/issuers/${issuerId}/share`);
+  } catch {
+    // Silent fail: sharing already happened client-side, the counter is secondary
+  }
+}
+
 export const api = {
   get,
   post,
@@ -159,4 +167,5 @@ export const api = {
   getPublic,
   upload,
   uploadPublic,
+  registerProfileShare,
 } as const;
