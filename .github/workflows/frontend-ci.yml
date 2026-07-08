@@ -20,25 +20,27 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
       with:
-        bun-version: latest
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
     - name: Install dependencies
-      run: bun install
+      run: npm ci
 
     - name: Run Linter
-      run: bun run lint
+      run: npm run lint
 
     - name: TypeScript Check
-      run: bun x tsc --noEmit
+      run: npm x tsc --noEmit
 
     - name: Run Unit Tests
-      run: bun run test
+      run: npm run test
 
     - name: Build project
-      run: bun run build
+      run: npm run build
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -49,9 +51,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: oven-sh/setup-bun@v1
+    - name: setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
     - name: Install dependencies
-      run: bun install
+      run: npm ci
+
     - name: Install Playwright Browsers
-      run: bunx playwright install --with-deps
-    - name: Run Playwright E2E
-      run: bunx playwright test
+      run: npx playwright install --with-deps
+
+    - name: Run playwright E2E  
+      run: npx playwright test   
+
+
