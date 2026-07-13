@@ -461,7 +461,7 @@ const EducatorProfile = () => {
                         />
                         {t('since')} {formatDate(educator.joined_at)}
                       </div>
-                      <ShareProfileButton profileUrl={profileUrl} displayName={displayName} issuerId={educator.wallet_address} />
+                      <ShareProfileButton profileUrl={profileUrl} displayName={displayName} issuerWallet={educator.wallet_address} />
                     </div>
                   </div>
                 </article>

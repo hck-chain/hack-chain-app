@@ -1023,5 +1023,14 @@
     "emptyTalent": "No classes scheduled yet. Explore educators and book your first session.",
     "emptyEducator": "No classes scheduled yet.",
     "myCalendar": "My Calendar"
+  },
+    "shareProfile": {
+    "title": "Share profile",
+    "shareVia": "Share via",
+    "profileLink": "Profile Link",
+    "qrCode": "QR code",
+    "retry": "Retry",
+    "couldNotLoadQr": "Couldn't load QR",
+    "scanProfile": "Scan to view profile"
   }
 }

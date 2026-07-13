@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { P } from '@/components/profile/palette';
 import { useShareProfile } from '@/hooks/useShareProfile';
 import { CopyButton } from '@/components/CopyButton';
-import {useTranslation} from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import {
   FaLinkedin,
   FaWhatsapp,
@@ -14,12 +14,12 @@ import { FaXTwitter } from 'react-icons/fa6';
 interface ShareProfileButtonProps {
   profileUrl: string;
   displayName: string;
-  issuerId: string;
+  issuerWallet: string;
 }
 
 
-export function ShareProfileButton({ profileUrl, displayName, issuerId }: ShareProfileButtonProps) {
-  const share = useShareProfile(profileUrl, displayName, issuerId);
+export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: ShareProfileButtonProps) {
+  const share = useShareProfile(profileUrl, displayName, issuerWallet);
   
   const shareActions = [
     { key: 'whatsapp', label: 'WhatsApp', icon: <FaWhatsapp className="w-6 h-6 text-green-500" />, href: share.shareLinks.whatsapp },
@@ -48,15 +48,15 @@ export function ShareProfileButton({ profileUrl, displayName, issuerId }: ShareP
       >
         <DialogHeader className="px-6 pt-6 pb-3">
           <DialogTitle className="text-left text-xl font-semibold tracking-tight text-white" style={{ color: P.textPrimary }}>
-            Share profile
+            {t('shareProfile.title')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="px-6 pb-6 space-y-4 min-w-0">
-          <CopyLinkCard profileUrl={profileUrl} onLinkCopy={share.handleLinkCopy} />
+          <CopyLinkCard profileUrl={profileUrl} onLinkCopy={share.handleLinkCopy} t={t} />
           <div>
             <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">
-              Share via
+              {t('shareProfile.shareVia')}
             </label>
             <div className="flex justify-center gap-6 mt-8">
               {shareActions.map((action) => (
@@ -81,12 +81,13 @@ export function ShareProfileButton({ profileUrl, displayName, issuerId }: ShareP
             </div>
           </div>
  
-          <SectionDivider label="Share via" />
+         
 
           <QrCodeCard
             qrUrl={share.qrUrl}
             qrStatus={share.qrStatus}
             displayName={displayName}
+            t={t}
             onLoad={share.handleQrLoad}
             onError={share.handleQrError}
             onRetry={share.retryQr}
@@ -115,14 +116,15 @@ function SectionDivider({ label }: SectionDividerProps) {
 interface CopyLinkCardProps {
   profileUrl: string;
   onLinkCopy: () => void;
+  t: (key: string) => string;
 }
 
 
-function CopyLinkCard({ profileUrl, onLinkCopy }: CopyLinkCardProps) {
+function CopyLinkCard({ profileUrl, onLinkCopy, t }: CopyLinkCardProps) {
   return (
     <div>
       <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">
-        Profile Link
+        {t('shareProfile.profileLink')}
       </label>
       <div className="flex items-center gap-3 bg-black/40 rounded-2xl p-3 pl-5 border border-white/5">
         <span className="truncate text-sm sm:text-base text-slate-300 font-mono flex-1 min-w-0">{profileUrl}</span>
@@ -140,21 +142,22 @@ interface QrCodeCardProps {
   qrUrl: string;
   qrStatus: 'loading' | 'success' | 'error';
   displayName: string;
+  t: (key: string) => string;
   onLoad: () => void;
   onError: () => void;
   onRetry: () => void;
 }
 
- function QrCodeCard({ qrUrl, qrStatus, displayName, onLoad, onError, onRetry }: QrCodeCardProps) {
+ function QrCodeCard({ qrUrl, qrStatus, displayName, t, onLoad, onError, onRetry }: QrCodeCardProps) {
   return (
     <div className="bg-black/40 rounded-2xl border border-white/5 p-4 text-center">
       <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-3 block">
-        QR code
+        {t('shareProfile.qrCode')}
       </label>
-      <QrCodeFrame qrUrl={qrUrl} qrStatus={qrStatus} displayName={displayName} onLoad={onLoad} onError={onError} onRetry={onRetry} />
+      <QrCodeFrame qrUrl={qrUrl} qrStatus={qrStatus} displayName={displayName} t ={t} onLoad={onLoad} onError={onError} onRetry={onRetry} />
       {qrStatus === 'success' && (
         <>
-          <p className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-3 block">Scan to view profile {displayName}</p>
+          <p className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-3 block"> {t('shareProfile.scanProfile')} {displayName}</p>
         </>
       )
     }
@@ -162,21 +165,21 @@ interface QrCodeCardProps {
   );
 }
 
-function QrCodeFrame({ qrUrl, qrStatus, displayName, onLoad, onError, onRetry }: QrCodeCardProps) {
+function QrCodeFrame({ qrUrl, qrStatus, displayName, t, onLoad, onError, onRetry }: QrCodeCardProps) {
   return (
     <div className="mx-auto mb-4 flex h-36 w-36 items-center justify-center overflow-hidden rounded-xl bg-white">
       {qrStatus === 'loading' && <div className="h-full w-full animate-pulse bg-slate-200" />}
 
       {qrStatus === 'error' && (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-slate-500">
-          <span>Couldn't load QR</span>
+          <span>{t('shareProfile.couldNotLoadQrCode')}</span>
           <button
             type="button"
             onClick={onRetry}
             className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 transition-colors hover:bg-slate-200"
           >
             <RefreshCw className="h-3 w-3" />
-            Retry
+            {t('shareProfile.retry')}
           </button>
         </div>
       )}

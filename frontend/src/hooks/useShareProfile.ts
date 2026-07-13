@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { api } from '@/services/api';
+const QR_API_URL = import.meta.env.VITE_QR_API_URL;
 
 type QrStatus = 'loading' | 'success' | 'error';
 type SharePlatform = 'whatsapp' | 'linkedin' | 'twitter';
@@ -21,7 +22,7 @@ interface UseShareProfileResult {
   retryQr: () => void;
 }
 
-function buildShareUrl(platform: SharePlatform, url: string, name: string): string {
+ export function buildShareUrl(platform: SharePlatform, url: string, name: string): string {
   const text = `Check out ${name}'s profile on HackChain`;
 
   switch (platform) {
@@ -34,7 +35,7 @@ function buildShareUrl(platform: SharePlatform, url: string, name: string): stri
   }
 }
 
-function buildShareLinks(profileUrl: string, displayName: string): ShareLinks {
+export function buildShareLinks(profileUrl: string, displayName: string): ShareLinks {
   return {
     whatsapp: buildShareUrl('whatsapp', profileUrl, displayName),
     linkedin: buildShareUrl('linkedin', profileUrl, displayName),
@@ -43,24 +44,24 @@ function buildShareLinks(profileUrl: string, displayName: string): ShareLinks {
 }
 
 // cacheBuster forces the <img> to re-request the QR after a manual retry
-function createQrDataUrl(value: string, cacheBuster: number): string {
+export function createQrDataUrl(value: string, cacheBuster: number): string {
   const encoded = encodeURIComponent(value);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encoded}&t=${cacheBuster}`;
+  return `${QR_API_URL}?size=180x180&data=${encoded}&t=${cacheBuster}`;
 }
 
-export function useShareProfile(profileUrl: string, displayName: string, issuerId: string): UseShareProfileResult {
+export function useShareProfile(profileUrl: string, displayName: string, issuerWallet: string): UseShareProfileResult {
   const [qrStatus, setQrStatus] = useState<QrStatus>('loading');
   const [qrRetryCount, setQrRetryCount] = useState(0);
 
   const qrUrl = useMemo(() => createQrDataUrl(profileUrl, qrRetryCount), [profileUrl, qrRetryCount]);
 
   const handleLinkCopy = useCallback(() => {
-    api.registerProfileShare(issuerId);
-  }, [issuerId]);
+    api.registerProfileShare(issuerWallet);
+  }, [issuerWallet]);
 
   const handleSocialClick = useCallback(() => {
-    api.registerProfileShare(issuerId);
-  }, [issuerId]);
+    api.registerProfileShare(issuerWallet);
+  }, [issuerWallet]);
 
   const handleQrLoad = useCallback(() => setQrStatus('success'), []);
   const handleQrError = useCallback(() => setQrStatus('error'), []);

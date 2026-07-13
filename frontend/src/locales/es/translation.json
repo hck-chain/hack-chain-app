@@ -1023,5 +1023,14 @@
     "emptyTalent": "Aún no tenés clases agendadas. Explorá educadores y agenda tu primera sesión.",
     "emptyEducator": "Aún no tenés clases agendadas.",
     "myCalendar": "Mi Calendario"
+  },
+    "shareProfile": {
+    "title": "Compartir perfil",
+    "shareVia": "Compartir mediante",
+    "profileLink": "Enlace del perfil",
+    "qrCode": "Código QR",
+    "retry": "Reintentar",
+    "couldNotLoadQr": "No se pudo cargar el código QR",
+    "scanProfile": "Escanea para ver el perfil de"
   }
 }
