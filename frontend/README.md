@@ -59,6 +59,7 @@ VITE_API_URL=http://localhost:3001          # Backend base URL
 VITE_REOWN_PROJECT_ID=...                   # Reown AppKit project ID (wallet connection)
 VITE_CONTRACT_ADDRESS=0x...                 # HackCertificate contract address on Polygon
 VITE_CHAIN_ID=137                           # 137 = Polygon mainnet, 80002 = Polygon Amoy testnet
+VITE_QR_API_URL=...                         # Base URL of the QR code provider used to generate profile QR codes
 ```
 
 ## Available Scripts
