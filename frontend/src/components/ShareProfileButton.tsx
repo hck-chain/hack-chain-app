@@ -45,6 +45,7 @@ export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: Sh
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg rounded-2xl border-0 p-0 overflow-hidden"
        style={{ background: 'radial-gradient(at 80% 0%, oklch(0.7 0.16 280 / 0.18) 0%, transparent 55%), #09090b' }}
+       aria-describedby={undefined}
       >
         <DialogHeader className="px-6 pt-6 pb-3">
           <DialogTitle className="text-left text-xl font-semibold tracking-tight text-white" style={{ color: P.textPrimary }}>
@@ -95,20 +96,6 @@ export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: Sh
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface SectionDividerProps {
-  label: string;
-}
-
-function SectionDivider({ label }: SectionDividerProps) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="h-px flex-1 bg-white/5" />
-      <span className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold">{label}</span>
-      <span className="h-px flex-1 bg-white/5" />
-    </div>
   );
 }
 
@@ -172,7 +159,7 @@ function QrCodeFrame({ qrUrl, qrStatus, displayName, t, onLoad, onError, onRetry
 
       {qrStatus === 'error' && (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-slate-500">
-          <span>{t('shareProfile.couldNotLoadQrCode')}</span>
+          <span>{t('shareProfile.couldNotLoadQr')}</span>
           <button
             type="button"
             onClick={onRetry}

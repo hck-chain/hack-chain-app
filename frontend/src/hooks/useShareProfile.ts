@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { api } from '@/services/api';
-const QR_API_URL = import.meta.env.VITE_QR_API_URL;
+const QR_API_URL = import.meta.env.VITE_QR_API_URL || 'https://api.qrserver.com/v1/create-qr-code/';
 
 type QrStatus = 'loading' | 'success' | 'error';
 type SharePlatform = 'whatsapp' | 'linkedin' | 'twitter';
