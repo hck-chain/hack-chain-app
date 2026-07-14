@@ -373,7 +373,7 @@ router.post("/", authenticate, async (req, res) => {
 
 
 // POST /api/certificates/link
-router.post("/link", async (req, res) => {
+router.post("/link", authenticate, async (req, res) => {
   try {
     const { token_id } = req.body;
     if (!token_id) {
