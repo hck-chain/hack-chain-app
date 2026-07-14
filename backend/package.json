@@ -8,6 +8,7 @@
     "test": "jest --runInBand --detectOpenHandles",
     "migrate:issuer-profile": "node scripts/migrate-issuer-profile.js",
     "migrate:issuer-share-count": "node scripts/migrate-issuer-share-count.js",
+    "migrate:certificate-share-count": "node scripts/migrate-certificate-share-count.js",
     "migrate:harjoot-phase1": "node scripts/migrate-harjoot-phase1.js",
     "migrate:referrals-phase1": "node scripts/migrate-referrals-phase1.js"
   },

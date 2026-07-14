@@ -618,6 +618,31 @@ router.get("/database/:id", async (req, res) => {
   }
 });
 
+// POST /api/certificates/:id/share
+router.post("/:id/share", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const certificate = await Certificate.findByPk(id);
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    if (req.auth.wallet.toLowerCase() !== certificate.student_wallet_address.toLowerCase()) {
+      return res.status(403).json({ error: "Cannot share another student's certificate" });
+    }
+
+    await certificate.increment("share_count");
+    await certificate.reload();
+
+    res.json({ success: true, share_count: certificate.share_count });
+
+  } catch (error) {
+    console.error("POST /api/certificates/:id/share error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/certificates/:cid: Fetch certificate metadata from Pinata
 router.get("/:cid", async (req, res) => {
   try {
