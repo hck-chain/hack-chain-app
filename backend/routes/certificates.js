@@ -587,7 +587,7 @@ router.get("/database/:id", async (req, res) => {
         model: Issuer,
         include: [{
           model: User,
-          attributes: ['name', 'lastname', 'email']
+          attributes: ['name', 'lastname']
         }]
       }]
     });
