@@ -553,11 +553,48 @@ Revoca un certificado existente marcándolo como `is_revoked: true`.
 
 ---
 
+### POST `/api/certificates/:id/share`
+
+Incrementa en 1 el contador de veces que el propio estudiante ha compartido su certificado.
+Requiere autenticación — solo el estudiante dueño del certificado (`student_wallet_address`)
+puede incrementar su contador; a diferencia de `POST /api/issuers/:wallet/share`, este endpoint
+no es público.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `id` | `number` | ID del certificado en la base de datos |
+
+**Autenticación**: Requerida — Bearer token o cookie de sesión; la wallet autenticada debe
+coincidir (case-insensitive) con `student_wallet_address` del certificado.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Contador incrementado; retorna el nuevo valor |
+| `401` | Sin sesión o token inválido/expirado |
+| `403` | La wallet autenticada no es la dueña del certificado |
+| `404` | Certificado no encontrado |
+| `500` | Error interno del servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "success": true,
+  "share_count": 1
+}
+```
+
+---
+
 ### Notas generales
 
 - Las wallets (`student_wallet_address`, `issuer_wallet_address`) son normalizadas a minúsculas antes de cualquier operación en base de datos.
 - El endpoint `POST /database` valida que la `issuer_wallet_address` comience con `0x` y que exista en la tabla de emisores autorizados antes de registrar el certificado.
-- Los endpoints de base de datos incluyen la relación con el modelo `Issuer`, que a su vez incluye los campos `name`, `lastname` y `email` del `User` asociado.
+- Los endpoints de base de datos incluyen la relación con el modelo `Issuer`, que a su vez incluye los campos `name` y `lastname` del `User` asociado (el `email` del educador nunca se expone en estos endpoints públicos).
 
 ## Issuers Endpoints (issuers.js)
 
