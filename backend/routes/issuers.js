@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 const buildRateLimitStore = require("../lib/rateLimitStore");
-const { Issuer, Student, User, Certificate, ClassRequest } = require("../models");
+const { Issuer, Student, User, Certificate, ClassRequest, Sequelize } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
@@ -21,6 +21,11 @@ const { updateIssuerPhoto } = require("../usecases/issuers/updateIssuerPhoto");
 const { getPublicIssuerProfile } = require("../usecases/issuers/getPublicIssuerProfile");
 const { updatePublicIssuerProfile } = require("../usecases/issuers/updatePublicIssuerProfile");
 const { deleteOwnIssuerAccount } = require("../usecases/issuers/deleteOwnIssuerAccount");
+const { listIssuers } = require("../usecases/issuers/listIssuers");
+const { incrementIssuerCertificatesIssued } = require("../usecases/issuers/incrementIssuerCertificatesIssued");
+const { getIssuerBusySlots } = require("../usecases/issuers/getIssuerBusySlots");
+const { getIssuerCertificatesCount } = require("../usecases/issuers/getIssuerCertificatesCount");
+const { registerIssuerProfileShare } = require("../usecases/issuers/registerIssuerProfileShare");
 
 // 2 re-applies per educator per week prevents approval-queue spam.
 const reapplyLimiter = rateLimit({
@@ -135,61 +140,13 @@ router.get("/featured", featuredLimiter, async (req, res) => {
 // Query params: page (default 1), limit (default 20, max 50), area (filter by knowledge_areas)
 router.get("/", async (req, res) => {
   try {
-    const page  = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
-    const area  = typeof req.query.area === "string" ? req.query.area.trim() : null;
-
-    const { Op, where: seqWhere, fn, cast, col } = require("sequelize");
-
-    const userWhere = { educator_approval_status: "approved" };
-    const issuerWhere = {};
-    if (area) {
-      const term = area.toLowerCase();
-      // OR across name, lastname, org name, and knowledge_areas (case-insensitive partial match).
-      // subQuery: false is required so that User columns are accessible in the main WHERE clause.
-      issuerWhere[Op.or] = [
-        seqWhere(fn("LOWER", cast(col("Issuer.knowledge_areas"), "text")), { [Op.like]: `%${term}%` }),
-        seqWhere(fn("LOWER", col("Issuer.organization_name")), { [Op.like]: `%${term}%` }),
-        seqWhere(fn("LOWER", col("User.name")), { [Op.like]: `%${term}%` }),
-        seqWhere(fn("LOWER", col("User.lastname")), { [Op.like]: `%${term}%` }),
-      ];
-    }
-
-    const { count, rows } = await Issuer.findAndCountAll({
-      where: issuerWhere,
-      include: [{
-        model: User,
-        attributes: ["name", "lastname", "created_at"],
-        where: userWhere,
-        required: true,
-      }],
-      order: [["certificates_issued", "DESC"]],
-      limit,
-      offset: (page - 1) * limit,
-      subQuery: false,
+    const result = await listIssuers({
+      models: { Issuer, User, Sequelize },
+      page: req.query.page,
+      limit: req.query.limit,
+      area: req.query.area,
     });
-
-    res.json({
-      educators: rows.map((issuer) => ({
-        wallet_address:      issuer.wallet_address,
-        organization_name:   issuer.organization_name,
-        name:                issuer.User?.name     || null,
-        lastname:            issuer.User?.lastname  || null,
-        photo_url:           issuer.photo_url       || null,
-        bio:                 issuer.bio             || null,
-        knowledge_areas:     issuer.knowledge_areas || [],
-        certificates_issued: issuer.certificates_issued,
-        has_classes:         issuer.class_settings !== null && issuer.class_settings !== undefined,
-        joined_at:           issuer.User?.created_at || issuer.created_at,
-      })),
-      pagination: {
-        total: count,
-        page,
-        limit,
-        pages: Math.ceil(count / limit),
-      },
-    });
-
+    return res.json(result.data);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch issuers" });
@@ -386,20 +343,13 @@ router.put("/:wallet_address", authenticate, async (req, res) => {
 // POST /api/issuers/increment-certificates
 router.post("/increment-certificates", authenticate, async (req, res) => {
   try {
-    const { issuerWallet } = req.body;
-    if (!issuerWallet) return res.status(400).json({ error: "issuerWallet required" });
-
-    if (req.auth.wallet.toLowerCase() !== issuerWallet.toLowerCase()) {
-      return res.status(403).json({ error: "Cannot increment certificates for another issuer" });
-    }
-
-    await Issuer.increment(
-      { certificates_issued: 1 },
-      { where: { wallet_address: issuerWallet.toLowerCase() } }
-    );
-
-    res.json({ success: true });
-
+    const result = await incrementIssuerCertificatesIssued({
+      models: { Issuer },
+      requesterWallet: req.auth.wallet,
+      issuerWallet: req.body.issuerWallet,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (error) {
     console.error("Increment error:", error);
     res.status(500).json({ error: "Server error" });
@@ -410,26 +360,9 @@ router.post("/increment-certificates", authenticate, async (req, res) => {
 // Only exposes date + time + duration, never student data.
 router.get("/:wallet/busy-slots", async (req, res) => {
   try {
-    const wallet = req.params.wallet.toLowerCase();
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-      return res.status(400).json({ error: "Invalid wallet address" });
-    }
-
-    const requests = await ClassRequest.findAll({
-      where: {
-        issuer_wallet_address: wallet,
-        status: ['pending', 'confirmed'],
-      },
-      attributes: ['requested_date', 'start_time', 'duration_minutes'],
-    });
-
-    const slots = requests.map(r => ({
-      date: r.requested_date,
-      startTime: r.start_time,
-      durationMinutes: r.duration_minutes,
-    }));
-
-    return res.json({ slots });
+    const result = await getIssuerBusySlots({ models: { ClassRequest }, walletAddress: req.params.wallet });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error("GET /api/issuers/:wallet/busy-slots error:", err);
     return res.status(500).json({ error: "Failed to fetch busy slots" });
@@ -439,17 +372,8 @@ router.get("/:wallet/busy-slots", async (req, res) => {
 // GET /api/issuers/:wallet/certificates-count
 router.get("/:wallet/certificates-count", async (req, res) => {
   try {
-    const { wallet } = req.params;
-
-    const issuer = await Issuer.findOne({
-      where: { wallet_address: wallet.toLowerCase() },
-      attributes: ["certificates_issued"],
-    });
-
-    res.json({
-      total: issuer?.certificates_issued || 0,
-    });
-
+    const result = await getIssuerCertificatesCount({ models: { Issuer }, walletAddress: req.params.wallet });
+    return res.json(result.data);
   } catch (e) {
     console.error("Error fetching certificates:", e);
     res.status(500).json({ total: 0 });
@@ -471,21 +395,9 @@ const shareLimiter = rateLimit({
 // No auth: anyone sharing a public profile bumps the count. No per-user tracking (MVP).
 router.post("/:wallet/share", shareLimiter, async (req, res) => {
   try {
-    const wallet = req.params.wallet.toLowerCase();
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-      return res.status(400).json({ error: "Invalid wallet address" });
-    }
-
-    const issuer = await Issuer.findOne({
-      where: { wallet_address: wallet },
-      attributes: ["id", "share_count"],
-    });
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    await issuer.increment("share_count");
-    await issuer.reload();
-
-    return res.json({ success: true, share_count: issuer.share_count });
+    const result = await registerIssuerProfileShare({ models: { Issuer }, walletAddress: req.params.wallet });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error("POST /api/issuers/:wallet/share error:", err);
     return res.status(500).json({ error: "Failed to register share" });
