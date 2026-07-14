@@ -284,7 +284,7 @@ const EducatorProfile = () => {
   const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS as string | undefined;
   const hasAnyLinks =
     !!educator?.website_url || !!educator?.linkedin_url || !!educator?.twitter_url;
-  const profileUrl = `${window.location.origin}/issuers/${wallet}`;
+  const profileUrl = `${window.location.origin}/educator/${wallet}`;
   return (
     <Layout>
       <GrainOverlay />
