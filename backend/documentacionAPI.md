@@ -637,44 +637,6 @@ Envía una transacción a la blockchain para autorizar a una wallet como emisor 
 
 ---
 
-### POST `/api/issuers/mint`
-
-Valida que el estudiante y el emisor (profesor) existen en la base de datos antes de proceder con el minteo de un certificado NFT.
-
-**Headers**
-
-| Header | Valor |
-|---|---|
-| `Content-Type` | `application/json` |
-
-**Body**
-
-| Campo | Tipo | Requerido | Descripción |
-|---|---|---|---|
-| `studentWalletAddress` | `string` | ✅ | Wallet del estudiante |
-| `professor` | `string` | ✅ | Wallet del emisor (profesor) |
-| `tokenUri` | `string` | ✅ | URI del metadata del certificado en IPFS (`ipfs://...`) |
-
-**Respuestas**
-
-| Código | Descripción |
-|---|---|
-| `200` | Validación correcta. Retorna `ok: true` y el `tokenUri` |
-| `400` | Campos requeridos faltantes |
-| `404` | Estudiante o emisor no encontrado |
-| `500` | Error en la validación |
-
-**Ejemplo de respuesta exitosa**
-
-```json
-{
-  "ok": true,
-  "tokenUri": "ipfs://Qm..."
-}
-```
-
----
-
 ### GET `/api/issuers/:wallet_address`
 
 Obtiene el perfil público de un emisor por su wallet address. No expone email ni otros datos
@@ -893,10 +855,9 @@ usuario (MVP). Limitado a 60 solicitudes por minuto por IP.
 
 ### Notas generales
 
-- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /mint`, `POST /increment-certificates`, `GET /:wallet/certificates-count` y `POST /:wallet/share` antes de consultar la base de datos.
+- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /increment-certificates`, `GET /:wallet/certificates-count` y `POST /:wallet/share` antes de consultar la base de datos.
 - El endpoint `GET /:wallet_address` es público y devuelve solo campos públicos del emisor (sin email ni lista de certificados); los certificados se resumen en `certificates_issued` y `talents_formed`, e incluye `share_count`.
 - `POST /authorize` delega la lógica de blockchain al servicio `authorizeIssuer`.
-- `POST /mint` solo realiza validaciones previas al minteo; el minteo real ocurre en el frontend o en un servicio externo.
 - Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.
 
 ## OpenSea Endpoints (opensea.js)
