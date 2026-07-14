@@ -13,6 +13,14 @@ const emailService = require("../services/emailService");
 const { getAdminEmails } = require("../services/adminService");
 const { getOwnClassSettings } = require("../usecases/issuers/getOwnClassSettings");
 const { updateClassSettings } = require("../usecases/issuers/updateClassSettings");
+const { getOwnIssuerProfile } = require("../usecases/issuers/getOwnIssuerProfile");
+const { getIssuerApprovalStatus } = require("../usecases/issuers/getIssuerApprovalStatus");
+const { reapplyForApproval } = require("../usecases/issuers/reapplyForApproval");
+const { updateOwnIssuerProfile } = require("../usecases/issuers/updateOwnIssuerProfile");
+const { updateIssuerPhoto } = require("../usecases/issuers/updateIssuerPhoto");
+const { getPublicIssuerProfile } = require("../usecases/issuers/getPublicIssuerProfile");
+const { updatePublicIssuerProfile } = require("../usecases/issuers/updatePublicIssuerProfile");
+const { deleteOwnIssuerAccount } = require("../usecases/issuers/deleteOwnIssuerAccount");
 
 // 2 re-applies per educator per week prevents approval-queue spam.
 const reapplyLimiter = rateLimit({
@@ -27,30 +35,14 @@ const reapplyLimiter = rateLimit({
 
 // GET /api/issuers/me — own full profile (authenticated)
 router.get("/me", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
+  }
+
   try {
-    if (req.auth.role !== "issuer") {
-      return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
-    }
-
-    const wallet = req.auth.wallet.toLowerCase();
-    const issuer = await Issuer.findOne({
-      where: { wallet_address: wallet },
-      include: [{ model: User, attributes: ["name", "lastname", "email", "email_verified"] }],
-    });
-
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    return res.json({
-      organization_name: issuer.organization_name,
-      bio: issuer.bio,
-      photo_url: issuer.photo_url,
-      knowledge_areas: issuer.knowledge_areas ?? [],
-      wallet_address: issuer.wallet_address,
-      email: issuer.User?.email ?? null,
-      name: issuer.User?.name ?? null,
-      lastname: issuer.User?.lastname ?? null,
-      email_verified: issuer.User?.email_verified ?? false,
-    });
+    const result = await getOwnIssuerProfile({ models: { Issuer, User }, wallet: req.auth.wallet });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error("GET /api/issuers/me error:", err);
     return res.status(500).json({ error: "Failed to fetch profile" });
@@ -62,23 +54,11 @@ router.get("/me/status", authenticate, async (req, res) => {
   if (req.auth.role !== "issuer") {
     return res.status(403).json({ error: "Only educator accounts can access this endpoint" });
   }
-  try {
-    const user = await User.findByPk(req.auth.sub, {
-      attributes: ["educator_approval_status", "rejection_reason", "approved_at"],
-    });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
 
-    const status = user.educator_approval_status || "pending_approval";
-    const body = { status };
-    if (status === "rejected" && user.rejection_reason) {
-      body.reason = user.rejection_reason;
-    }
-    if (status === "approved" && user.approved_at) {
-      body.approved_at = user.approved_at;
-    }
-    return res.json(body);
+  try {
+    const result = await getIssuerApprovalStatus({ models: { User }, userId: req.auth.sub });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error("GET /api/issuers/me/status error:", err);
     return res.status(500).json({ error: "Failed to fetch status" });
@@ -90,39 +70,32 @@ router.post("/me/reapply", authenticate, reapplyLimiter, async (req, res) => {
   if (req.auth.role !== "issuer") {
     return res.status(403).json({ error: "Only educator accounts can use this endpoint" });
   }
+
   try {
-    const user = await User.findByPk(req.auth.sub, {
-      attributes: ["id", "educator_approval_status"],
-    });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const result = await reapplyForApproval({ models: { User }, userId: req.auth.sub });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
 
-    if (user.educator_approval_status !== "rejected") {
-      return res.status(409).json({ error: "Only rejected accounts can re-apply" });
-    }
+    // Fire-and-forget — admin notification failure must not fail the re-apply response.
+    (async () => {
+      try {
+        const [fullUser, issuer, adminEmails] = await Promise.all([
+          User.findByPk(req.auth.sub, { attributes: ["name", "email", "wallet_address"] }),
+          Issuer.findOne({ where: { wallet_address: req.auth.wallet?.toLowerCase() }, attributes: ["organization_name"] }),
+          getAdminEmails(User),
+        ]);
+        await emailService.notifyAdminEducatorReapply({
+          to: adminEmails,
+          name: fullUser?.name || null,
+          email: fullUser?.email || null,
+          wallet: fullUser?.wallet_address || req.auth.wallet,
+          organization: issuer?.organization_name || null,
+        });
+      } catch (err) {
+        console.error("[reapply] notifyAdminEducatorReapply failed:", err && err.message);
+      }
+    })();
 
-    await user.update({
-      educator_approval_status: "pending_approval",
-      rejection_reason: null,
-    });
-
-    try {
-      const [fullUser, issuer, adminEmails] = await Promise.all([
-        User.findByPk(req.auth.sub, { attributes: ["name", "email", "wallet_address"] }),
-        Issuer.findOne({ where: { wallet_address: req.auth.wallet?.toLowerCase() }, attributes: ["organization_name"] }),
-        getAdminEmails(User),
-      ]);
-      await emailService.notifyAdminEducatorReapply({
-        to: adminEmails,
-        name: fullUser?.name || null,
-        email: fullUser?.email || null,
-        wallet: fullUser?.wallet_address || req.auth.wallet,
-        organization: issuer?.organization_name || null,
-      });
-    } catch (err) {
-      console.error("[reapply] notifyAdminEducatorReapply failed:", err && err.message);
-    }
-
-    return res.json({ status: "pending_approval" });
+    return res.json(result.data);
   } catch (err) {
     console.error("POST /api/issuers/me/reapply error:", err);
     return res.status(500).json({ error: "Failed to re-apply" });
@@ -225,54 +198,20 @@ router.get("/", async (req, res) => {
 
 // PATCH /api/issuers/me — update own profile (bio, knowledge_areas, organization_name)
 router.patch("/me", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can update this profile" });
+  }
+
   try {
-    if (req.auth.role !== "issuer") {
-      return res.status(403).json({ error: "Only educator accounts can update this profile" });
-    }
-
-    const wallet = req.auth.wallet.toLowerCase();
-    const { bio, knowledge_areas, organization_name } = req.body;
-
-    if (bio !== undefined && typeof bio !== "string") {
-      return res.status(400).json({ error: "bio must be a string" });
-    }
-    if (bio !== undefined && bio.length > 500) {
-      return res.status(400).json({ error: "bio must be 500 characters or less" });
-    }
-    if (knowledge_areas !== undefined) {
-      if (!Array.isArray(knowledge_areas)) {
-        return res.status(400).json({ error: "knowledge_areas must be an array" });
-      }
-      if (knowledge_areas.length > 5) {
-        return res.status(400).json({ error: "Maximum 5 knowledge areas allowed" });
-      }
-      if (knowledge_areas.some((a) => typeof a !== "string" || a.length > 100)) {
-        return res.status(400).json({ error: "Each knowledge area must be a string of max 100 characters" });
-      }
-    }
-    if (organization_name !== undefined && (typeof organization_name !== "string" || organization_name.trim().length === 0)) {
-      return res.status(400).json({ error: "organization_name must be a non-empty string" });
-    }
-
-    const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    const updates = {};
-    if (bio !== undefined) updates.bio = bio.trim();
-    if (knowledge_areas !== undefined) updates.knowledge_areas = knowledge_areas;
-    if (organization_name !== undefined) updates.organization_name = organization_name.trim();
-
-    await issuer.update(updates);
-
-    return res.json({
-      message: "Profile updated",
-      issuer: {
-        organization_name: issuer.organization_name,
-        bio: issuer.bio,
-        knowledge_areas: issuer.knowledge_areas,
-        photo_url: issuer.photo_url,
-      },
+    const result = await updateOwnIssuerProfile({
+      models: { Issuer },
+      wallet: req.auth.wallet,
+      bio: req.body.bio,
+      knowledgeAreas: req.body.knowledge_areas,
+      organizationName: req.body.organization_name,
     });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error("patch issuer error:", err);
     return res.status(500).json({ error: "Failed to update profile" });
@@ -321,24 +260,19 @@ router.patch("/me/classes", authenticate, async (req, res) => {
 
 // DELETE /api/issuers/me — hard delete own account
 router.delete("/me", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can be deleted via this endpoint" });
+  }
+
   try {
-    if (req.auth.role !== "issuer") {
-      return res.status(403).json({ error: "Only educator accounts can be deleted via this endpoint" });
-    }
-
-    const { signature, message } = req.body;
-    if (!signature || !message) {
-      return res.status(400).json({ error: "signature and message are required" });
-    }
-
-    const wallet = req.auth.wallet.toLowerCase();
-    const validation = validateDeletionMessage(message, signature, wallet);
-    if (!validation.ok) {
-      return res.status(401).json({ error: validation.error });
-    }
-
-    await deleteIssuerAccount(wallet);
-
+    const result = await deleteOwnIssuerAccount({
+      wallet: req.auth.wallet.toLowerCase(),
+      signature: req.body.signature,
+      message: req.body.message,
+      validateDeletionMessage,
+      deleteIssuerAccount,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
     return res.status(204).send();
   } catch (err) {
     console.error("delete issuer error:", err);
@@ -402,24 +336,13 @@ router.post("/mint", authenticate, async (req, res) => {
 // PATCH /api/issuers/me/photo  — update own profile photo (ipfs:// URI only)
 router.patch("/me/photo", authenticate, async (req, res) => {
   try {
-    const wallet = req.auth.wallet.toLowerCase();
-    const { photo_url } = req.body;
-
-    if (!photo_url || typeof photo_url !== "string") {
-      return res.status(400).json({ error: "photo_url is required" });
-    }
-
-    if (!/^ipfs:\/\/[a-zA-Z0-9]+$/.test(photo_url)) {
-      return res.status(400).json({ error: "photo_url must be a valid ipfs:// URI" });
-    }
-
-    const issuer = await Issuer.findOne({ where: { wallet_address: wallet } });
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    await issuer.update({ photo_url });
-
-    res.json({ photo_url: issuer.photo_url });
-
+    const result = await updateIssuerPhoto({
+      models: { Issuer },
+      wallet: req.auth.wallet,
+      photoUrl: req.body.photo_url,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error("Failed to update issuer photo:", err);
     res.status(500).json({ error: "Failed to update photo" });
@@ -429,51 +352,12 @@ router.patch("/me/photo", authenticate, async (req, res) => {
 // GET /api/issuers/:wallet_address  — public profile (no email exposed)
 router.get("/:wallet_address", async (req, res) => {
   try {
-    const wallet_address = req.params.wallet_address.toLowerCase();
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet_address)) {
-      return res.status(400).json({ error: "Invalid wallet address" });
-    }
-
-    const { Op } = require("sequelize");
-    const issuer = await Issuer.findOne({
-      where: { wallet_address },
-      include: [
-        {
-          model: User,
-          attributes: ["name", "lastname", "created_at", "educator_approval_status"],
-        },
-        {
-          model: Certificate,
-          attributes: ["student_wallet_address"],
-        },
-      ],
+    const result = await getPublicIssuerProfile({
+      models: { Issuer, User, Certificate },
+      walletAddress: req.params.wallet_address,
     });
-
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    const talents_formed = new Set(
-      (issuer.Certificates || []).map((c) => c.student_wallet_address)
-    ).size;
-
-    res.json({
-      issuer: {
-        wallet_address: issuer.wallet_address,
-        organization_name: issuer.organization_name,
-        name: issuer.User?.name || null,
-        lastname: issuer.User?.lastname || null,
-        photo_url: issuer.photo_url || null,
-        bio: issuer.bio || null,
-        knowledge_areas: issuer.knowledge_areas || [],
-        certificates_issued: issuer.certificates_issued,
-        share_count: issuer.share_count,
-        talents_formed,
-        joined_at: issuer.User?.created_at || issuer.created_at,
-        is_approved: issuer.User?.educator_approval_status === 'approved',
-        class_settings: issuer.class_settings ?? null,
-      },
-    });
-
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch issuer" });
@@ -483,38 +367,16 @@ router.get("/:wallet_address", async (req, res) => {
 // PUT /api/issuers/:wallet_address  — only the issuer themselves can update their own profile
 router.put("/:wallet_address", authenticate, async (req, res) => {
   try {
-    const wallet_address = req.params.wallet_address.toLowerCase();
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet_address)) {
-      return res.status(400).json({ error: "Invalid wallet address" });
-    }
-
-    if (req.auth.wallet.toLowerCase() !== wallet_address) {
-      return res.status(403).json({ error: "Forbidden: cannot modify another issuer's profile" });
-    }
-
-    const { organization_name, bio, knowledge_areas } = req.body;
-
-    if (
-      knowledge_areas !== undefined &&
-      (!Array.isArray(knowledge_areas) ||
-        knowledge_areas.some((a) => typeof a !== "string" || a.length > 100))
-    ) {
-      return res.status(400).json({ error: "knowledge_areas must be an array of strings (max 100 chars each)" });
-    }
-
-    const issuer = await Issuer.findOne({ where: { wallet_address } });
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    const updates = {};
-    if (organization_name !== undefined) updates.organization_name = organization_name;
-    if (bio !== undefined) updates.bio = bio;
-    if (knowledge_areas !== undefined) updates.knowledge_areas = knowledge_areas;
-
-    await issuer.update(updates);
-
-    res.json({ message: "Issuer updated successfully" });
-
+    const result = await updatePublicIssuerProfile({
+      models: { Issuer },
+      walletAddress: req.params.wallet_address,
+      requesterWallet: req.auth.wallet,
+      organizationName: req.body.organization_name,
+      bio: req.body.bio,
+      knowledgeAreas: req.body.knowledge_areas,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update issuer" });
