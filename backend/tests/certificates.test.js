@@ -315,4 +315,15 @@ describe("POST /api/certificates/:id/share", () => {
 
     expect(res.body).toEqual({ success: true, share_count: 1 });
   });
+
+  test("404 when the certificate does not exist", async () => {
+    const token = await issueSession(makeWallet(), "student");
+
+    const res = await request(app)
+      .post("/api/certificates/999999/share")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(404);
+
+    expect(res.body).toHaveProperty("error");
+  });
 });
