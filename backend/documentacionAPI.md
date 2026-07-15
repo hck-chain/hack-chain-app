@@ -553,11 +553,48 @@ Revoca un certificado existente marcándolo como `is_revoked: true`.
 
 ---
 
+### POST `/api/certificates/:id/share`
+
+Incrementa en 1 el contador de veces que el propio estudiante ha compartido su certificado.
+Requiere autenticación — solo el estudiante dueño del certificado (`student_wallet_address`)
+puede incrementar su contador; a diferencia de `POST /api/issuers/:wallet/share`, este endpoint
+no es público.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `id` | `number` | ID del certificado en la base de datos |
+
+**Autenticación**: Requerida — Bearer token o cookie de sesión; la wallet autenticada debe
+coincidir (case-insensitive) con `student_wallet_address` del certificado.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Contador incrementado; retorna el nuevo valor |
+| `401` | Sin sesión o token inválido/expirado |
+| `403` | La wallet autenticada no es la dueña del certificado |
+| `404` | Certificado no encontrado |
+| `500` | Error interno del servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "success": true,
+  "share_count": 1
+}
+```
+
+---
+
 ### Notas generales
 
 - Las wallets (`student_wallet_address`, `issuer_wallet_address`) son normalizadas a minúsculas antes de cualquier operación en base de datos.
 - El endpoint `POST /database` valida que la `issuer_wallet_address` comience con `0x` y que exista en la tabla de emisores autorizados antes de registrar el certificado.
-- Los endpoints de base de datos incluyen la relación con el modelo `Issuer`, que a su vez incluye los campos `name`, `lastname` y `email` del `User` asociado.
+- Los endpoints de base de datos incluyen la relación con el modelo `Issuer`, que a su vez incluye los campos `name` y `lastname` del `User` asociado (el `email` del educador nunca se expone en estos endpoints públicos).
 
 ## Issuers Endpoints (issuers.js)
 
@@ -632,44 +669,6 @@ Envía una transacción a la blockchain para autorizar a una wallet como emisor 
 {
   "succes": true,
   "txHash": "0xabc123..."
-}
-```
-
----
-
-### POST `/api/issuers/mint`
-
-Valida que el estudiante y el emisor (profesor) existen en la base de datos antes de proceder con el minteo de un certificado NFT.
-
-**Headers**
-
-| Header | Valor |
-|---|---|
-| `Content-Type` | `application/json` |
-
-**Body**
-
-| Campo | Tipo | Requerido | Descripción |
-|---|---|---|---|
-| `studentWalletAddress` | `string` | ✅ | Wallet del estudiante |
-| `professor` | `string` | ✅ | Wallet del emisor (profesor) |
-| `tokenUri` | `string` | ✅ | URI del metadata del certificado en IPFS (`ipfs://...`) |
-
-**Respuestas**
-
-| Código | Descripción |
-|---|---|
-| `200` | Validación correcta. Retorna `ok: true` y el `tokenUri` |
-| `400` | Campos requeridos faltantes |
-| `404` | Estudiante o emisor no encontrado |
-| `500` | Error en la validación |
-
-**Ejemplo de respuesta exitosa**
-
-```json
-{
-  "ok": true,
-  "tokenUri": "ipfs://Qm..."
 }
 ```
 
@@ -893,10 +892,9 @@ usuario (MVP). Limitado a 60 solicitudes por minuto por IP.
 
 ### Notas generales
 
-- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /mint`, `POST /increment-certificates`, `GET /:wallet/certificates-count` y `POST /:wallet/share` antes de consultar la base de datos.
+- Las wallets son normalizadas a minúsculas (`.toLowerCase()`) en los endpoints `POST /increment-certificates`, `GET /:wallet/certificates-count` y `POST /:wallet/share` antes de consultar la base de datos.
 - El endpoint `GET /:wallet_address` es público y devuelve solo campos públicos del emisor (sin email ni lista de certificados); los certificados se resumen en `certificates_issued` y `talents_formed`, e incluye `share_count`.
 - `POST /authorize` delega la lógica de blockchain al servicio `authorizeIssuer`.
-- `POST /mint` solo realiza validaciones previas al minteo; el minteo real ocurre en el frontend o en un servicio externo.
 - Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.
 
 ## OpenSea Endpoints (opensea.js)

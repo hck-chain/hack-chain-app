@@ -27,7 +27,6 @@ const RegisterLanding = lazy(() => import("./pages/RegisterLanding"));
 const RegisterUser = lazy(() => import("./pages/RegisterUser").then(m => ({ default: m.RegisterUser })));
 const RegisterRecruiter = lazy(() => import("./pages/RegisterRecruiter").then(m => ({ default: m.RegisterRecruiter })));
 const RegisterEducator = lazy(() => import("./pages/RegisterEducator"));
-const MintCertificate = lazy(() => import("./utils/mintCertificate.jsx"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
 const Contact = lazy(() => import("./pages/Contact"));
 const TokenHack = lazy(() => import("./pages/TokenHack"));
@@ -115,11 +114,6 @@ const App = () => {
                 <Route path="/recruiter/talent/:wallet_address" element={
                   <ProtectedRoute roles={['recruiter']}>
                     <TalentDetailDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/mint" element={
-                  <ProtectedRoute roles={['issuer']}>
-                    <MintCertificate />
                   </ProtectedRoute>
                 } />
                 <Route path="/referrals" element={

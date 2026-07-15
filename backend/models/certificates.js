@@ -52,6 +52,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
+    share_count: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
 
     // ---- Phase 1 (Harjoot integration) — see scripts/migrate-harjoot-phase1.js ----
     harjoot_verification_id:  { type: DataTypes.STRING, allowNull: true },
