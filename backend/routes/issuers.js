@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 const buildRateLimitStore = require("../lib/rateLimitStore");
-const { Issuer, Student, User, Certificate, ClassRequest } = require("../models");
+const { Issuer, User, Certificate, ClassRequest } = require("../models");
 const { authorizeIssuer } = require("../services/authorizeIssuer.js");
 const { validateDeletionMessage, deleteIssuerAccount } = require("../services/issuerService");
 const { getFeaturedIssuers } = require("../services/issuerDiscoveryService");
@@ -427,45 +427,6 @@ router.post("/authorize", authenticate, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Authorization failed" });
-  }
-});
-//|| !certificate_hash || !token_id)
-// POST /api/issuers/mint
-router.post("/mint", authenticate, async (req, res) => {
-  try {
-    const {
-      studentWalletAddress,
-      professor,
-      tokenUri
-    } = req.body;
-
-    if (!studentWalletAddress || !professor || !tokenUri) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    if (req.auth.wallet.toLowerCase() !== professor.toLowerCase()) {
-      return res.status(403).json({ error: "Cannot mint from another issuer's account" });
-    }
-
-    const student = await Student.findOne({
-      where: { wallet_address: studentWalletAddress.toLowerCase() }
-    });
-
-    const issuer = await Issuer.findOne({
-      where: { wallet_address: professor.toLowerCase() }
-    });
-
-    if (!student) return res.status(404).json({ error: "Student not found" });
-    if (!issuer) return res.status(404).json({ error: "Issuer not found" });
-
-    return res.json({
-      ok: true,
-      tokenUri
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Mint validation failed" });
   }
 });
 

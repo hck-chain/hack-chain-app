@@ -167,6 +167,7 @@ npm run migrate:issuer-profile        # adds bio, photo_url, knowledge_areas to 
 npm run migrate:harjoot-phase1        # adds payment, treasury, talent-invitation tables + user columns
 npm run migrate:referrals-phase1      # adds referrals, incentives_pool_ledger tables + referral_code column
 npm run migrate:issuer-share-count    # adds share_count column to issuers
+npm run migrate:certificate-share-count  # adds share_count column to certificates
 ```
 
 Each script is idempotent — safe to run more than once.
