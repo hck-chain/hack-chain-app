@@ -674,6 +674,40 @@ Envía una transacción a la blockchain para autorizar a una wallet como emisor 
 
 ---
 
+### PATCH `/api/issuers/me/certificate-logo`
+
+Actualiza el logo de certificados del emisor autenticado (URI `ipfs://` únicamente). Separado del
+`photo_url` de perfil (`PATCH /api/issuers/me/photo`): este logo se estampa en los certificados
+emitidos, no se muestra en la tarjeta de perfil público.
+
+**Autenticación**: Requerida — Bearer token o cookie de sesión; solo cuentas con rol `issuer`.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `certificate_logo_url` | `string` | ✅ | URI `ipfs://<cid>` del logo |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Logo actualizado; retorna `certificate_logo_url` |
+| `400` | `certificate_logo_url` faltante o no es una URI `ipfs://` válida |
+| `403` | La cuenta autenticada no es un emisor |
+| `404` | Emisor no encontrado |
+| `500` | Error interno del servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "certificate_logo_url": "ipfs://<cid>"
+}
+```
+
+---
+
 ### GET `/api/issuers/:wallet_address`
 
 Obtiene el perfil público de un emisor por su wallet address. No expone email ni otros datos

@@ -112,6 +112,7 @@ describe("Issuer profile routes", () => {
       organization_name: "HackAcademy",
       bio: null,
       photo_url: null,
+      certificate_logo_url: null,
       knowledge_areas: [],
       wallet_address: ISSUER,
       email: "prof@x.com",
