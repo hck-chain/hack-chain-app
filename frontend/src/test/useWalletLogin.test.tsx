@@ -311,6 +311,26 @@ describe('useWalletLogin — iOS reload hydration', () => {
         expect(result.current.walletAddress).toBe(MOCK_WALLET_LC);
         expect(result.current.isAwaitingSignature).toBe(true);
     });
+
+    it('drops a stale session instead of hydrating when the address exists but the provider does not', async () => {
+        // Reproduces the "Wallet provider unavailable" bug: the user connected,
+        // navigated away and back within the SPA. AppKit still reports the
+        // cached address, but the underlying provider connection was dropped.
+        vi.mocked(appKit.getAddress).mockReturnValue(MOCK_WALLET);
+        vi.mocked(appKit.getProvider).mockReturnValue(undefined as any);
+        vi.mocked(appKit.subscribeAccount).mockReturnValue(vi.fn());
+        vi.mocked(appKit.disconnect).mockResolvedValue(undefined);
+
+        const { result } = renderHook(() => useWalletLogin(), {
+            wrapper: createWrapper(),
+        });
+
+        await waitFor(() => {
+            expect(appKit.disconnect).toHaveBeenCalled();
+        });
+        expect(result.current.walletAddress).toBeNull();
+        expect(result.current.isAwaitingSignature).toBe(false);
+    });
 });
 
 describe('useWalletLogin — reset', () => {
