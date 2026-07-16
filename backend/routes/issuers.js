@@ -18,6 +18,7 @@ const { getIssuerApprovalStatus } = require("../usecases/issuers/getIssuerApprov
 const { reapplyForApproval } = require("../usecases/issuers/reapplyForApproval");
 const { updateOwnIssuerProfile } = require("../usecases/issuers/updateOwnIssuerProfile");
 const { updateIssuerPhoto } = require("../usecases/issuers/updateIssuerPhoto");
+const { updateIssuerCertificateLogo } = require("../usecases/issuers/updateIssuerCertificateLogo");
 const { getPublicIssuerProfile } = require("../usecases/issuers/getPublicIssuerProfile");
 const { updatePublicIssuerProfile } = require("../usecases/issuers/updatePublicIssuerProfile");
 const { deleteOwnIssuerAccount } = require("../usecases/issuers/deleteOwnIssuerAccount");
@@ -264,6 +265,28 @@ router.patch("/me/photo", authenticate, async (req, res) => {
   } catch (err) {
     console.error("Failed to update issuer photo:", err);
     res.status(500).json({ error: "Failed to update photo" });
+  }
+});
+
+// PATCH /api/issuers/me/certificate-logo — update own certificate logo (ipfs:// URI only)
+// Separate from /me/photo: this logo is stamped on issued certificates, the
+// profile photo is only shown on the public profile card.
+router.patch("/me/certificate-logo", authenticate, async (req, res) => {
+  if (req.auth.role !== "issuer") {
+    return res.status(403).json({ error: "Only educator accounts can update this profile" });
+  }
+
+  try {
+    const result = await updateIssuerCertificateLogo({
+      models: { Issuer },
+      wallet: req.auth.wallet,
+      certificateLogoUrl: req.body.certificate_logo_url,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("Failed to update issuer certificate logo:", err);
+    res.status(500).json({ error: "Failed to update certificate logo" });
   }
 });
 
