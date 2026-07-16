@@ -53,13 +53,28 @@ export const useWalletLogin = () => {
             setPhase('awaiting-signature');
         };
 
+        // getAddress() and getProvider() can go out of sync — e.g. after
+        // navigating away and back within the SPA, AppKit may still report a
+        // cached address while the underlying provider connection has been
+        // dropped. Hydrating in that case would show a "Sign" button that
+        // fails with "Wallet provider unavailable". Only hydrate when both
+        // are present; otherwise drop the stale session so the user gets a
+        // working "Connect" button instead.
+        const hasLiveProvider = () => !!appKit.getProvider('eip155');
+
         const existing = appKit.getAddress();
-        if (existing) hydrate(existing);
+        if (existing) {
+            if (hasLiveProvider()) {
+                hydrate(existing);
+            } else {
+                appKit.disconnect().catch(() => { });
+            }
+        }
 
         // AppKit may restore the address asynchronously after the relay
         // reconnects. Subscribe so we hydrate as soon as it surfaces.
         const unsubscribe = appKit.subscribeAccount((account) => {
-            if (account.address) hydrate(account.address);
+            if (account.address && hasLiveProvider()) hydrate(account.address);
         });
 
         return () => { unsubscribe?.(); };

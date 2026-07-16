@@ -43,8 +43,8 @@ export const LoginForm = ({ disabled = false }: LoginFormProps) => {
     return (
       <div className="flex flex-col items-center justify-center py-8 space-y-6">
         <div className="relative">
-          <div className="absolute inset-0 -m-6 w-28 h-28 rounded-full border border-purple-500/30 animate-ping" />
-          <div className="absolute inset-0 -m-4 w-24 h-24 rounded-full border border-pink-500/20 animate-pulse" />
+          <div className="absolute -inset-4 rounded-full border border-purple-500/30 animate-ping" />
+          <div className="absolute -inset-2 rounded-full border border-pink-500/20 animate-pulse" />
 
           <div
             className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
