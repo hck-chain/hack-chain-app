@@ -106,17 +106,11 @@ const FeatureBlocks = () => {
               variants={itemVariants}
               className="flex flex-col items-center text-center md:items-start md:text-left"
             >
-              <motion.div
+              <div
                 className={`clay-icon w-20 h-20 mb-8 bg-gradient-to-br ${feature.claySrc} ${feature.shadow}`}
-                animate={{ y: [0, -8, 0] }}
-                transition={{
-                  duration: 4 + (index % 3),
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
               >
                 <img src={feature.imgSrc} alt={feature.alt} className="w-12 h-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
-              </motion.div>
+              </div>
 
               <h3 className="font-title text-2xl md:text-3xl font-black mb-4 text-white tracking-tight">
                 {feature.title}

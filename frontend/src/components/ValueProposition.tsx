@@ -137,17 +137,11 @@ const ValueProposition = () => {
                   delay: index * 0.15,
                 }}
               >
-                <motion.div
+                <div
                   className={`clay-icon w-28 h-28 mb-8 bg-gradient-to-br ${step.claySrc} ${step.shadow}`}
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{
-                    duration: 5 + index,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
                 >
                   <img src={step.imgSrc} alt={step.alt} className="w-16 h-16 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
-                </motion.div>
+                </div>
 
                 <h3 className="font-title text-2xl md:text-3xl font-black mb-4 text-white tracking-tight">
                   {step.title}
