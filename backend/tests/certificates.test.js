@@ -327,3 +327,251 @@ describe("POST /api/certificates/:id/share", () => {
     expect(res.body).toHaveProperty("error");
   });
 });
+
+// POST /api/certificates/database — class_request_id lock
+//
+// When a certificate is registered with a class_request_id, the server must
+// confirm it actually matches that ClassRequest (owner, student wallet, and
+// title vs class_name) before creating it. Every mismatch reason answers the
+// same 409 — see documentacionAPI.md for why the status code is uniform.
+describe("POST /api/certificates/database — class_request_id lock", () => {
+  let sequelize;
+  let User, Issuer, Student, Recruiter, Certificate, UserSession, ClassRequest, IssuerClass;
+  let app;
+
+  const makeWallet = () => "0x" + crypto.randomBytes(20).toString("hex");
+
+  const seedIssuerAndStudent = async () => {
+    const issuerWallet = makeWallet();
+    const studentWallet = makeWallet();
+
+    await User.create({
+      wallet_address: issuerWallet,
+      role: "issuer",
+      name: "Edu",
+      nonce: crypto.randomBytes(16).toString("hex"),
+      educator_approval_status: "approved",
+    });
+    await Issuer.create({
+      wallet_address: issuerWallet,
+      organization_name: "Org",
+      certificates_issued: 0,
+    });
+    await User.create({
+      wallet_address: studentWallet,
+      role: "student",
+      name: "Stu",
+      nonce: crypto.randomBytes(16).toString("hex"),
+    });
+    await Student.create({ wallet_address: studentWallet });
+
+    return { issuerWallet, studentWallet };
+  };
+
+  const seedClassRequest = async ({ issuerWallet, studentWallet, className, status = "confirmed" }) =>
+    ClassRequest.create({
+      student_wallet_address: studentWallet,
+      issuer_wallet_address: issuerWallet,
+      requested_date: "2026-07-20",
+      start_time: "10:00",
+      duration_minutes: 60,
+      class_name: className ?? null,
+      status,
+    });
+
+  const issueSession = async (wallet, role) => {
+    const existing = await User.findOne({ where: { wallet_address: wallet } });
+    if (!existing) {
+      await User.create({
+        wallet_address: wallet,
+        role,
+        name: "Bystander",
+        nonce: crypto.randomBytes(16).toString("hex"),
+      });
+    }
+    await UserSession.create({
+      id: crypto.randomBytes(16).toString("hex"),
+      wallet_address: wallet,
+      expires_at: new Date(Date.now() + 60 * 60 * 1000),
+    });
+    return jwt.sign({ wallet, role }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  };
+
+  const postCertificate = (token, body) =>
+    request(app)
+      .post("/api/certificates/database")
+      .set("Authorization", `Bearer ${token}`)
+      .send(body);
+
+  beforeAll(async () => {
+    sequelize = new SequelizePkg.Sequelize("sqlite::memory:", { logging: false });
+    const DataTypes = SequelizePkg.DataTypes;
+
+    User = require("../models/users")(sequelize, DataTypes);
+    Student = sequelize.define("Student", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      wallet_address: { type: DataTypes.STRING(42), allowNull: false, unique: true },
+    }, {
+      tableName: "students",
+      underscored: true,
+      timestamps: true,
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    });
+    Issuer = require("../models/issuers")(sequelize, DataTypes);
+    Recruiter = require("../models/recruiters")(sequelize, DataTypes);
+    Certificate = require("../models/certificates")(sequelize, DataTypes);
+    UserSession = require("../models/userSessions")(sequelize, DataTypes);
+    ClassRequest = require("../models/classRequests")(sequelize, DataTypes);
+    IssuerClass = require("../models/issuerClasses")(sequelize, DataTypes);
+
+    const modelsMock = {
+      User, Student, Issuer, Recruiter, Certificate, UserSession, ClassRequest, IssuerClass,
+      sequelize,
+      Sequelize: SequelizePkg,
+    };
+
+    Object.values(modelsMock).forEach((m) => m?.associate?.(modelsMock));
+
+    sequelize.random = () => SequelizePkg.literal("RANDOM()");
+
+    await sequelize.sync({ force: true });
+
+    jest.isolateModules(() => {
+      jest.doMock("../models", () => modelsMock);
+      jest.doMock("../services/emailService", () => ({
+        notifyTalentCertificateIssued: jest.fn().mockResolvedValue(undefined),
+      }));
+      const certificatesRoute = require("../routes/certificates");
+      app = express();
+      app.use(bodyParser.json());
+      app.use("/api/certificates", certificatesRoute);
+    });
+  });
+
+  afterAll(async () => {
+    jest.resetModules();
+    if (sequelize) await sequelize.close();
+  });
+
+  beforeEach(async () => {
+    await sequelize.sync({ force: true });
+  });
+
+  test("409 when class_request_id does not exist", async () => {
+    const { issuerWallet, studentWallet } = await seedIssuerAndStudent();
+    const token = await issueSession(issuerWallet, "issuer");
+
+    const res = await postCertificate(token, {
+      student_wallet_address: studentWallet,
+      issuer_wallet_address: issuerWallet,
+      title: "Clase Personalizada",
+      class_request_id: 999999,
+    }).expect(409);
+
+    expect(res.body).toHaveProperty("error");
+  });
+
+  test("409 when the class_request_id belongs to another issuer", async () => {
+    const { issuerWallet, studentWallet } = await seedIssuerAndStudent();
+    const { issuerWallet: otherIssuerWallet } = await seedIssuerAndStudent();
+    const classRequest = await seedClassRequest({
+      issuerWallet: otherIssuerWallet,
+      studentWallet,
+      className: "Clase Personalizada",
+    });
+    const token = await issueSession(issuerWallet, "issuer");
+
+    const res = await postCertificate(token, {
+      student_wallet_address: studentWallet,
+      issuer_wallet_address: issuerWallet,
+      title: "Clase Personalizada",
+      class_request_id: classRequest.id,
+    }).expect(409);
+
+    expect(res.body).toHaveProperty("error");
+  });
+
+  test("409 when student_wallet_address does not match the ClassRequest", async () => {
+    const { issuerWallet, studentWallet } = await seedIssuerAndStudent();
+    const otherStudentWallet = makeWallet();
+    const classRequest = await seedClassRequest({
+      issuerWallet,
+      studentWallet,
+      className: "Clase Personalizada",
+    });
+    const token = await issueSession(issuerWallet, "issuer");
+
+    const res = await postCertificate(token, {
+      student_wallet_address: otherStudentWallet,
+      issuer_wallet_address: issuerWallet,
+      title: "Clase Personalizada",
+      class_request_id: classRequest.id,
+    }).expect(409);
+
+    expect(res.body).toHaveProperty("error");
+  });
+
+  test("409 when title does not match a non-null class_name", async () => {
+    const { issuerWallet, studentWallet } = await seedIssuerAndStudent();
+    const classRequest = await seedClassRequest({
+      issuerWallet,
+      studentWallet,
+      className: "Clase Personalizada",
+    });
+    const token = await issueSession(issuerWallet, "issuer");
+
+    const res = await postCertificate(token, {
+      student_wallet_address: studentWallet,
+      issuer_wallet_address: issuerWallet,
+      title: "Un título distinto",
+      class_request_id: classRequest.id,
+    }).expect(409);
+
+    expect(res.body).toHaveProperty("error");
+  });
+
+  test("201 when student_wallet_address and title match the ClassRequest", async () => {
+    const { issuerWallet, studentWallet } = await seedIssuerAndStudent();
+    const classRequest = await seedClassRequest({
+      issuerWallet,
+      studentWallet,
+      className: "Clase Personalizada",
+    });
+    const token = await issueSession(issuerWallet, "issuer");
+
+    const res = await postCertificate(token, {
+      student_wallet_address: studentWallet,
+      issuer_wallet_address: issuerWallet,
+      title: "Clase Personalizada",
+      certificate_hash: crypto.randomBytes(16).toString("hex"),
+      token_id: "1",
+      issue_date: "2026-07-20",
+      class_request_id: classRequest.id,
+    }).expect(201);
+
+    expect(res.body).toHaveProperty("id");
+  });
+
+  test("201 with any title when the ClassRequest has no class_name", async () => {
+    const { issuerWallet, studentWallet } = await seedIssuerAndStudent();
+    const classRequest = await seedClassRequest({
+      issuerWallet,
+      studentWallet,
+      className: null,
+    });
+    const token = await issueSession(issuerWallet, "issuer");
+
+    const res = await postCertificate(token, {
+      student_wallet_address: studentWallet,
+      issuer_wallet_address: issuerWallet,
+      title: "Cualquier título elegido por el educador",
+      certificate_hash: crypto.randomBytes(16).toString("hex"),
+      token_id: "1",
+      issue_date: "2026-07-20",
+      class_request_id: classRequest.id,
+    }).expect(201);
+
+    expect(res.body).toHaveProperty("id");
+  });
+});

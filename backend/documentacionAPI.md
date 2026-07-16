@@ -426,6 +426,15 @@ Registra un certificado ya emitido en blockchain dentro de la base de datos. Val
 | `blockchain_tx_hash` | `string` | ❌ | Hash de la transacción en blockchain |
 | `token_id` | `string` \| `number` | ❌ | ID del token NFT |
 | `issue_date` | `string` | ❌ | Fecha de emisión |
+| `class_request_id` | `number` | ❌ | ID de la `ClassRequest` de la que proviene el certificado (clase personalizada completada) |
+
+Cuando se envía `class_request_id`, el servidor valida contra la `ClassRequest` real: que
+pertenezca al emisor autenticado, que `student_wallet_address` coincida, y que `title` coincida
+con `class_name` (solo si `class_name` no es nulo — si la clase no tenía nombre, cualquier título
+es válido). Cualquier discrepancia (incluyendo `class_request_id` inexistente o perteneciente a
+otro emisor) responde `409` con el mismo mensaje genérico, para no revelar mediante el código de
+estado qué IDs existen en el sistema; la causa específica del rechazo queda en el log del
+servidor para detección de abuso.
 
 **Respuestas**
 
@@ -434,6 +443,7 @@ Registra un certificado ya emitido en blockchain dentro de la base de datos. Val
 | `201` | Certificado registrado correctamente |
 | `400` | Campos obligatorios faltantes o wallet inválida |
 | `404` | Emisor no registrado como autorizado |
+| `409` | `class_request_id` no coincide (inexistente, de otro emisor, o datos que no coinciden) |
 | `500` | Error interno del servidor |
 
 **Ejemplo de respuesta exitosa**

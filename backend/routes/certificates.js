@@ -477,6 +477,42 @@ router.post("/database", authenticate, async (req, res) => {
       ? (() => { const n = parseInt(class_request_id, 10); return Number.isFinite(n) && n > 0 ? n : null; })()
       : null;
 
+    // 3.5 Lock: when a class_request_id is provided, the certificate being
+    // registered must actually belong to that class. Otherwise an issuer
+    // could tag any certificate as "from a completed class" by sending an
+    // arbitrary id. The API always answers 409 for every mismatch reason
+    // (not found / other issuer's class / wallet or title mismatch) so a
+    // caller can't use the status code to probe which ids exist in the
+    // system — but the server log keeps the real reason for abuse detection.
+    if (parsedClassRequestId) {
+      const classRequest = await db.ClassRequest.findByPk(parsedClassRequestId);
+      const CERT_LOCK_MISMATCH = {
+        error: "Los datos del certificado no coinciden con la solicitud de clase",
+      };
+
+      if (!classRequest) {
+        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} not found, attempted by ${cleanIssuerWallet}`);
+        return res.status(409).json(CERT_LOCK_MISMATCH);
+      }
+
+      if (classRequest.issuer_wallet_address.toLowerCase() !== cleanIssuerWallet) {
+        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} belongs to another issuer, attempted by ${cleanIssuerWallet}`);
+        return res.status(409).json(CERT_LOCK_MISMATCH);
+      }
+
+      if (classRequest.student_wallet_address.toLowerCase() !== cleanStudentWallet) {
+        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} student wallet mismatch, attempted by ${cleanIssuerWallet}`);
+        return res.status(409).json(CERT_LOCK_MISMATCH);
+      }
+
+      // class_name is nullable (classes without a name) — nothing real to
+      // compare the title against, so any title is accepted in that case.
+      if (classRequest.class_name != null && String(title).trim() !== String(classRequest.class_name).trim()) {
+        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} title mismatch, attempted by ${cleanIssuerWallet}`);
+        return res.status(409).json(CERT_LOCK_MISMATCH);
+      }
+    }
+
     // 4. Creación del certificado
     const certificate = await Certificate.create({
       student_wallet_address: cleanStudentWallet,
