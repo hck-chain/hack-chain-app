@@ -52,6 +52,7 @@ describe("getOwnIssuerProfile", () => {
       organization_name: "HackAcademy",
       bio: "bio",
       photo_url: null,
+      certificate_logo_url: null,
       knowledge_areas: ["pentest"],
       wallet_address: ISSUER,
       email: "prof@x.com",

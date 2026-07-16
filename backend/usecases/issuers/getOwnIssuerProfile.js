@@ -22,6 +22,7 @@ async function getOwnIssuerProfile({ models, wallet }) {
       organization_name: issuer.organization_name,
       bio: issuer.bio,
       photo_url: issuer.photo_url,
+      certificate_logo_url: issuer.certificate_logo_url,
       knowledge_areas: issuer.knowledge_areas ?? [],
       wallet_address: issuer.wallet_address,
       email: issuer.User?.email ?? null,
