@@ -97,6 +97,7 @@ export const useWalletLogin = () => {
                 signature,
             }),
         onSuccess: (data) => {
+            flowOwnedRef.current = false;
             login({
                 id: data.user.id,
                 email: data.user.email ?? '',
@@ -112,6 +113,7 @@ export const useWalletLogin = () => {
             else navigate('/');
         },
         onError: (err: Error) => {
+            flowOwnedRef.current = false;
             const notFound = err instanceof ApiServiceError && err.status === 404;
             safeSet(setIsWalletNotFound, notFound);
             safeSet(setError, err.message);
@@ -201,6 +203,14 @@ export const useWalletLogin = () => {
         setError(null);
         setIsWalletNotFound(false);
         setPhase('signing');
+        // Claim ownership of the state machine for the whole flow — nonce
+        // fetch, the wallet's signature prompt (which can stay open for a
+        // while waiting on the user), and the login request. Without this,
+        // the mount-level hydrate listener below can fire mid-flow (AppKit
+        // re-emits account events while the signature prompt is open) and
+        // stomp phase back to 'awaiting-signature' while the prompt is still
+        // legitimately open, making the page look like it silently reset.
+        flowOwnedRef.current = true;
 
         try {
             const walletProvider = appKit.getProvider('eip155');
@@ -218,6 +228,7 @@ export const useWalletLogin = () => {
 
             mutation.mutate({ walletAddress, signature });
         } catch (err: unknown) {
+            flowOwnedRef.current = false;
             safeSet(setError, err instanceof Error ? err.message : 'Failed to sign message');
             safeSet(setPhase, 'awaiting-signature');
         }
