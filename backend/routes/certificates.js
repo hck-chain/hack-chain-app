@@ -24,6 +24,8 @@ const { issueCertificate } = require("../harjoot/usecases/issueCertificate");
 const { createHarjootClient } = require("../harjoot/client");
 const { createPolygonProvider } = require("../harjoot/adapters/polygonProvider");
 const { createNftMintAdapter } = require("../harjoot/adapters/nftMintAdapter");
+const { reserveCertificate } = require("../usecases/certificates/reserveCertificate");
+const { finalizeCertificate } = require("../usecases/certificates/finalizeCertificate");
 
 // PDF certificates are larger than profile images. 10 MB matches a typical
 // printer-resolution single-page PDF with embedded fonts and one image.
@@ -336,7 +338,7 @@ router.post("/", authenticate, async (req, res) => {
     return res.status(403).json({ error: "Only issuers can upload certificate metadata" });
   }
   try {
-    const { name, course, professor, date, imageCID } = req.body;
+    const { name, course, professor, date, imageCID, certificateId } = req.body;
 
     if (!name || !course || !professor || !date || !imageCID) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -352,6 +354,10 @@ router.post("/", authenticate, async (req, res) => {
         { trait_type: "Course", value: course },
         { trait_type: "Professor", value: professor },
         { trait_type: "Date", value: date },
+        // Makes every certificate's metadata content-unique by construction,
+        // even when the same student/course/professor/date is issued twice on
+        // purpose (e.g. a retake) — see usecases/certificates/reserveCertificate.js.
+        ...(certificateId != null ? [{ trait_type: "Certificate ID", value: String(certificateId) }] : []),
       ],
     };
 
@@ -428,143 +434,68 @@ router.post("/verify", authenticate, async (req, res) => {
   }
 })
 
-// POST /api/certificates/database optimizado
-router.post("/database", authenticate, async (req, res) => {
+// POST /api/certificates/reserve — creates a 'pending' certificate row
+// before any image render or on-chain mint happens. See
+// usecases/certificates/reserveCertificate.js for why this ordering matters.
+router.post("/reserve", authenticate, async (req, res) => {
   if (req.auth.role !== 'issuer') {
     return res.status(403).json({ error: "Only issuers can create certificates" });
   }
 
   try {
-    const {
-      student_wallet_address, issuer_wallet_address, title,
-      description, certificate_hash, blockchain_tx_hash,
-      token_id, issue_date, class_request_id,
-    } = req.body;
+    const { student_wallet_address, title, description, class_request_id, force } = req.body;
 
-    if (!issuer_wallet_address || !issuer_wallet_address.startsWith("0x")) {
-      return res.status(400).json({
-        error: "Dato inválido",
-        details: `Se esperaba una wallet (0x...), pero se recibió: "${issuer_wallet_address}"`
-      });
-    }
-
-    // 1. Validaciones básicas
-    if (!student_wallet_address || !issuer_wallet_address || !title) {
+    if (!student_wallet_address || !title) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
-    }
-
-    // 2. Normalización inmediata
-    const cleanIssuerWallet = issuer_wallet_address.toLowerCase().trim();
-    const cleanStudentWallet = student_wallet_address.toLowerCase().trim();
-
-    if (req.auth.wallet.toLowerCase() !== cleanIssuerWallet) {
-      return res.status(403).json({ error: "Issuer wallet must match authenticated wallet" });
-    }
-
-    // 3. Búsqueda optimizada (asumiendo que los datos en DB ya están en minúsculas)
-    const issuer = await Issuer.findOne({
-      where: { wallet_address: cleanIssuerWallet }
-    });
-
-    if (!issuer) {
-      return res.status(404).json({
-        error: "Emisor no autorizado",
-        details: `La wallet ${cleanIssuerWallet} no está registrada como emisor permitido.`
-      });
     }
 
     const parsedClassRequestId = class_request_id != null
       ? (() => { const n = parseInt(class_request_id, 10); return Number.isFinite(n) && n > 0 ? n : null; })()
       : null;
 
-    // 3.5 Lock: when a class_request_id is provided, the certificate being
-    // registered must actually belong to that class. Otherwise an issuer
-    // could tag any certificate as "from a completed class" by sending an
-    // arbitrary id. The API always answers 409 for every mismatch reason
-    // (not found / other issuer's class / wallet or title mismatch) so a
-    // caller can't use the status code to probe which ids exist in the
-    // system — but the server log keeps the real reason for abuse detection.
-    if (parsedClassRequestId) {
-      const classRequest = await db.ClassRequest.findByPk(parsedClassRequestId);
-      const CERT_LOCK_MISMATCH = {
-        error: "Los datos del certificado no coinciden con la solicitud de clase",
-      };
-
-      if (!classRequest) {
-        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} not found, attempted by ${cleanIssuerWallet}`);
-        return res.status(409).json(CERT_LOCK_MISMATCH);
-      }
-
-      if (classRequest.issuer_wallet_address.toLowerCase() !== cleanIssuerWallet) {
-        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} belongs to another issuer, attempted by ${cleanIssuerWallet}`);
-        return res.status(409).json(CERT_LOCK_MISMATCH);
-      }
-
-      if (classRequest.student_wallet_address.toLowerCase() !== cleanStudentWallet) {
-        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} student wallet mismatch, attempted by ${cleanIssuerWallet}`);
-        return res.status(409).json(CERT_LOCK_MISMATCH);
-      }
-
-      // class_name is nullable (classes without a name) — nothing real to
-      // compare the title against, so any title is accepted in that case.
-      if (classRequest.class_name != null && String(title).trim() !== String(classRequest.class_name).trim()) {
-        console.warn(`[cert-lock] class_request_id ${parsedClassRequestId} title mismatch, attempted by ${cleanIssuerWallet}`);
-        return res.status(409).json(CERT_LOCK_MISMATCH);
-      }
-    }
-
-    // 4. Creación del certificado
-    const certificate = await Certificate.create({
-      student_wallet_address: cleanStudentWallet,
-      issuer_wallet_address: cleanIssuerWallet,
+    const result = await reserveCertificate({
+      models: db,
+      issuerWallet: req.auth.wallet,
+      studentWallet: student_wallet_address,
       title,
-      description: description || "Certificado Tokenizado HackChain",
-      certificate_hash,
-      blockchain_tx_hash,
-      issue_date,
-      token_id,
-      is_revoked: false,
-      class_request_id: parsedClassRequestId,
+      description,
+      classRequestId: parsedClassRequestId,
+      force: force === true,
     });
 
-    // 5. Auto-complete the class request when a certificate is issued for it
-    if (parsedClassRequestId) {
-      await db.ClassRequest.update(
-        { status: 'completed' },
-        {
-          where: {
-            id: parsedClassRequestId,
-            issuer_wallet_address: cleanIssuerWallet,
-            status: 'confirmed',
-          },
-        }
-      );
-    }
-
-    // 6. Notify talent — fire-and-forget, must not block the response
-    User.findOne({
-      where: { wallet_address: cleanStudentWallet },
-      attributes: ['email', 'name', 'lastname'],
-    }).then(studentUser => {
-      if (!studentUser?.email) return;
-      const studentName = [studentUser.name, studentUser.lastname].filter(Boolean).join(' ') || null;
-      return emailService.notifyTalentCertificateIssued({
-        to: studentUser.email,
-        studentName,
-        educatorName: issuer.organization_name || null,
-        certificateTitle: title || null,
-        dashboardUrl: `${process.env.FRONTEND_URL || 'https://www.hackchain.app'}/dashboard/talent`,
-      });
-    }).catch(err => console.error('[email] notifyTalentCertificateIssued failed:', err.message));
-
-
-    res.status(201).json({
-      message: "Certificado sincronizado con éxito",
-      id: certificate.id
-    });
-
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message, ...result.data });
+    return res.status(201).json(result.data);
   } catch (error) {
-    console.error("Error en la sincronización de DB:", error);
+    console.error("Error reserving certificate:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// POST /api/certificates/:id/finalize — completes a reserved certificate
+// with the real chain data once the on-chain mint has succeeded.
+router.post("/:id/finalize", authenticate, async (req, res) => {
+  if (req.auth.role !== 'issuer') {
+    return res.status(403).json({ error: "Only issuers can finalize certificates" });
+  }
+
+  try {
+    const { certificate_hash, blockchain_tx_hash, token_id, issue_date } = req.body;
+
+    const result = await finalizeCertificate({
+      models: db,
+      emailService,
+      id: req.params.id,
+      issuerWallet: req.auth.wallet,
+      certificateHash: certificate_hash,
+      blockchainTxHash: blockchain_tx_hash,
+      tokenId: token_id,
+      issueDate: issue_date,
+    });
+
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.status(200).json({ message: "Certificado sincronizado con éxito", id: result.data.id });
+  } catch (error) {
+    console.error("Error finalizing certificate:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
