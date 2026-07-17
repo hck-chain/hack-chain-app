@@ -325,7 +325,12 @@
     "downloadSuccessDesc": "Vista previa del certificado descargada exitosamente.",
     "downloadError": "Error al descargar la vista previa del certificado.",
     "errorLoad": "Error al cargar la lista de talentos.",
-    "errorUnexpected": "Ocurrió un error inesperado"
+    "errorUnexpected": "Ocurrió un error inesperado",
+    "duplicateTitle": "Este certificado ya existe",
+    "duplicateDescPrefix": "Ya se emitió un certificado igual para este talento el",
+    "duplicateDescSuffix": ". ¿Deseas emitirlo de nuevo de todas formas?",
+    "duplicateCancel": "Cancelar",
+    "duplicateConfirm": "Emitir de todas formas"
   },
   "registerLanding": {
     "backHome": "Volver al Inicio",

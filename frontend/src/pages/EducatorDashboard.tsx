@@ -16,7 +16,17 @@ import {
 } from "@/components/ui/select";
 import CertificateCard from '@/components/CertificateCard/CertificateCard';
 import html2canvas from 'html2canvas'; // ✅ Volvemos a html2canvas
-import { useCreateCertificate } from '@/hooks/useCreateCertificate';
+import { useCreateCertificate, type DuplicateCertificateInfo } from '@/hooks/useCreateCertificate';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell, User } from 'lucide-react';
 import { usePendingClassRequestsCount } from '@/hooks/usePendingClassRequestsCount';
@@ -181,8 +191,9 @@ const EducatorDashboard = () => {
   const [certificatesIssued, setCertificatesIssued] = useState<number>(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const { createCertificate, isLoading } = useCreateCertificate();
+  const { reserveCertificate, createCertificate, isLoading } = useCreateCertificate();
   const [isMinting, setIsMinting] = useState(false);
+  const [duplicateCertificate, setDuplicateCertificate] = useState<DuplicateCertificateInfo | null>(null);
   const { toast } = useToast();
   const { data: pendingData } = usePendingClassRequestsCount();
   const pendingRequestsCount = pendingData?.count ?? 0;
@@ -352,22 +363,13 @@ const EducatorDashboard = () => {
     }
   }, [talents]);
 
-  const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-
-    if (isMinting) return;
-
-    if (!userData?.walletAddress) {
-      toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
-      navigate('/login');
-      return;
-    }
-
-    if (!form.certificateTitle || !form.talentName || !form.issuer || !form.talentWallet) {
-      toast({ title: "Error", description: t('educatorDashboard.fillFields'), variant: "destructive" });
-      return;
-    }
-
+  /**
+   * Renders the certificate image, mints on-chain, and finalizes the
+   * reservation identified by certificateId. Only ever called after a
+   * reservation already exists — see handleCreateCertificate and
+   * handleConfirmDuplicateIssuance.
+   */
+  const proceedWithIssuance = async (certificateId: number) => {
     setIsMinting(true);
     try {
       const container = cardRef.current;
@@ -429,10 +431,9 @@ const EducatorDashboard = () => {
         professorName: form.issuer,
         issueDate: form.issueDate,
         imageUri: realImageCID,
-        classRequestId,
       };
 
-      const success = await createCertificate(certificateData, userData.walletAddress);
+      const success = await createCertificate(certificateData, userData.walletAddress, certificateId);
 
       if (success) {
         toast({
@@ -474,6 +475,74 @@ const EducatorDashboard = () => {
       });
     } finally {
       setIsMinting(false);
+    }
+  };
+
+  /**
+   * Entry point for the "Issue certificate" button. Reserves the certificate
+   * — before any image render or blockchain interaction — so a duplicate can
+   * be caught and confirmed *before* spending any gas, not after minting a
+   * second NFT that then fails to save.
+   */
+  const handleCreateCertificate = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+
+    if (isMinting) return;
+
+    if (!userData?.walletAddress) {
+      toast({ title: "Error", description: t('educatorDashboard.noWallet'), variant: "destructive" });
+      navigate('/login');
+      return;
+    }
+
+    if (!form.certificateTitle || !form.talentName || !form.issuer || !form.talentWallet) {
+      toast({ title: "Error", description: t('educatorDashboard.fillFields'), variant: "destructive" });
+      return;
+    }
+
+    try {
+      const outcome = await reserveCertificate({
+        talentWallet: form.talentWallet,
+        courseName: form.certificateTitle,
+        classRequestId,
+      });
+
+      if (!outcome.reserved) {
+        setDuplicateCertificate(outcome.duplicate);
+        return;
+      }
+
+      await proceedWithIssuance(outcome.id);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || t('educatorDashboard.errorUnexpected'),
+        variant: "destructive",
+      });
+    }
+  };
+
+  /**
+   * Confirms issuing a certificate the educator was warned is a duplicate.
+   * Re-reserves with force so the DB row exists before minting, same as the
+   * normal path — the only difference is the duplicate check is skipped.
+   */
+  const handleConfirmDuplicateIssuance = async () => {
+    setDuplicateCertificate(null);
+    try {
+      const outcome = await reserveCertificate(
+        { talentWallet: form.talentWallet, courseName: form.certificateTitle, classRequestId },
+        true,
+      );
+      if (outcome.reserved) {
+        await proceedWithIssuance(outcome.id);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || t('educatorDashboard.errorUnexpected'),
+        variant: "destructive",
+      });
     }
   };
 
@@ -1044,6 +1113,27 @@ const EducatorDashboard = () => {
           </motion.main>
         </div>
       </Layout>
+
+      <AlertDialog open={!!duplicateCertificate} onOpenChange={(open) => !open && setDuplicateCertificate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('educatorDashboard.duplicateTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('educatorDashboard.duplicateDescPrefix')}{' '}
+              {duplicateCertificate?.issue_date}
+              {t('educatorDashboard.duplicateDescSuffix')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDuplicateCertificate(null)}>
+              {t('educatorDashboard.duplicateCancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDuplicateIssuance}>
+              {t('educatorDashboard.duplicateConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

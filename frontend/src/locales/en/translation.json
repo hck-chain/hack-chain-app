@@ -325,7 +325,12 @@
     "downloadSuccessDesc": "Certificate preview downloaded successfully.",
     "downloadError": "Failed to download certificate preview.",
     "errorLoad": "Failed to load talent list.",
-    "errorUnexpected": "An unexpected error occurred"
+    "errorUnexpected": "An unexpected error occurred",
+    "duplicateTitle": "This certificate already exists",
+    "duplicateDescPrefix": "An identical certificate was already issued to this talent on",
+    "duplicateDescSuffix": ". Do you want to issue it again anyway?",
+    "duplicateCancel": "Cancel",
+    "duplicateConfirm": "Issue anyway"
   },
   "registerLanding": {
     "backHome": "Back to Home",

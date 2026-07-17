@@ -32,9 +32,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true
     },
     certificate_hash: {
+      // Nullable: a certificate is reserved (status: 'pending') before it has
+      // real chain data — see usecases/certificates/reserveCertificate.js.
       type: DataTypes.STRING(128),
       unique: true,
-      allowNull: false
+      allowNull: true
     },
     blockchain_tx_hash: {
       type: DataTypes.STRING(128),
@@ -42,11 +44,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     token_id: {
       type: DataTypes.STRING(78),
-      allowNull: false
+      allowNull: true
     },
     issue_date: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: true
     },
     is_revoked: {
       type: DataTypes.BOOLEAN,

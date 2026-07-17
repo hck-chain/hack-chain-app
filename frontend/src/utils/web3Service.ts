@@ -765,7 +765,7 @@ export const web3Service = {
         courseName: string,
         tokenUri: string,
         issuerWallet: string,
-        classRequestId?: number | null
+        certificateId: number
     ): Promise<boolean> => {
         const walletProvider = appKit.getWalletProvider();
         if (!walletProvider) return false;
@@ -803,18 +803,15 @@ export const web3Service = {
             const tokenId = transferEvent.args.tokenId.toString() ?? '0';
 
 
-            // Guardar en la base de datos
+            // Finalize the certificate that was already reserved before minting —
+            // this only ever updates that row, it never creates a new one, which
+            // is what makes an orphaned duplicate NFT impossible.
             const issue_date = new Date().toISOString().split('T')[0];
-            await api.post('/api/certificates/database', {
-                student_wallet_address: talentWallet.toLowerCase(),
-                issuer_wallet_address: issuerWallet,
-                title: courseName,
-                description: "Tokenized HackChain Certificate",
+            await api.post(`/api/certificates/${certificateId}/finalize`, {
                 certificate_hash: tokenUri,
                 blockchain_tx_hash: tx.hash,
                 token_id: tokenId,
                 issue_date,
-                ...(classRequestId != null ? { class_request_id: classRequestId } : {}),
             });
 
             // alert("Certificate minted and saved successfully!");

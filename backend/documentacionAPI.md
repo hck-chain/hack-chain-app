@@ -268,6 +268,7 @@ Sube los metadatos de un certificado a IPFS mediante Pinata y retorna el CID gen
 | `professor` | `string` | ✅ | Nombre del profesor |
 | `date` | `string` | ✅ | Fecha de emisión |
 | `imageCID` | `string` | ✅ | CID de la imagen del certificado ya subida a IPFS |
+| `certificateId` | `number` | ❌ | ID de la reserva creada por `POST /api/certificates/reserve`. Si se envía, se agrega como atributo `"Certificate ID"` en los metadatos — garantiza que dos certificados con el mismo contenido nunca generen el mismo `certificate_hash` (IPFS es determinístico por contenido), lo cual es necesario para poder reemitir un certificado idéntico tras confirmar el aviso de duplicado |
 
 **Respuestas**
 
@@ -404,29 +405,34 @@ Obtiene los metadatos de un certificado almacenado en IPFS mediante su CID.
 
 ---
 
-### POST `/api/certificates/database`
+### POST `/api/certificates/reserve`
 
-Registra un certificado ya emitido en blockchain dentro de la base de datos. Valida que el emisor esté registrado como autorizado.
+Reserva un certificado (fila con `status: 'pending'`, sin datos de blockchain todavía) antes de
+generar la imagen o mintear el NFT. Reemplaza al antiguo `POST /api/certificates/database`, que
+guardaba el certificado *después* del minteo — si el guardado fallaba (columna faltante, red,
+etc.), el NFT ya minteado quedaba huérfano sin fila en la base de datos. Con este endpoint la fila
+siempre existe antes de tocar la blockchain.
+
+También valida duplicados: si ya existe un certificado `status: 'issued'` con el mismo emisor,
+estudiante y título, responde `409` con los datos del certificado existente en vez de reservar,
+salvo que se envíe `force: true`.
 
 **Headers**
 
 | Header | Valor |
 |---|---|
 | `Content-Type` | `application/json` |
+| `Authorization` | `Bearer <access_token>` (solo issuer) |
 
 **Body**
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
 | `student_wallet_address` | `string` | ✅ | Wallet del estudiante (`0x...`) |
-| `issuer_wallet_address` | `string` | ✅ | Wallet del emisor autorizado (`0x...`) |
 | `title` | `string` | ✅ | Título del certificado |
 | `description` | `string` | ❌ | Descripción (por defecto: `"Certificado Tokenizado HackChain"`) |
-| `certificate_hash` | `string` | ❌ | Hash del contenido del certificado |
-| `blockchain_tx_hash` | `string` | ❌ | Hash de la transacción en blockchain |
-| `token_id` | `string` \| `number` | ❌ | ID del token NFT |
-| `issue_date` | `string` | ❌ | Fecha de emisión |
 | `class_request_id` | `number` | ❌ | ID de la `ClassRequest` de la que proviene el certificado (clase personalizada completada) |
+| `force` | `boolean` | ❌ | Si es `true`, omite el chequeo de duplicados y reserva de todas formas |
 
 Cuando se envía `class_request_id`, el servidor valida contra la `ClassRequest` real: que
 pertenezca al emisor autenticado, que `student_wallet_address` coincida, y que `title` coincida
@@ -440,10 +446,63 @@ servidor para detección de abuso.
 
 | Código | Descripción |
 |---|---|
-| `201` | Certificado registrado correctamente |
+| `201` | Reserva creada correctamente |
 | `400` | Campos obligatorios faltantes o wallet inválida |
 | `404` | Emisor no registrado como autorizado |
-| `409` | `class_request_id` no coincide (inexistente, de otro emisor, o datos que no coinciden) |
+| `409` | `class_request_id` no coincide, o ya existe un certificado igual (`DUPLICATE_CERTIFICATE`) |
+| `500` | Error interno del servidor |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "id": 7
+}
+```
+
+**Ejemplo de respuesta 409 por duplicado**
+
+```json
+{
+  "error": "Ya existe un certificado igual para este estudiante y curso",
+  "existing": { "id": 3, "token_id": "31", "issue_date": "2026-07-16" }
+}
+```
+
+---
+
+### POST `/api/certificates/:id/finalize`
+
+Finaliza una reserva creada por `POST /api/certificates/reserve`, una vez que el mint on-chain se
+completó. Actualiza la misma fila (nunca crea una nueva) con los datos reales de blockchain y
+cambia `status` a `'issued'`. Si la reserva ya estaba `'issued'`, responde `200` de forma
+idempotente sin volver a escribir — evita duplicar el efecto ante un reintento de red. También
+completa automáticamente la `ClassRequest` vinculada (si existe) y notifica por correo al talento.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Content-Type` | `application/json` |
+| `Authorization` | `Bearer <access_token>` (debe ser el mismo issuer que hizo la reserva) |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `certificate_hash` | `string` | ✅ | Hash del contenido del certificado (URI de IPFS) |
+| `blockchain_tx_hash` | `string` | ✅ | Hash de la transacción en blockchain |
+| `token_id` | `string` \| `number` | ✅ | ID del token NFT |
+| `issue_date` | `string` | ✅ | Fecha de emisión |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Certificado finalizado correctamente (o ya estaba finalizado) |
+| `400` | Faltan datos de blockchain requeridos |
+| `403` | El emisor autenticado no es quien reservó el certificado |
+| `404` | La reserva no existe |
 | `500` | Error interno del servidor |
 
 **Ejemplo de respuesta exitosa**
