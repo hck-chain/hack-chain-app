@@ -633,7 +633,7 @@ no es público.
 
 | Parámetro | Tipo | Descripción |
 |---|---|---|
-| `id` | `number` | ID del certificado en la base de datos |
+| `id` | `string` | `token_id` del NFT (el campo `identifier` que devuelve `POST /api/opensea/certificates/`) — **no** el `Certificate.id` interno de la base de datos, que el frontend nunca recibe |
 
 **Autenticación**: Requerida — Bearer token o cookie de sesión; la wallet autenticada debe
 coincidir (case-insensitive) con `student_wallet_address` del certificado.

@@ -586,11 +586,15 @@ router.get("/database/:id", async (req, res) => {
 });
 
 // POST /api/certificates/:id/share
+// `:id` is the NFT token_id (OpenSea's `identifier`), not the DB primary key —
+// the talent dashboard only ever has the OpenSea-shaped certificate object
+// (from POST /api/opensea/certificates/), which has no way to know our
+// internal Certificate.id.
 router.post("/:id/share", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const certificate = await Certificate.findByPk(id);
+    const certificate = await Certificate.findOne({ where: { token_id: String(id) } });
     if (!certificate) {
       return res.status(404).json({ error: "Certificate not found" });
     }
