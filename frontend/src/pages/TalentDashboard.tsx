@@ -28,6 +28,7 @@ import type { TalentInfo } from '@/types/dashboard';
 import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 import { useMyClassRequests, type MyClassRequest } from '@/hooks/useMyClassRequests';
 import { useCertificateEvents } from '@/hooks/useCertificateEvents';
+import  { ShareButton } from '@/components/ShareButton';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -99,10 +100,12 @@ function TrayectoriaSection({ wallet }: { wallet: string }) {
       </div>
     );
   }
-
+  
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {certificates.map((cert, idx) => (
+      {certificates.map((cert, idx) => { 
+        const openSeaUrl = `https://opensea.io/assets/polygon/${cert.contract}/${cert.identifier}`;
+        return (
         <motion.div
           key={`${cert.contract}-${cert.identifier}`}
           initial={{ opacity: 0, y: 16 }}
@@ -119,7 +122,7 @@ function TrayectoriaSection({ wallet }: { wallet: string }) {
               loading="lazy"
             />
           </div>
-          <div className="p-2 flex justify-center">
+          <div className="p-2 flex items-center justify-center gap-2">
             <button
               onClick={() => viewOnOpenSea(cert.contract, cert.identifier)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg shadow transition-[transform,opacity] duration-200 active:scale-95"
@@ -133,9 +136,18 @@ function TrayectoriaSection({ wallet }: { wallet: string }) {
               {t('talentDashboard.viewOnOpenSea')}
               <ExternalLink className="h-2.5 w-2.5 opacity-70" />
             </button>
+            <ShareButton
+                url={openSeaUrl}
+                displayName={cert.name || t('talentDashboard.certificate')}
+                qrCaption={t('shareCertificate.scanCertificate', {name: cert.name,})}
+                shareText={t('shareCertificate.shareText')}
+                variant="gradient"
+                onShare={() => api.registerCertificateShare(cert.identifier)}
+                />
           </div>
         </motion.div>
-      ))}
+      );
+    })}
     </div>
   );
 }

@@ -267,11 +267,17 @@
     "subtitle": "Gestiona tus talentos de manera eficiente y dales seguimiento.",
     "welcome": "Bienvenido,",
     "totalCandidates": "Total de Candidatos",
+    "talentsAvailable": "Talentos en la Plataforma",
     "walletLabel": "WALLET",
     "logout": "Cerrar sesión",
     "recruiterFallback": "Reclutador",
-    "errorLoad": "Error al cargar reclutador o talentos.",
+    "errorLoad": "Error al cargar talentos.",
+    "errorLoadHint": "Inténtalo nuevamente en unos momentos.",
     "registered": "Registrado:",
+    "admin": "Admin",
+    "adminPanel": "Panel de Administración",
+    "noTalents": "No se encontraron talentos",
+    "noTalentsHint": "Los nuevos talentos aparecerán aquí una vez que se registren en la plataforma.",
     "certificate_one": "{{count}} Certificado",
     "certificate_other": "{{count}} Certificados"
   },
@@ -1029,13 +1035,19 @@
     "emptyEducator": "Aún no tenés clases agendadas.",
     "myCalendar": "Mi Calendario"
   },
-    "shareProfile": {
+    "share": {
+    "shareButton": "Compartir",
     "title": "Compartir perfil",
     "shareVia": "Compartir mediante",
     "profileLink": "Enlace del perfil",
     "qrCode": "Código QR",
     "retry": "Reintentar",
     "couldNotLoadQr": "No se pudo cargar el código QR",
-    "scanProfile": "Escanea para ver el perfil de"
-  }
+    "scanProfile": "Escanea para ver el perfil de {{name}}"
+  },
+  "shareCertificate": {
+  "title": "Compartir certificado",
+  "shareText": "Mira mi certificado en HackChain",
+  "scanCertificate": "Escanea para ver {{name}}"
+}
 }

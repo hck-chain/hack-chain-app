@@ -2,7 +2,7 @@ import { Check, Copy, Linkedin, MessageCircleMore, RefreshCw, Share2, Twitter } 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { P } from '@/components/profile/palette';
-import { useShareProfile } from '@/hooks/useShareProfile';
+import { useShare } from '@/hooks/useShare';
 import { CopyButton } from '@/components/CopyButton';
 import { useTranslation } from 'react-i18next'
 import {
@@ -11,15 +11,26 @@ import {
 } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 
-interface ShareProfileButtonProps {
-  profileUrl: string;
+interface ShareButtonProps {
+  url: string;
   displayName: string;
-  issuerWallet: string;
+  shareText: string;
+  qrCaption: string;
+  variant?: "outline" | "gradient";
+  onShare?: () => void;
 }
 
+const buttonStyles = {
+  outline:
+    "inline-flex h-[34px] min-h-[34px] items-center justify-center gap-1.5 rounded-md px-3 text-[11px] font-mono tracking-wide whitespace-nowrap cursor-pointer select-none [&_svg]:text-purple-800 [&_svg]:size-3",
 
-export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: ShareProfileButtonProps) {
-  const share = useShareProfile(profileUrl, displayName, issuerWallet);
+  gradient:
+    "!h-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white text-xs font-semibold shadow transition-[transform,opacity] duration-200 active:scale-95 [&_svg]:text-white [&_svg]:size-3",
+};
+
+export function ShareButton({ url, displayName, qrCaption, shareText, variant, onShare }: ShareButtonProps) {
+  const { t } = useTranslation();
+  const share = useShare({ url, shareText, onShare });
   
   const shareActions = [
     { key: 'whatsapp', label: 'WhatsApp', icon: <FaWhatsapp className="w-6 h-6 text-green-500" />, href: share.shareLinks.whatsapp },
@@ -27,20 +38,26 @@ export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: Sh
     { key: 'twitter', label: 'Twitter / X', icon: <FaXTwitter className="w-6 h-6 text-white" />, href: share.shareLinks.twitter },
   ];
   
-  const { t } = useTranslation();
 
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="outline"
-          className="inline-flex h-[34px] min-h-[34px] items-center justify-center gap-1.5 rounded-md px-3 text-[11px] font-mono tracking-wide whitespace-nowrap cursor-pointer select-none"
-          style={{ borderColor: P.border, color: P.textSecondary, backgroundColor: P.surface }}
-          aria-label="Share profile"
+          variant={variant === "outline" ? "outline" : undefined}
+          className={buttonStyles[variant]}
+          style={
+              variant === "outline"
+                  ? {
+                        borderColor: P.border,
+                        color: P.textSecondary,
+                        backgroundColor: P.surface,
+                    }
+                  : undefined
+          }
         >
-          <Share2 className="h-3 w-3 text-purple-800" />
-          {t('Share')}
+          <Share2 />
+          {t('share.shareButton')} 
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg rounded-2xl border-0 p-0 overflow-hidden"
@@ -49,15 +66,15 @@ export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: Sh
       >
         <DialogHeader className="px-6 pt-6 pb-3">
           <DialogTitle className="text-left text-xl font-semibold tracking-tight text-white" style={{ color: P.textPrimary }}>
-            {t('shareProfile.title')}
+            {t('share.title')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="px-6 pb-6 space-y-4 min-w-0">
-          <CopyLinkCard profileUrl={profileUrl} onLinkCopy={share.handleLinkCopy} t={t} />
+          <CopyLinkCard url={url} onLinkCopy={share.handleLinkCopy} t={t} />
           <div>
             <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">
-              {t('shareProfile.shareVia')}
+              {t('share.shareVia')}
             </label>
             <div className="flex justify-center gap-6 mt-8">
               {shareActions.map((action) => (
@@ -88,6 +105,7 @@ export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: Sh
             qrUrl={share.qrUrl}
             qrStatus={share.qrStatus}
             displayName={displayName}
+            qrCaption={qrCaption}
             t={t}
             onLoad={share.handleQrLoad}
             onError={share.handleQrError}
@@ -101,23 +119,23 @@ export function ShareProfileButton({ profileUrl, displayName, issuerWallet }: Sh
 
 
 interface CopyLinkCardProps {
-  profileUrl: string;
+  url: string;
   onLinkCopy: () => void;
   t: (key: string) => string;
 }
 
 
-function CopyLinkCard({ profileUrl, onLinkCopy, t }: CopyLinkCardProps) {
+function CopyLinkCard({ url, onLinkCopy, t }: CopyLinkCardProps) {
   return (
     <div>
       <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-2 block">
-        {t('shareProfile.profileLink')}
+        {t('share.profileLink')}
       </label>
       <div className="flex items-center gap-3 bg-black/40 rounded-2xl p-3 pl-5 border border-white/5">
-        <span className="truncate text-sm sm:text-base text-slate-300 font-mono flex-1 min-w-0">{profileUrl}</span>
+        <span className="truncate text-sm sm:text-base text-slate-300 font-mono flex-1 min-w-0">{url}</span>
         {/* onLinkCopy rides the native click bubble from CopyButton without modifying that shared component */}
         <div onClick={onLinkCopy} className="contents">
-          <CopyButton value={profileUrl} className="bg-white/5 hover:bg-white/10 text-white rounded-xl" />
+          <CopyButton value={url} className="bg-white/5 hover:bg-white/10 text-white rounded-xl" />
         </div>
       </div>
     </div>
@@ -128,6 +146,7 @@ function CopyLinkCard({ profileUrl, onLinkCopy, t }: CopyLinkCardProps) {
 interface QrCodeCardProps {
   qrUrl: string;
   qrStatus: 'loading' | 'success' | 'error';
+  qrCaption: string;
   displayName: string;
   t: (key: string) => string;
   onLoad: () => void;
@@ -135,16 +154,16 @@ interface QrCodeCardProps {
   onRetry: () => void;
 }
 
- function QrCodeCard({ qrUrl, qrStatus, displayName, t, onLoad, onError, onRetry }: QrCodeCardProps) {
+ function QrCodeCard({ qrUrl, qrStatus, qrCaption, displayName, t, onLoad, onError, onRetry }: QrCodeCardProps) {
   return (
     <div className="bg-black/40 rounded-2xl border border-white/5 p-4 text-center">
       <label className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-3 block">
-        {t('shareProfile.qrCode')}
+        {t('share.qrCode')}
       </label>
-      <QrCodeFrame qrUrl={qrUrl} qrStatus={qrStatus} displayName={displayName} t ={t} onLoad={onLoad} onError={onError} onRetry={onRetry} />
+      <QrCodeFrame qrUrl={qrUrl} qrStatus={qrStatus} qrCaption={qrCaption} displayName={displayName} t ={t} onLoad={onLoad} onError={onError} onRetry={onRetry} />
       {qrStatus === 'success' && (
         <>
-          <p className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-3 block"> {t('shareProfile.scanProfile')} {displayName}</p>
+          <p className="font-body text-[10px] uppercase tracking-[0.22em] text-white/40 font-bold mb-3 block"> {qrCaption} </p>
         </>
       )
     }
@@ -159,14 +178,14 @@ function QrCodeFrame({ qrUrl, qrStatus, displayName, t, onLoad, onError, onRetry
 
       {qrStatus === 'error' && (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-slate-500">
-          <span>{t('shareProfile.couldNotLoadQr')}</span>
+          <span>{t('share.couldNotLoadQr')}</span>
           <button
             type="button"
             onClick={onRetry}
             className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 transition-colors hover:bg-slate-200"
           >
             <RefreshCw className="h-3 w-3" />
-            {t('shareProfile.retry')}
+            {t('share.retry')}
           </button>
         </div>
       )}

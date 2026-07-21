@@ -1,57 +1,53 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import {
   buildShareUrl,
   buildShareLinks,
   createQrDataUrl,
-  useShareProfile,
-} from '@/hooks/useShareProfile';
-
-import { api } from '@/services/api';
-
-vi.mock('@/services/api', () => ({
-  api: {
-    registerProfileShare: vi.fn(),
-  },
-}));
-
-const mockedApi = vi.mocked(api);
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+  useShare,
+} from '@/hooks/useShare';
 
 describe('buildShareUrl', () => {
   const profileUrl = 'https://example.com/profile/ada';
-  const displayName = 'Ada';
+  const shareText = "Check out Ada's profile on HackChain";
 
   it('builds the WhatsApp share URL', () => {
-    const url = buildShareUrl('whatsapp', profileUrl, displayName);
+    const url = buildShareUrl('whatsapp', profileUrl, shareText);
 
     expect(url.startsWith('https://wa.me/?text=')).toBe(true);
     expect(url).toContain(encodeURIComponent(profileUrl));
   });
 
   it('builds the LinkedIn share URL', () => {
-    const url = buildShareUrl('linkedin', profileUrl, displayName);
+    const url = buildShareUrl('linkedin', profileUrl, shareText);
 
-    expect(url.startsWith('https://www.linkedin.com/sharing/share-offsite/?url=')).toBe(true);
+    expect(
+      url.startsWith(
+        'https://www.linkedin.com/sharing/share-offsite/?url=',
+      ),
+    ).toBe(true);
+
     expect(url).toContain(encodeURIComponent(profileUrl));
   });
 
   it('builds the Twitter share URL', () => {
-    const url = buildShareUrl('twitter', profileUrl, displayName);
+    const url = buildShareUrl('twitter', profileUrl, shareText);
 
-    expect(url.startsWith('https://twitter.com/intent/tweet?text=')).toBe(true);
+    expect(
+      url.startsWith('https://twitter.com/intent/tweet?text='),
+    ).toBe(true);
+
     expect(url).toContain(encodeURIComponent(profileUrl));
   });
 });
 
 describe('buildShareLinks', () => {
+  const shareText = "Check out Ada's profile on HackChain";
+
   it('returns share links for every supported platform', () => {
     const links = buildShareLinks(
       'https://example.com/profile/ada',
-      'Ada',
+      shareText,
     );
 
     expect(links.whatsapp).toContain('wa.me');
@@ -63,11 +59,19 @@ describe('buildShareLinks', () => {
     const profileUrl =
       'https://example.com/profile/Ada Lovelace?tab=certificates';
 
-    const links = buildShareLinks(profileUrl, 'Ada Lovelace');
+    const links = buildShareLinks(profileUrl, shareText);
 
-    expect(links.whatsapp).toContain(encodeURIComponent(profileUrl));
-    expect(links.linkedin).toContain(encodeURIComponent(profileUrl));
-    expect(links.twitter).toContain(encodeURIComponent(profileUrl));
+    expect(links.whatsapp).toContain(
+      encodeURIComponent(profileUrl),
+    );
+
+    expect(links.linkedin).toContain(
+      encodeURIComponent(profileUrl),
+    );
+
+    expect(links.twitter).toContain(
+      encodeURIComponent(profileUrl),
+    );
   });
 });
 
@@ -91,7 +95,9 @@ describe('createQrDataUrl', () => {
   it('includes the encoded profile URL', () => {
     const url = createQrDataUrl(profileUrl, 0);
 
-    expect(url).toContain(encodeURIComponent(profileUrl));
+    expect(url).toContain(
+      encodeURIComponent(profileUrl),
+    );
   });
 
   it('includes the cache-busting parameter', () => {
@@ -107,14 +113,16 @@ describe('createQrDataUrl', () => {
   });
 });
 
-describe('useShareProfile', () => {
+describe('useShare', () => {
+  const defaultProps = {
+    url: 'https://example.com/profile/ada',
+    displayName: 'Ada',
+    shareText: "Check out Ada's profile on HackChain",
+  };
+
   it('sets the QR status to success when handleQrLoad is called', () => {
     const { result } = renderHook(() =>
-      useShareProfile(
-        'https://example.com/profile/ada',
-        'Ada',
-        '0xabc',
-      ),
+      useShare(defaultProps),
     );
 
     expect(result.current.qrStatus).toBe('loading');
@@ -125,81 +133,86 @@ describe('useShareProfile', () => {
 
     expect(result.current.qrStatus).toBe('success');
   });
-});
 
-it('sets the QR status to error when handleQrError is called', () => {
-  const { result } = renderHook(() =>
-    useShareProfile(
-      'https://example.com/profile/ada',
-      'Ada',
-      '0xabc',
-    ),
-  );
+  it('sets the QR status to error when handleQrError is called', () => {
+    const { result } = renderHook(() =>
+      useShare(defaultProps),
+    );
 
-  expect(result.current.qrStatus).toBe('loading');
+    expect(result.current.qrStatus).toBe('loading');
 
-  act(() => {
-    result.current.handleQrError();
+    act(() => {
+      result.current.handleQrError();
+    });
+
+    expect(result.current.qrStatus).toBe('error');
   });
 
-  expect(result.current.qrStatus).toBe('error');
-});
+  it('retries the QR by resetting the status and changing the QR URL', () => {
+    const { result } = renderHook(() =>
+      useShare(defaultProps),
+    );
 
-it('retries the QR by resetting the status and changing the QR URL', () => {
-  const { result } = renderHook(() =>
-    useShareProfile(
-      'https://example.com/profile/ada',
-      'Ada',
-      '0xabc',
-    ),
-  );
+    const initialQrUrl = result.current.qrUrl;
 
-  const initialQrUrl = result.current.qrUrl;
+    act(() => {
+      result.current.handleQrError();
+    });
 
-  act(() => {
-    result.current.handleQrError();
+    expect(result.current.qrStatus).toBe('error');
+
+    act(() => {
+      result.current.retryQr();
+    });
+
+    expect(result.current.qrStatus).toBe('loading');
+    expect(result.current.qrUrl).not.toBe(initialQrUrl);
   });
 
-  expect(result.current.qrStatus).toBe('error');
+  it('calls onShare when copying the link', () => {
+    const onShare = vi.fn();
 
-  act(() => {
-    result.current.retryQr();
+    const { result } = renderHook(() =>
+      useShare({
+        ...defaultProps,
+        onShare,
+      }),
+    );
+
+    act(() => {
+      result.current.handleLinkCopy();
+    });
+
+    expect(onShare).toHaveBeenCalledTimes(1);
   });
 
-  expect(result.current.qrStatus).toBe('loading');
-  expect(result.current.qrUrl).not.toBe(initialQrUrl);
-});
+  it('calls onShare when opening a social link', () => {
+    const onShare = vi.fn();
 
-it('registers a profile share when copying the link', () => {
-  const { result } = renderHook(() =>
-    useShareProfile(
-      'https://example.com/profile/ada',
-      'Ada',
-      '0xabc',
-    ),
-  );
+    const { result } = renderHook(() =>
+      useShare({
+        ...defaultProps,
+        onShare,
+      }),
+    );
 
-  act(() => {
-    result.current.handleLinkCopy();
+    act(() => {
+      result.current.handleSocialClick();
+    });
+
+    expect(onShare).toHaveBeenCalledTimes(1);
   });
 
-  expect(mockedApi.registerProfileShare).toHaveBeenCalledWith('0xabc');
-  expect(mockedApi.registerProfileShare).toHaveBeenCalledTimes(1);
-});
+  it('does not throw when onShare is undefined', () => {
+    const { result } = renderHook(() =>
+      useShare(defaultProps),
+    );
 
-it('registers a profile share when opening a social link', () => {
-  const { result } = renderHook(() =>
-    useShareProfile(
-      'https://example.com/profile/ada',
-      'Ada',
-      '0xabc',
-    ),
-  );
-
-  act(() => {
-    result.current.handleSocialClick();
+    expect(() => {
+      act(() => {
+        result.current.handleLinkCopy();
+        result.current.handleSocialClick();
+      });
+    }).not.toThrow();
   });
-
-  expect(mockedApi.registerProfileShare).toHaveBeenCalledWith('0xabc');
-  expect(mockedApi.registerProfileShare).toHaveBeenCalledTimes(1);
 });

@@ -15,33 +15,75 @@ import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { ReferralsSection } from '@/components/dashboard/ReferralsSection';
 import { appKit } from '@/config/walletConfig';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+import { useRecruiterDashboard } from '@/hooks/useRecruiterDashboard';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Users, AlertTriangle } from "lucide-react";
 const HackChainLogo = '/images/logoHackchain2.webp';
 
-interface Recruiter {
-    wallet_address: string;
-    name: string;
-    role: string;
-    total_talents?: number;
+function RecruiterCardSkeleton() {
+    return (
+        <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-6">
+            <Skeleton className="h-6 w-40 mb-3" />
+            <Skeleton className="h-4 w-20 mb-6" />
+
+            <div className="flex gap-2 mb-4">
+                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+
+            <Skeleton className="h-4 w-32" />
+        </div>
+    );
 }
 
-interface TalentSummary {
-    id: number;
-    wallet_address: string;
-    field_of_study: string;
-    created_at: string;
-    is_active: boolean;
-    name: string;
-    total_certificates?: number;
+function RecruiterEmptyState() {
+    const { t } = useTranslation();
+
+    return (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                <Users className="h-10 w-10 mb-3 opacity-30" />
+
+                <p className="font-body text-base">
+                    {t("recruiterDashboard.noTalents")}
+                </p>
+
+                <p className="font-body text-sm mt-1 text-center">
+                    {t("recruiterDashboard.noTalentsHint")}
+                </p>
+            </div>
+    );
+}
+
+function RecruiterErrorState() {
+    const { t } =useTranslation();
+
+    return (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+                <AlertTriangle className="h-10 w-10 text-red-400 mb-4" />
+
+                <p className="text-lg font-semibold text-white">
+                    {t("recruiterDashboard.errorLoad")}
+                </p>
+
+                <p className="text-slate-400 mt-2">
+                    {t("recruiterDashboard.errorLoadHint")}
+                </p>
+            </div>
+    );
 }
 
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { toast } = useToast();
-    const [recruiter, setRecruiter] = useState<Recruiter | null>(null);
     const [copiedWallet, setCopiedWallet] = useState(false);
-    const [talents, setTalents] = useState<TalentSummary[]>([]);
-    const [loading, setLoading] = useState(true);
+
+    const {
+        recruiter,
+        talents,
+        loading,
+        error,
+    } = useRecruiterDashboard();
 
     useSessionTimeout({
         onExpired: () => {
@@ -53,47 +95,8 @@ const RecruiterDashboard = () => {
         },
     });
 
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const data = await api.get<{ user: any; modelName: string }>('/api/auth/me');
-                setRecruiter({
-                    wallet_address: data.user.wallet_address,
-                    name: data.user.name,
-                    role: data.user.role,
-                });
-
-                // Fetch talents
-                const dataTalents = await api.get<{ students: any[] }>('/api/students');
-
-                const talentsMapped: TalentSummary[] = dataTalents.students.map((s: any) => ({
-                    id: s.id,
-                    wallet_address: s.wallet_address,
-                    field_of_study: s.field_of_study || 'N/A',
-                    created_at: s.created_at,
-                    is_active: s.user.is_active,
-                    name: `${s.user.name} ${s.user.lastname || ''}`,
-                    total_certificates: s.total_certificates || 0,
-                }));
-                talentsMapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-                setTalents(talentsMapped);
-                setRecruiter(prev => prev ? { ...prev, total_talents: talentsMapped.length } : null);
-            } catch (err) {
-                console.error(err);
-                toast({
-                    title: 'Error',
-                    description: t('recruiterDashboard.errorLoad'),
-                    variant: 'destructive',
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadData();
-    }, [toast]);
-
+    
+    
     const queryClient = useQueryClient();
     const { logout } = useAuth();
     const { isAdmin } = useAdminAccess();
@@ -218,8 +221,8 @@ const RecruiterDashboard = () => {
                                                     <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-blue-500/5 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-colors">
                                                         <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] mt-0.5 flex-shrink-0" />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-xs uppercase text-slate-500 font-semibold font-body">Admin</p>
-                                                            <p className="text-sm text-slate-200 font-title">Panel de Administración</p>
+                                                            <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.admin')}</p>
+                                                            <p className="text-sm text-slate-200 font-title">{t('recruiterDashboard.adminPanel')}</p>
                                                         </div>
                                                     </Link>
                                                 )}
@@ -243,6 +246,22 @@ const RecruiterDashboard = () => {
                     </header>
 
                     {/* Grid de estudiantes */}
+                <section className="rounded-3xl border border-white/[0.07] p-5">
+                    <h2 className="font-title text-[10px] uppercase tracking-[0.22em] text-white/35 font-bold mb-5 flex items-center gap-2">
+                        <img src="/icons/talentsPlattform.avif" className="h-3.5 w-3.5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                        {t('recruiterDashboard.talentsAvailable')}
+                    </h2>
+                    {loading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <RecruiterCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : error ? (
+                        <RecruiterErrorState />
+                    ) : talents.length === 0 ? (
+                        <RecruiterEmptyState />
+                    ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {talents.map((talent) => (
                             <motion.div
@@ -282,7 +301,8 @@ const RecruiterDashboard = () => {
                             </motion.div>
                         ))}
                     </div>
-
+                    )}
+                </section>
                     <ReferralsSection />
                 </motion.main>
             </div>

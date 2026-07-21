@@ -158,6 +158,15 @@ async function registerProfileShare(issuerId: string): Promise<void> {
   }
 }
 
+
+async function registerCertificateShare(certificateId: string): Promise<void> {
+  try {
+    await post<void>(`/api/certificates/${certificateId}/share`);
+  } catch {
+    // Silent fail: sharing already happened client-side, the counter is secondary
+  }
+}
+
 export const api = {
   get,
   post,
@@ -168,4 +177,5 @@ export const api = {
   upload,
   uploadPublic,
   registerProfileShare,
+  registerCertificateShare,
 } as const;

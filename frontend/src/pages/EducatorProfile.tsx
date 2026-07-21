@@ -11,7 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { resolveIpfs } from '@/lib/ipfs';
-import { ShareProfileButton } from '@/components/ShareProfileButton';
+import { api } from '@/services/api';
+import { ShareButton } from '@/components/ShareButton';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -461,7 +462,14 @@ const EducatorProfile = () => {
                         />
                         {t('since')} {formatDate(educator.joined_at)}
                       </div>
-                      <ShareProfileButton profileUrl={profileUrl} displayName={displayName} issuerWallet={educator.wallet_address} />
+                      <ShareButton 
+                          url={profileUrl} 
+                          displayName={displayName} 
+                          qrCaption={t('share.scanProfile', { name: displayName })} 
+                          shareText={`Check out ${displayName}'s profile on HackChain`}  
+                          variant="outline"
+                          onShare={() => api.registerProfileShare(educator.wallet_address)} 
+                          />
                     </div>
                   </div>
                 </article>
@@ -495,7 +503,7 @@ const EducatorProfile = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 sm:pl-6" style={{ borderLeft: `1px solid ${P.borderSub}` }}>
+                  <div className="flex items-center gap-4 pl-6" style={{ borderLeft: `1px solid ${P.borderSub}` }}>
                     <span
                       className="flex items-center justify-center h-10 w-10 rounded-xl shrink-0"
                       style={{ backgroundColor: P.accentSoft }}
