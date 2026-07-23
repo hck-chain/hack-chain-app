@@ -9,12 +9,13 @@ async function updateIssuerPhoto({ models, wallet, photoUrl }) {
     throw new TypeError("updateIssuerPhoto requires { models, wallet }");
   }
 
-  if (!photoUrl || typeof photoUrl !== "string") {
+  if (photoUrl === undefined) {
     return { ok: false, code: "PHOTO_URL_REQUIRED", httpStatus: 400, message: "photo_url is required" };
   }
 
-  if (!IPFS_URI_RE.test(photoUrl)) {
-    return { ok: false, code: "INVALID_PHOTO_URL", httpStatus: 400, message: "photo_url must be a valid ipfs:// URI" };
+  if (photoUrl !== null &&
+    (typeof photoUrl !== "string" || !IPFS_URI_RE.test(photoUrl))) {
+    return { ok: false, code: "PHOTO_URL_REQUIRED", httpStatus: 400, message: "photo_url must be a valid ipfs:// URI" };
   }
 
   const issuer = await models.Issuer.findOne({ where: { wallet_address: wallet.toLowerCase() } });

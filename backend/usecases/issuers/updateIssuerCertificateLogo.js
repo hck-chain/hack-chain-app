@@ -11,22 +11,14 @@ async function updateIssuerCertificateLogo({ models, wallet, certificateLogoUrl 
     throw new TypeError("updateIssuerCertificateLogo requires { models, wallet }");
   }
 
-  if (!certificateLogoUrl || typeof certificateLogoUrl !== "string") {
-    return {
-      ok: false,
-      code: "CERTIFICATE_LOGO_URL_REQUIRED",
-      httpStatus: 400,
-      message: "certificate_logo_url is required",
-    };
+
+  if (certificateLogoUrl === undefined) {
+    return { ok: false, code: "CERTIFICATE_LOGO_URL_REQUIRED", httpStatus: 400, message: "certificate_logo_url is required" };
   }
 
-  if (!IPFS_URI_RE.test(certificateLogoUrl)) {
-    return {
-      ok: false,
-      code: "INVALID_CERTIFICATE_LOGO_URL",
-      httpStatus: 400,
-      message: "certificate_logo_url must be a valid ipfs:// URI",
-    };
+  if (certificateLogoUrl !== null &&
+    (typeof certificateLogoUrl !== "string" || !IPFS_URI_RE.test(certificateLogoUrl))) {
+    return { ok: false, code: "INVALID_CERTIFICATE_LOGO_URL", httpStatus: 400, message: "certificate_logo_url must be a valid ipfs:// URI" };
   }
 
   const issuer = await models.Issuer.findOne({ where: { wallet_address: wallet.toLowerCase() } });
