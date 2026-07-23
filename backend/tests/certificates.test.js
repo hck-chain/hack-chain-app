@@ -205,11 +205,11 @@ describe("POST /api/certificates/:id/share", () => {
       student_wallet_address: studentWallet,
       title: "Test Certificate",
       certificate_hash: crypto.randomBytes(16).toString("hex"),
-      token_id: "1",
+      token_id: "42",
       issue_date: "2026-01-01",
     });
 
-    return { certificateId: certificate.id, issuerWallet, studentWallet };
+    return { certificateId: certificate.id, tokenId: certificate.token_id, issuerWallet, studentWallet };
   };
 
   const issueSession = async (wallet, role) => {
@@ -283,11 +283,11 @@ describe("POST /api/certificates/:id/share", () => {
   });
 
   test("403 when the authenticated wallet does not own the certificate", async () => {
-    const { certificateId } = await seedCertificate();
+    const { tokenId } = await seedCertificate();
     const token = await issueSession(makeWallet(), "student");
 
     const res = await request(app)
-      .post(`/api/certificates/${certificateId}/share`)
+      .post(`/api/certificates/${tokenId}/share`)
       .set("Authorization", `Bearer ${token}`)
       .expect(403);
 
@@ -295,21 +295,21 @@ describe("POST /api/certificates/:id/share", () => {
   });
 
   test("401 without a session", async () => {
-    const { certificateId } = await seedCertificate();
+    const { tokenId } = await seedCertificate();
 
     const res = await request(app)
-      .post(`/api/certificates/${certificateId}/share`)
+      .post(`/api/certificates/${tokenId}/share`)
       .expect(401);
 
     expect(res.body).toHaveProperty("error");
   });
 
   test("200 when the certificate's own student shares it, incrementing share_count", async () => {
-    const { certificateId, studentWallet } = await seedCertificate();
+    const { tokenId, studentWallet } = await seedCertificate();
     const token = await issueSession(studentWallet, "student");
 
     const res = await request(app)
-      .post(`/api/certificates/${certificateId}/share`)
+      .post(`/api/certificates/${tokenId}/share`)
       .set("Authorization", `Bearer ${token}`)
       .expect(200);
 
@@ -321,6 +321,22 @@ describe("POST /api/certificates/:id/share", () => {
 
     const res = await request(app)
       .post("/api/certificates/999999/share")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(404);
+
+    expect(res.body).toHaveProperty("error");
+  });
+
+  test("404 when :id matches the DB primary key but not the token_id", async () => {
+    // Locks in the intended contract change: :id is the NFT token_id, so a
+    // caller sending the internal Certificate.id (which the frontend never
+    // has access to) must not accidentally match.
+    const { certificateId, tokenId, studentWallet } = await seedCertificate();
+    expect(String(certificateId)).not.toEqual(tokenId);
+    const token = await issueSession(studentWallet, "student");
+
+    const res = await request(app)
+      .post(`/api/certificates/${certificateId}/share`)
       .set("Authorization", `Bearer ${token}`)
       .expect(404);
 
