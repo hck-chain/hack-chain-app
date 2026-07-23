@@ -254,7 +254,7 @@ async function sendVerificationEmail({ to, name, token }) {
 
 // Lightweight HTML template shared by both approve/reject emails. Keeps the
 // branded look without copying the 200-line verification template above.
-function renderEducatorEmail({ title, headline, body, ctaUrl, ctaLabel, accentColor }) {
+function renderEducatorEmail({ title, headline, subheadline, icon, body, ctaUrl, ctaLabel, accentColor, recipientEmail }) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -262,24 +262,114 @@ function renderEducatorEmail({ title, headline, body, ctaUrl, ctaLabel, accentCo
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${title}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f9f9f9;font-family:'Cabin',Arial,sans-serif;color:#222;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9f9f9;padding:40px 16px;">
-    <tr><td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
-        <tr><td style="background-color:${accentColor};padding:24px;text-align:center;color:#ffffff;">
-          <h1 style="margin:0;font-size:22px;line-height:1.3;">${headline}</h1>
-        </td></tr>
-        <tr><td style="padding:32px 40px;font-size:16px;line-height:1.6;">
-          ${body}
-          ${ctaUrl ? `<p style="text-align:center;margin:32px 0 8px;">
-            <a href="${ctaUrl}" style="display:inline-block;background-color:${accentColor};color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:700;">${ctaLabel}</a>
-          </p>` : ""}
-        </td></tr>
-        <tr><td style="background-color:#f1f1f5;padding:16px;text-align:center;font-size:12px;color:#888;">
-          &copy; HackChain
-        </td></tr>
-      </table>
-    </td></tr>
+<body style="margin:0;padding:0;background:#f4f5fb;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5fb;padding:40px 16px;font-family:'Cabin',Arial,sans-serif;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;">
+
+          <!-- ACCENT BAR (6px) -->
+          <tr>
+            <td style="background-color:${accentColor};height:6px;line-height:6px;font-size:0;">&nbsp;</td>
+          </tr>
+
+          <!-- LOGO -->
+          <tr>
+            <td align="center" style="padding:34px;background:#ffffff;">
+              <img src="https://www.hackchain.app/images/image-1.webp" alt="HackChain" width="170" style="display:block;border:none;" />
+            </td>
+          </tr>
+
+          <!-- HERO -->
+          <tr>
+            <td align="center" style="padding:50px 45px 44px;background:#FAF9FC;">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 26px;">
+                <tr>
+                  <td align="center" valign="middle" width="104" height="104" style="width:104px;height:104px;border-radius:50%;background-color:#F0E1FF;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+                      <tr>
+                        <td align="center" valign="middle" width="64" height="64" style="width:64px;height:64px;border-radius:50%;background-color:${accentColor};font-size:28px;font-weight:bold;color:#ffffff;line-height:64px;">${icon}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin:0;font-size:30px;line-height:37px;color:#222222;font-weight:600;letter-spacing:-0.3px;">${headline}</h1>
+              ${subheadline ? `<p style="margin:16px 0 0;font-size:16px;line-height:27px;color:#4B4B55;">${subheadline}</p>` : ""}
+            </td>
+          </tr>
+
+          <!-- DIVIDER -->
+          <tr>
+            <td style="padding:0 48px;background:#FAF9FC;">
+              <div style="height:1px;background:#E9E5F0;"></div>
+            </td>
+          </tr>
+
+          <!-- CONTENT -->
+          <tr>
+            <td style="padding:44px 48px 50px;font-size:16px;line-height:29px;color:#4B4B55;">
+              ${body}
+              ${ctaUrl ? `
+              <p style="text-align:center;margin:36px 0 0;">
+                <a href="${ctaUrl}" style="display:inline-block;background-color:${accentColor};padding:16px 46px;border-radius:999px;color:#ffffff;font-size:13px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;text-decoration:none;box-shadow:0 10px 22px rgba(104,0,153,0.28);">${ctaLabel}</a>
+              </p>` : ""}
+            </td>
+          </tr>
+
+          <!-- FALLBACK -->
+          ${ctaUrl ? `
+          <tr>
+            <td style="padding:36px 48px;background:#F7EEFC;border-top:1px solid #EDDFF5;">
+              <p style="margin:0;text-align:center;font-size:15px;font-weight:700;color:#333333;">¿El botón no funciona?</p>
+              <p style="margin:10px 0 0;text-align:center;font-size:13px;line-height:22px;color:#777777;">Copia y pega este enlace en tu navegador:</p>
+              <p style="margin:14px 0 0;text-align:center;word-break:break-all;">
+                <a href="${ctaUrl}" style="color:${accentColor};font-size:13px;text-decoration:none;">${ctaUrl}</a>
+              </p>
+              <div style="height:1px;background:#E4D0F0;margin:26px auto 0;width:80px;"></div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;">
+                <tr>
+                  <td align="center" style="background:#ffffff;border:1px solid #ededed;border-radius:10px;padding:16px 20px;">
+                    ${recipientEmail ? `<p style="margin:0;text-align:center;font-size:12px;color:#888888;">Enviado a <strong style="color:#333333;">${recipientEmail}</strong></p>` : ""}
+                    <p style="margin:${recipientEmail ? "10px" : "0"} 0 0;text-align:center;font-size:11.5px;line-height:17px;color:#aaaaaa;">Si no encuentras este correo, revisa tu carpeta de spam o correo no deseado.</p>
+                    <p style="margin:4px 0 0;text-align:center;font-size:11.5px;line-height:17px;color:#aaaaaa;">Si no solicitaste esta acción, simplemente puedes ignorar este mensaje.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>` : ""}
+
+          <!-- FOOTER -->
+          <tr>
+            <td align="center" style="padding:38px 20px;background:#ffffff;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:0 10px;">
+                    <a href="https://www.linkedin.com/company/hack-chain/posts/?feedView=all">
+                      <img src="https://www.hackchain.app/images/image-3.png" width="34" style="display:block;border:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 10px;">
+                    <a href="https://www.instagram.com/hack_chain">
+                      <img src="https://www.hackchain.app/images/image-4.png" width="34" style="display:block;border:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 10px;">
+                    <a href="mailto:contacto@hackchain.app">
+                      <img src="https://www.hackchain.app/images/image-5.png" width="34" style="display:block;border:none;" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:24px 0 8px;font-size:16px;font-weight:bold;color:#333;">HackChain</p>
+              <p style="margin:0;font-size:13px;color:#777;">Building trusted academic credentials on Blockchain.</p>
+              <p style="margin:22px 0 0;font-size:12px;color:#B0B0B0;">Copyrights &copy; HackChain All Rights Reserved</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>`;
@@ -293,14 +383,18 @@ async function notifyEducatorApproved({ to, name }) {
     from: FROM,
     to,
     subject: "¡Tu cuenta de educador en HackChain fue aprobada!",
-    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya puedes emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator-dashboard\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya puedes emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator/dashboard\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Cuenta de educador aprobada",
       headline: "¡Cuenta aprobada!",
+      subheadline: "Ya puedes comenzar a emitir certificados digitales desde tu Dashboard.",
+      icon: "✓",
       accentColor: "#680099",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 12px;">Tu cuenta de educador en HackChain fue <strong>aprobada</strong>. Ya puedes emitir certificados desde tu dashboard.</p>`,
-      ctaUrl: `${FRONTEND_URL}/educator-dashboard`,
+      recipientEmail: to,
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;letter-spacing:0.2px;color:#222222;">${greeting}</p>
+             <p style="margin:0 0 20px;">Tenemos excelentes noticias: tu solicitud para convertirte en educador de HackChain fue <strong style="color:#222222;">aprobada</strong>.</p>
+             <p style="margin:0;">A partir de ahora puedes acceder a tu Dashboard y comenzar a emitir certificados verificables en blockchain para tus estudiantes.</p>`,
+      ctaUrl: `${FRONTEND_URL}/educator/dashboard`,
       ctaLabel: "Ir al dashboard",
     }),
   });
@@ -308,22 +402,59 @@ async function notifyEducatorApproved({ to, name }) {
 
 async function notifyEducatorRejected({ to, name, reason }) {
   console.log(`[emailService] Enviando rechazo de educador a: ${to}`);
+
   const greeting = name ? `Hola, ${name}.` : "Hola.";
-  const safeReason = String(reason || "").trim() || "No se especificó motivo.";
+  const safeReason = String(reason || "").trim() || "No se especificó un motivo.";
 
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "Tu solicitud de educador en HackChain fue rechazada",
-    text: `${greeting}\n\nTu solicitud para ser educador en HackChain fue rechazada.\n\nMotivo: ${safeReason}\n\nSi creés que esto es un error, escribinos a contacto@hackchain.app.\n\n— Equipo HackChain`,
-    html: renderEducatorEmail({
+    subject: "Tu solicitud de educador en HackChain fue revisada",
+    text: `${greeting} Tu solicitud para convertirte en educador en HackChain fue revisada y en esta ocasión no pudo ser aprobada. 
+    Motivo: ${safeReason}
+    Si considerás que se trata de un error o necesitás más información, podés comunicarte con nosotros en contacto@hackchain.app. — Equipo HackChain`,
+
+
+   html: renderEducatorEmail({
       title: "Solicitud de educador rechazada",
-      headline: "Solicitud rechazada",
-      accentColor: "#a13c3c",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 12px;">Tu solicitud para ser educador en HackChain fue <strong>rechazada</strong>.</p>
-             <p style="margin:0 0 12px;"><strong>Motivo:</strong> ${safeReason}</p>
-             <p style="margin:0 0 12px;">Si creés que esto es un error, escribinos a <a href="mailto:contacto@hackchain.app" style="color:#680099;">contacto@hackchain.app</a>.</p>`,
+      headline: "Solicitud no aprobada",
+      subheadline: "Por el momento no pudimos aprobar tu solicitud como educador.",
+      icon: "✕",
+      accentColor: "#C84B4B",
+      recipientEmail: to,
+
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">
+          ${greeting}
+        </p>
+        <p style="margin:0 0 18px;">
+          Gracias por tu interés en formar parte de HackChain como educador.
+          Después de revisar tu solicitud, en esta ocasión no fue posible aprobarla.
+        </p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+          style="margin:28px 0;background:#FFF5F5;border:1px solid #F3CACA;border-radius:10px;">
+          <tr>
+            <td style="padding:18px 22px;">
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#B42318;text-transform:uppercase;letter-spacing:1px;">
+                Motivo
+              </p>
+
+              <p style="margin:0;font-size:15px;line-height:25px;color:#555555;">
+                ${safeReason}
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:0;">
+          Si considerás que se trata de un error o necesitás información adicional,
+          podés escribirnos a
+          <a href="mailto:contacto@hackchain.app"
+             style="color:#680099;font-weight:600;text-decoration:none;">
+            contacto@hackchain.app
+          </a>.
+        </p>
+      `,
       ctaUrl: null,
       ctaLabel: null,
     }),
@@ -376,64 +507,129 @@ async function sendInvite({ to, walletAddress, educatorName, message }) {
     subject: `${inviter} te invitó a HackChain`,
     text: textParts.join("\n"),
     html: renderEducatorEmail({
-      title: "Invitación a HackChain",
-      headline: "Te invitaron a HackChain",
-      accentColor: "#680099",
-      body: htmlBody,
-      ctaUrl: registerUrl,
-      ctaLabel: "Registrate ahora",
-    }),
+    title: "Invitación a HackChain",
+    headline: "Has sido invitado a HackChain",
+    subheadline: "Un educador quiere emitir un certificado verificable a tu nombre.",
+    icon: "🎓",
+    accentColor: "#680099",
+    recipientEmail: to,
+    body: htmlBody,
+    ctaUrl: registerUrl,
+    ctaLabel: "Crear mi cuenta",
+}),
   });
 }
 
-async function notifyEducatorClaimed({ to, educatorName, studentWallet, studentName }) {
+
+async function notifyEducatorClaimed({ to, educatorName, studentWallet, studentName}) {
   console.log(`[emailService] Notificando claim a educador: ${to}`);
+
   const greeting = educatorName ? `Hola, ${educatorName}.` : "Hola.";
-  const who = studentName ? `${studentName} (${shortenWallet(studentWallet)})` : shortenWallet(studentWallet);
-  const dashboardUrl = `${FRONTEND_URL}/educator-dashboard`;
+
+  const who = studentName
+    ? `${studentName} (${shortenWallet(studentWallet)})`
+    : shortenWallet(studentWallet);
+
+  const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
 
   await resend.emails.send({
     from: FROM,
     to,
     subject: "El talento que invitaste se registró en HackChain",
-    text: `${greeting}\n\nEl talento que invitaste a HackChain ya se registró (${who}).\nYa puedes reintentar la emisión del certificado desde tu dashboard.\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+    text:`${greeting} El talento que invitaste ya completó su registro en HackChain. Talento:${who}
+    Ahora ya puedes volver a intentar la emisión del certificado desde tu Dashboard.
+    Dashboard: ${dashboardUrl}
+    — Equipo HackChain`,
+
     html: renderEducatorEmail({
-      title: "Tu invitación fue reclamada",
-      headline: "Tu invitación fue reclamada",
+      title: "Invitación aceptada",
+      headline: "¡Tu invitación fue aceptada!",
+      subheadline:"El talento ya completó su registro y está listo para recibir su certificado.",
+      icon: "🎉",
       accentColor: "#680099",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 12px;">El talento que invitaste a HackChain (<strong>${who}</strong>) ya se registró.</p>
-             <p style="margin:0 0 12px;">Ya puedes reintentar la emisión del certificado desde tu dashboard.</p>`,
+      recipientEmail: to,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">
+          ${greeting}
+        </p>
+
+        <p style="margin:0 0 20px;">
+          El talento que invitaste ya creó correctamente su cuenta en HackChain.
+        </p>
+
+        <div style="margin:28px 0; padding:18px 22px; background:#F7EEFC; border-left:4px solid #680099; border-radius:10px;">
+          <p style="margin:0 0 8px;font-size:13px;color:#777;">
+            Talento registrado
+          </p>
+          <p style="margin:0;font-size:17px;font-weight:600;color:#222;">
+            ${who}
+          </p>
+        </div>
+
+        <p style="margin:0;">
+          Ahora puedes volver a intentar la emisión del certificado desde tu Dashboard.
+        </p>
+      `,
       ctaUrl: dashboardUrl,
-      ctaLabel: "Ir al dashboard",
+      ctaLabel: "Ir al Dashboard",
     }),
   });
 }
 
-async function notifyAdminNewEducator({ to, name, email, wallet, organization }) {
+
+async function notifyAdminNewEducator({ to, name, email, wallet, organization}) {
   if (!to || (Array.isArray(to) && to.length === 0)) return;
 
   const adminUrl = `${FRONTEND_URL}/admin`;
-  const displayName = [name, organization].filter(Boolean).join(' / ') || wallet;
+  const displayName = [name, organization].filter(Boolean).join(" / ") || wallet;
 
   await resend.emails.send({
     from: FROM,
     to,
     subject: `Nueva solicitud de educador: ${displayName}`,
-    text: `Nueva solicitud de educador pendiente de aprobación.\n\nNombre: ${name || '—'}\nOrganización: ${organization || '—'}\nEmail: ${email || '—'}\nWallet: ${wallet}\n\nRevisa en el panel de admin: ${adminUrl}`,
+    text: `Nueva solicitud de educador pendiente de aprobación.\n\nNombre: ${name || '—'}\nOrganización: ${organization || '—'}\nEmail: ${email || '—'}\nWallet: ${wallet}\n\nRevisa en el panel de admin: ${adminUrl} — Equipo HackChain`,
+
     html: renderEducatorEmail({
-      title: 'Nueva solicitud de educador',
-      headline: 'Nueva solicitud de educador',
-      accentColor: '#680099',
-      body: `<p style="margin:0 0 12px;">Hay una nueva solicitud de educador pendiente de revisión.</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               <tr><td style="padding:6px 0;color:#888;">Nombre</td><td style="padding:6px 0;font-weight:700;">${name || '—'}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Organización</td><td style="padding:6px 0;">${organization || '—'}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Email</td><td style="padding:6px 0;">${email || '—'}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Wallet</td><td style="padding:6px 0;font-family:monospace;font-size:12px;">${wallet}</td></tr>
-             </table>`,
+      title: "Nueva solicitud de educador",
+      headline: "Nueva solicitud recibida",
+      subheadline: "Un nuevo educador está esperando la aprobación de un administrador.",
+      icon: "👤",
+      accentColor: "#680099",
+      recipientEmail: Array.isArray(to) ? to.join(", ") : to,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">
+          Se recibió una nueva solicitud de registro.
+        </p>
+
+        <p style="margin:0 0 24px;">
+          Revisa la información del solicitante y aprueba o rechaza la solicitud desde el panel de administración.
+        </p>
+
+        <div style=" margin:28px 0; background:#F7EEFC; border-left:4px solid #680099; border-radius:10px; padding:20px 24px ">
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:26px;">
+            <tr>
+              <td style="color:#777777;width:130px;">Nombre</td>
+              <td style="font-weight:600;color:#222222;"> ${name || "—"} </td>
+            </tr>
+            <tr>
+              <td style="color:#777777;">Organización</td>
+              <td>${organization || "—"}</td>
+            </tr>
+            <tr>
+              <td style="color:#777777;">Correo</td>
+              <td>${email || "—"}</td>
+            </tr>
+            <tr>
+              <td style="color:#777777;">Wallet</td>
+              <td style="font-family:monospace;font-size:13px;">
+                ${wallet}
+              </td>
+            </tr>
+          </table>
+        </div>
+      `,
       ctaUrl: adminUrl,
-      ctaLabel: 'Ir al panel de admin',
+      ctaLabel: "Ir al Panel de Admin",
     }),
   });
 }
@@ -442,68 +638,206 @@ async function notifyAdminEducatorReapply({ to, name, email, wallet, organizatio
   if (!to || (Array.isArray(to) && to.length === 0)) return;
 
   const adminUrl = `${FRONTEND_URL}/admin`;
-  const displayName = [name, organization].filter(Boolean).join(' / ') || wallet;
+  const displayName = [name, organization].filter(Boolean).join(" / ") || wallet;
 
   await resend.emails.send({
     from: FROM,
     to,
     subject: `Re-solicitud de educador: ${displayName}`,
-    text: `Un educador rechazado volvió a solicitar aprobación.\n\nNombre: ${name || '—'}\nOrganización: ${organization || '—'}\nEmail: ${email || '—'}\nWallet: ${wallet}\n\nRevisa en el panel de admin: ${adminUrl}`,
+    text:`Un educador rechazado volvió a solicitar aprobación.\n\nNombre: ${name || '—'}\nOrganización: ${organization || '—'}\nEmail: ${email || '—'}\nWallet: ${wallet}\n\nRevisa en el panel de admin: ${adminUrl} — Equipo HackChain`,
     html: renderEducatorEmail({
-      title: 'Re-solicitud de educador',
-      headline: 'Re-solicitud de educador',
-      accentColor: '#8b5cf6',
-      body: `<p style="margin:0 0 12px;">Un educador que fue rechazado volvió a solicitar aprobación.</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               <tr><td style="padding:6px 0;color:#888;">Nombre</td><td style="padding:6px 0;font-weight:700;">${name || '—'}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Organización</td><td style="padding:6px 0;">${organization || '—'}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Email</td><td style="padding:6px 0;">${email || '—'}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Wallet</td><td style="padding:6px 0;font-family:monospace;font-size:12px;">${wallet}</td></tr>
-             </table>`,
+      title: "Re-solicitud de educador",
+      headline: "Nueva revisión requerida",
+      subheadline: "Un educador previamente rechazado volvió a enviar su solicitud.",
+      icon: "🔄",
+      accentColor: "#8B5CF6",
+      recipientEmail: Array.isArray(to) ? to.join(", ") : to,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">
+          Se recibió una nueva solicitud de revisión.
+        </p>
+
+        <p style="margin:0 0 24px;">
+          El siguiente educador fue rechazado anteriormente y volvió a enviar su solicitud.
+          Revisa nuevamente su información antes de aprobarla o rechazarla.
+        </p>
+
+        <div style=" margin:28px 0; background:#F6F2FF; border-left:4px solid #8B5CF6; border-radius:10px; padding:20px 24px">
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:26px;">
+            <tr>
+              <td style="color:#777;width:130px;">Nombre</td>
+              <td style="font-weight:600;color:#222;">${name || "—"}</td>
+            </tr>
+            <tr>
+              <td style="color:#777;">Organización</td>
+              <td>${organization || "—"}</td>
+            </tr>
+            <tr>
+              <td style="color:#777;">Correo</td>
+              <td>${email || "—"}</td>
+            </tr>
+            <tr>
+              <td style="color:#777;">Wallet</td>
+              <td style="font-family:monospace;font-size:13px;">${wallet}</td>
+            </tr>
+          </table>
+        </div>
+      `,
       ctaUrl: adminUrl,
-      ctaLabel: 'Ir al panel de admin',
+      ctaLabel: "Revisar solicitud",
     }),
   });
 }
 
-async function notifyEducatorClassRequest({ to, educatorName, studentName, requestedDate, startTime, durationMinutes, className }) {
+async function notifyEducatorClassRequest({ to, educatorName, studentName, requestedDate, startTime, durationMinutes, className}) {
   console.log(`[emailService] Notificando solicitud de clase a educador: ${to}`);
-  const eEducatorName = esc(educatorName);
-  const eStudentName  = esc(studentName);
-  const eClassName    = esc(className);
-  const eDate         = esc(requestedDate);
-  const eTime         = esc(startTime);
-  const eDuration     = esc(durationMinutes);
 
+  const eEducatorName = esc(educatorName);
+  const eStudentName = esc(studentName);
+  const eClassName = esc(className);
+  const eDate = esc(requestedDate);
+  const eTime = esc(startTime);
+  const eDuration = esc(durationMinutes);
   const greeting = eEducatorName ? `Hola, ${eEducatorName}.` : "Hola.";
   const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
-
-  const classLine = eClassName
-    ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${eClassName}</td></tr>`
-    : "";
 
   await resend.emails.send({
     from: FROM,
     to,
     subject: `Nueva solicitud de clase de ${studentName}`,
     text: `${greeting}\n\n${studentName} solicitó una clase privada contigo.\n\nFecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${durationMinutes} min${className ? `\nClase: ${className}` : ""}\n\nRevisa y confirma desde tu dashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
+
     html: renderEducatorEmail({
       title: "Nueva solicitud de clase",
-      headline: "Nueva solicitud de clase privada",
+      headline: "Nueva solicitud de clase",
+      subheadline: "Un estudiante quiere agendar una clase privada contigo.",
+      icon: "🎓",
       accentColor: "#680099",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;"><strong>${eStudentName}</strong> solicitó una clase privada contigo.</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               ${classLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${eDate}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${eTime}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${eDuration} min</td></tr>
-             </table>
-             <p style="margin:16px 0 0;">Ingresa a tu dashboard para confirmar o rechazar la solicitud.</p>`,
+      recipientEmail: to,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222;">${greeting}</p>
+        <p style="margin:0 0 24px;">
+          <strong>${eStudentName}</strong> solicitó una nueva clase privada.
+          Revisa los detalles antes de aceptar o rechazar la solicitud.
+        </p>
+        <div style=" margin:28px 0; background:#F7EEFC; border-left:4px solid #680099; border-radius:10px; padding:20px 24px">
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:28px;">
+            ${eClassName ? `
+            <tr>
+              <td style="color:#777;width:130px;">Clase</td>
+              <td style="font-weight:600;color:#222;">${eClassName}</td>
+            </tr>`
+              : ""
+            }
+            <tr>
+              <td style="color:#777;">Fecha</td>
+              <td>${eDate}</td>
+            </tr>
+            <tr>
+              <td style="color:#777;">Hora</td>
+              <td>${eTime}</td>
+            </tr>
+            <tr>
+              <td style="color:#777;">Duración</td>
+              <td>${eDuration} minutos</td>
+            </tr>
+          </table>
+        </div>
+        <p style="margin:0;">
+          Ingresa a tu Dashboard para aceptar o rechazar la solicitud.
+        </p>
+      `,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ver solicitud",
     }),
   });
+}
+
+function getTalentClassStatusVariant(status, cancellationReason) {
+  const reason = esc(cancellationReason);
+
+  return {
+    confirmed: {
+      subject: "¡Tu solicitud de clase fue confirmada!",
+      title: "Clase confirmada",
+      headline: "¡Clase confirmada!",
+      subheadline: "Todo está listo. Tu clase fue aceptada por el educador.",
+      icon: "📅",
+      accentColor: "#059669",
+      ctaLabel: "Ver mis clases",
+      body: `
+        <p style="margin:0 0 20px;">
+          Tu solicitud fue <strong>confirmada</strong>.
+        </p>
+
+        <p style="margin:0;">
+          Guarda el evento en tu calendario para no olvidar la fecha y horario de la sesión.
+        </p>
+      `,
+    },
+
+    canceled: {
+      subject: "Tu solicitud de clase fue cancelada",
+      title: "Clase cancelada",
+      headline: "Solicitud cancelada",
+      subheadline: "Esta clase ya no podrá realizarse.",
+      icon: "❌",
+      accentColor: "#991B1B",
+      ctaLabel: "Solicitar otra clase",
+      body: `
+        <p style="margin:0 0 20px;">
+          Tu solicitud fue <strong>cancelada</strong> por el educador.
+        </p>
+
+        ${ reason ? ` <div style=" background:#FEF2F2; border-left:4px solid #DC2626; border-radius:8px; padding:16px; margin:20px 0 ">
+          <strong>Motivo</strong><br><br>
+            ${reason}
+          </div>` : ""
+        }
+        <p style="margin:0;">
+          Puedes solicitar una nueva clase cuando quieras.
+        </p>
+      `,
+    },
+
+    completed: {
+      subject: "¡Tu clase fue completada!",
+      title: "Clase completada",
+      headline: "¡Clase completada!",
+      subheadline: "Esperamos que hayas disfrutado la sesión.",
+      icon: "🎓",
+      accentColor: "#680099",
+      ctaLabel: "Ver historial",
+      body: `
+        <p style="margin:0 0 20px;">
+          Tu clase fue <strong>completada</strong>.
+        </p>
+
+        <p style="margin:0;">
+          Gracias por utilizar HackChain para seguir aprendiendo.
+        </p>
+      `,
+    },
+
+    expired: {
+      subject: "Tu solicitud de clase venció sin respuesta",
+      title: "Solicitud vencida",
+      headline: "Solicitud vencida",
+      subheadline: "No fue posible confirmar la clase.",
+      icon: "⏰",
+      accentColor: "#F59E0B",
+      ctaLabel: "Solicitar nuevamente",
+      body: `
+        <p style="margin:0 0 20px;">
+          El educador no respondió antes de la fecha acordada.
+        </p>
+
+        <p style="margin:0;">
+          La solicitud fue cancelada automáticamente. Puedes volver a intentarlo cuando desees.
+        </p>
+      `,
+    },
+  }[status];
 }
 
 async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, className, requestedDate, startTime, durationMinutes, requestId, status, cancellationReason }) {
@@ -524,36 +858,8 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
     ? `Clase con ${educatorName}`
     : "Clase — HackChain";
 
-  const variants = {
-    confirmed: {
-      subject: "¡Tu solicitud de clase fue confirmada!",
-      headline: "¡Clase confirmada!",
-      accentColor: "#059669",
-      body: "Tu solicitud fue <strong>confirmada</strong>. Guarda el evento en tu calendario para no olvidar la fecha y horario.",
-    },
-    cancelled: {
-      subject: "Tu solicitud de clase fue cancelada",
-      headline: "Solicitud cancelada",
-      accentColor: "#64748b",
-      body: eCancellationReason
-        ? `Tu solicitud fue <strong>cancelada</strong> por el educador.<br><br><em style="color:#94a3b8;">"${eCancellationReason}"</em>`
-        : "Tu solicitud fue <strong>cancelada</strong> por el educador. Puedes solicitar una nueva clase cuando quieras.",
-    },
-    completed: {
-      subject: "¡Tu clase fue completada!",
-      headline: "¡Clase completada!",
-      accentColor: "#680099",
-      body: "¡Tu clase fue <strong>completada</strong>! Esperamos que hayas tenido una excelente experiencia.",
-    },
-    expired: {
-      subject: "Tu solicitud de clase venció sin respuesta",
-      headline: "Solicitud vencida",
-      accentColor: "#475569",
-      body: "El educador no respondió a tu solicitud antes de la fecha acordada, por lo que fue <strong>cancelada automáticamente</strong>. Puedes solicitar una nueva clase cuando quieras.",
-    },
-  };
-
-  const v = variants[status] || variants.confirmed;
+  const variant = getTalentClassStatusVariant( status, cancellationReason);
+  
   const classLine = eClassName
     ? `<tr><td style="padding:6px 0;color:#888;">Clase</td><td style="padding:6px 0;font-weight:700;">${eClassName}</td></tr>`
     : "";
@@ -597,21 +903,46 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
   const payload = {
     from: FROM,
     to,
-    subject: v.subject,
-    text: `${greeting}\n\n${v.body.replace(/<[^>]+>/g, "")}\n\n${className ? `Clase: ${className}\n` : ""}${educatorName ? `Educador: ${educatorName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\n\nVer mis clases: ${dashboardUrl}\n\n— Equipo HackChain`,
+    subject: variant.subject,
+    text: `${greeting}\n\n${variant.body.replace(/<[^>]+>/g, "")}\n\n${className ? `Clase: ${className}\n` : ""}${educatorName ? `Educador: ${educatorName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\n\nVer mis clases: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
-      title: v.subject,
-      headline: v.headline,
-      accentColor: v.accentColor,
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">${v.body}</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               ${classLine}
-               ${educatorLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${eDate}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${eTime}</td></tr>
-             </table>
-             ${calendarHtml}`,
+      title: variant.subject,
+      headline: variant.headline,
+      subheadline: variant.subheadline,
+      icon: variant.icon,
+      recipientEmail: to,
+      accentColor: variant.accentColor,
+      body: `
+      <p style="margin:0 0 22px; font-size:19px; font-weight:600; color:#222">${greeting}</p>
+        ${variant.body}
+      <div style="margin:28px 0; background:#F7EEFC; border-left:4px solid ${variant.accentColor}; border-radius:10px; padding:20px 24px">
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:28px;">
+            ${classLine} ${educatorLine}
+            <tr>
+                <td style="color:#777;width:120px;">
+                    Fecha
+                </td>
+                <td>${eDate}</td>
+            </tr>
+            <tr>
+                <td style="color:#777;">
+                    Hora
+                </td>
+                <td>${eTime}</td>
+            </tr> 
+            ${durationMinutes ? `
+                <tr>
+                    <td style="color:#777;">
+                        Duración
+                    </td>
+                    <td>${durationMinutes} minutos</td>
+                </tr>
+                ` : ""
+            }
+        </table>
+      </div>
+      ${calendarHtml}
+    `,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ver mis clases",
     }),
@@ -658,30 +989,62 @@ async function notifyEducatorClassConfirmed({ to, educatorName, studentName, cla
     subject: `Clase confirmada${className ? ` — ${className}` : ""}${studentName ? ` con ${studentName}` : ""}`,
     text: `${greeting}\n\nConfirmaste una clase${studentName ? ` con ${studentName}` : ""}. Guarda el evento en tu calendario.\n\n${className ? `Clase: ${className}\n` : ""}${studentName ? `Estudiante: ${studentName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\nDuración: ${mins} min\n\nDashboard: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
-      title: "Clase confirmada",
-      headline: "Clase confirmada",
-      accentColor: "#059669",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">Confirmaste una clase${studentName ? ` con <strong>${esc(studentName)}</strong>` : ""}. Guarda la fecha en tu calendario para no perderla.</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               ${classLine}
-               ${studentLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${mins} min</td></tr>
-             </table>
-             <p style="margin:24px 0 8px;text-align:center;">
-               <a href="${googleUrl}" target="_blank" rel="noopener noreferrer"
-                  style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;font-size:14px;">
-                 📅 Agregar a Google Calendar
-               </a>
-             </p>
-             <p style="text-align:center;margin:0;font-size:12px;color:#888;">
-               El archivo .ics para Apple Calendar y Outlook está adjunto a este correo.
-             </p>`,
-      ctaUrl: dashboardUrl,
-      ctaLabel: "Ir al dashboard",
-    }),
+  title: "Clase confirmada",
+  headline: "Clase confirmada",
+  subheadline:
+    "La sesión ya quedó agendada. Guarda el evento en tu calendario para no olvidarlo.",
+  icon: "📅",
+  accentColor: "#059669",
+  recipientEmail: to,
+
+  body: `
+    <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222;">${greeting}</p>
+    <p style="margin:0 0 20px;">
+      Confirmaste correctamente tu clase privada${
+        studentName
+          ? ` con <strong>${esc(studentName)}</strong>`
+          : ""
+      }.
+    </p>
+    <p style="margin:0 0 24px;">
+      Guarda este evento en tu calendario para recibir recordatorios antes del inicio de la sesión.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      ${classLine}
+      ${studentLine}
+      <tr>
+        <td style="padding:6px 0;color:#888;">Fecha</td>
+        <td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#888;">Hora</td>
+        <td style="padding:6px 0;">${esc(startTime)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#888;">Duración</td>
+        <td style="padding:6px 0;">${mins} min</td>
+      </tr>
+    </table>
+
+    <div style="margin:28px 0;padding:20px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;text-align:center;">
+      <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#166534;">
+        📅 Agrega esta clase a tu calendario
+      </p>
+
+      <a href="${googleUrl}"
+         style="display:inline-block;background:#059669;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-weight:600;font-size:14px;">
+        Abrir Google Calendar
+      </a>
+
+      <p style="margin:14px 0 0;font-size:12px;color:#666;">
+        También encontrarás un archivo <strong>.ics</strong> adjunto compatible con Apple Calendar y Outlook.
+      </p>
+    </div>
+  `,
+
+  ctaUrl: dashboardUrl,
+  ctaLabel: "Ir al dashboard",
+}),
     attachments: [{
       filename: "clase-hackchain.ics",
       content: icsBuffer,
@@ -711,17 +1074,46 @@ async function notifyEducatorClassCancelled({ to, educatorName, studentName, cla
     html: renderEducatorEmail({
       title: "Solicitud de clase cancelada",
       headline: "Solicitud cancelada",
-      accentColor: "#64748b",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;"><strong>${esc(studentName)}</strong> canceló su solicitud de clase privada contigo.</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               ${classLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${durationMinutes} min</td></tr>
-               ${reasonLine}
-             </table>
-             <p style="margin:16px 0 0;">Puedes ver tus solicitudes actualizadas desde tu dashboard.</p>`,
+      subheadline: "La solicitud fue cancelada por el estudiante y ya no requiere ninguna acción.",
+      icon: "🗓️",
+      accentColor: "#64748B",
+      recipientEmail: to,
+      body: `
+      <p style="margin:0 0 22px;font-size:19px;font-weight:600;letter-spacing:0.2px;color:#222222;">
+        ${greeting}
+      </p>
+
+      <p style="margin:0 0 20px;">
+        <strong>${esc(studentName) || "El estudiante"}</strong> canceló su solicitud de clase privada.
+      </p>
+
+      <p style="margin:0 0 24px;">
+        La clase ya no se encuentra programada y no es necesario realizar ninguna acción adicional.
+      </p>
+
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        ${classLine}
+        <tr>
+          <td style="padding:6px 0;color:#888;">Fecha</td>
+          <td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#888;">Hora</td>
+          <td style="padding:6px 0;">${esc(startTime)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#888;">Duración</td>
+          <td style="padding:6px 0;">${durationMinutes} min</td>
+        </tr>
+        ${reasonLine}
+      </table>
+
+      <div style="margin:28px 0;padding:18px 20px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;">
+        <p style="margin:0;font-size:14px;line-height:24px;color:#475569;text-align:center;">
+          Puedes revisar el estado actualizado de todas tus solicitudes desde tu Dashboard.
+        </p>
+      </div>
+    `,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ver solicitudes",
     }),
@@ -767,22 +1159,68 @@ async function notifyClassReminder({ to, recipientName, counterpartName, role, c
     html: renderEducatorEmail({
       title: "Recordatorio de clase",
       headline: "Tu clase es mañana",
-      accentColor: "#7c3aed",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">Te recordamos que <strong>mañana tienes una clase privada</strong> agendada en HackChain.</p>
-             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-               ${classLine}
-               ${counterpartLine}
-               <tr><td style="padding:6px 0;color:#888;">Fecha</td><td style="padding:6px 0;font-weight:700;">${esc(requestedDate)}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Hora</td><td style="padding:6px 0;">${esc(startTime)}</td></tr>
-               <tr><td style="padding:6px 0;color:#888;">Duración</td><td style="padding:6px 0;">${mins} min</td></tr>
-             </table>
-             <p style="margin:24px 0 8px;text-align:center;">
-               <a href="${googleUrl}" target="_blank" rel="noopener noreferrer"
-                  style="display:inline-block;background-color:#7c3aed;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;font-size:14px;">
-                 Agregar a Google Calendar
-               </a>
-             </p>`,
+      subheadline: "Todo está listo. Aquí tienes la información de tu próxima sesión.",
+      icon: "⏰",
+      accentColor: "#7C3AED",
+      recipientEmail: to,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;letter-spacing:0.2px;color:#222222;">
+          ${greeting}
+        </p>
+
+        <p style="margin:0 0 20px;">
+          Este es un recordatorio de que <strong>mañana tienes una clase privada programada</strong> en HackChain.
+        </p>
+
+        <div style="margin:28px 0;background:#F7EEFC;border-left:4px solid #7C3AED;border-radius:10px;padding:20px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:28px;">
+                ${classLine}
+                ${counterpartLine}
+              <tr>
+                <td style="color:#777;width:120px;">
+                  Fecha
+                </td>
+                <td style="font-weight:600;">
+                  ${esc(requestedDate)}
+                  </td>
+              </tr>
+
+              <tr>
+                <td style="color:#777;">
+                  Hora
+                </td>
+                <td>
+                  ${esc(startTime)}
+                </td>
+              </tr>
+
+              <tr>
+                <td style="color:#777;">
+                  Duración
+                </td>
+                <td>
+                  ${mins} minutos
+                </td>
+              </tr>
+            </table>
+          </div>
+
+
+        <div style="margin:28px 0;padding:20px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;text-align:center;">
+          <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#166534;">
+            📅 Añade esta sesión a tu calendario para no olvidarla.
+          </p>
+
+          <a href="${googleUrl}"
+            style="display:inline-block;background:#059669;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-weight:600;font-size:14px;">
+            Abrir Google Calendar
+          </a>
+
+          <p style="margin:14px 0 0;font-size:12px;color:#666;">
+            También encontrarás un archivo <strong>.ics</strong> adjunto compatible con Apple Calendar y Outlook.
+          </p>
+        </div>
+      `,
       ctaUrl,
       ctaLabel,
     }),
@@ -802,12 +1240,68 @@ async function notifyTalentCertificateIssued({ to, studentName, educatorName, ce
     html: renderEducatorEmail({
       title: "Nuevo certificado recibido",
       headline: "Recibiste un certificado",
+      subheadline: "Tu logro ya forma parte de tu historial verificable en Blockchain.",
+      icon: "🏆",
       accentColor: "#680099",
-      body: `<p style="margin:0 0 12px;">${greeting}</p>
-             <p style="margin:0 0 16px;">${educatorName ? `<strong>${esc(educatorName)}</strong> ` : ""}emitió un certificado a tu nombre en HackChain. Ya está disponible en tu perfil público y verificable en blockchain.</p>
-             ${certificateTitle ? `<table style="width:100%;border-collapse:collapse;font-size:14px;">
-               <tr><td style="padding:6px 0;color:#888;">Certificado</td><td style="padding:6px 0;font-weight:700;">${esc(certificateTitle)}</td></tr>
-             </table>` : ""}`,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;letter-spacing:0.2px;color:#222222;">
+          ${greeting}
+        </p>
+
+        <p style="margin:0 0 20px;">
+          ${educatorName
+              ? `<strong>${esc(educatorName)}</strong>`
+              : "Un educador"
+          } emitió un nuevo certificado a tu nombre.
+        </p>
+
+        <p style="margin:0 0 20px;">
+          Tu certificado ya se encuentra disponible en HackChain y puede verificarse públicamente mediante tecnología Blockchain.
+        </p>
+
+        <div style="margin:28px 0; background:#F7EEFC; border-left:4px solid #680099; border-radius:10px; padding:20px 24px">
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:28px;">
+            ${ certificateTitle
+                ? `
+            <tr>
+              <td style="color:#777;width:130px;">
+                Certificado
+              </td>
+              <td style="font-weight:600;">
+                ${esc(certificateTitle)}
+              </td>
+            </tr>`
+                : ""
+            }
+            ${educatorName
+                ? `
+            <tr>
+              <td style="color:#777;">
+                Emitido por
+              </td>
+              <td>
+                ${esc(educatorName)}
+              </td>
+            </tr>`
+                : ""
+            }
+            <tr>
+              <td style="color:#777;">
+                Estado
+              </td>
+              <td style="color:#059669;font-weight:700;">
+                ✓ Verificado
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin:28px 0; padding:18px 20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px">
+          <p style="margin:0; text-align:center; font-size:14px; line-height:24px; color:#475569">
+            Comparte tu certificado en redes profesionales o inclúyelo en tu portafolio para que cualquier persona pueda verificar su autenticidad.
+          </p>
+        </div>
+      `,
       ctaUrl: dashboardUrl,
       ctaLabel: "Ver mi certificado",
     }),

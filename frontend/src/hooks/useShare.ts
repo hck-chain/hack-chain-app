@@ -11,7 +11,13 @@ interface ShareLinks {
   twitter: string;
 }
 
-interface UseShareProfileResult {
+interface UseShareProps {
+  url: string;
+  shareText: string;
+  onShare?: () => void;
+}
+
+interface UseShareResult {
   qrUrl: string;
   qrStatus: QrStatus;
   shareLinks: ShareLinks;
@@ -22,24 +28,23 @@ interface UseShareProfileResult {
   retryQr: () => void;
 }
 
- export function buildShareUrl(platform: SharePlatform, url: string, name: string): string {
-  const text = `Check out ${name}'s profile on HackChain`;
+ export function buildShareUrl(platform: SharePlatform, url: string, shareText: string): string {
 
   switch (platform) {
     case 'whatsapp':
-      return `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
+      return `https://wa.me/?text=${encodeURIComponent(`${shareText} ${url}`)}`;
     case 'linkedin':
       return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
     case 'twitter':
-      return `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} ${url}`)}`;
+      return `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText} ${url}`)}`;
   }
 }
 
-export function buildShareLinks(profileUrl: string, displayName: string): ShareLinks {
+export function buildShareLinks(url: string, shareText: string): ShareLinks {
   return {
-    whatsapp: buildShareUrl('whatsapp', profileUrl, displayName),
-    linkedin: buildShareUrl('linkedin', profileUrl, displayName),
-    twitter: buildShareUrl('twitter', profileUrl, displayName),
+    whatsapp: buildShareUrl('whatsapp', url, shareText),
+    linkedin: buildShareUrl('linkedin', url, shareText),
+    twitter: buildShareUrl('twitter', url, shareText),
   };
 }
 
@@ -49,19 +54,19 @@ export function createQrDataUrl(value: string, cacheBuster: number): string {
   return `${QR_API_URL}?size=180x180&data=${encoded}&t=${cacheBuster}`;
 }
 
-export function useShareProfile(profileUrl: string, displayName: string, issuerWallet: string): UseShareProfileResult {
+export function useShare({ url, shareText, onShare }: UseShareProps): UseShareResult {
   const [qrStatus, setQrStatus] = useState<QrStatus>('loading');
   const [qrRetryCount, setQrRetryCount] = useState(0);
 
-  const qrUrl = useMemo(() => createQrDataUrl(profileUrl, qrRetryCount), [profileUrl, qrRetryCount]);
+  const qrUrl = useMemo(() => createQrDataUrl(url, qrRetryCount), [url, qrRetryCount]);
 
   const handleLinkCopy = useCallback(() => {
-    api.registerProfileShare(issuerWallet);
-  }, [issuerWallet]);
+    onShare?.();
+  }, [onShare]);
 
   const handleSocialClick = useCallback(() => {
-    api.registerProfileShare(issuerWallet);
-  }, [issuerWallet]);
+    onShare?.();
+  }, [onShare]);
 
   const handleQrLoad = useCallback(() => setQrStatus('success'), []);
   const handleQrError = useCallback(() => setQrStatus('error'), []);
@@ -71,7 +76,7 @@ export function useShareProfile(profileUrl: string, displayName: string, issuerW
     setQrRetryCount((count) => count + 1);
   }, []);
 
-  const shareLinks = useMemo(() => buildShareLinks(profileUrl, displayName), [profileUrl, displayName]);
+  const shareLinks = useMemo(() => buildShareLinks(url, shareText), [url, shareText]);
 
   return { qrUrl, qrStatus, shareLinks, handleLinkCopy, handleSocialClick, handleQrLoad, handleQrError, retryQr };
 }
