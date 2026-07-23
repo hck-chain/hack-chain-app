@@ -198,12 +198,15 @@ describe("notifyTalentCertificateIssued", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
-  test("html escapes malicious input in educatorName", async () => {
-    await notifyTalentCertificateIssued({
-      ...args,
-      educatorName: '<img src=x onerror=alert(1)>',
-    });
-    const { html } = mockSend.mock.calls[0][0];
-    expect(html).not.toContain("<img");
+test("html escapes malicious input in educatorName", async () => {
+  await notifyTalentCertificateIssued({
+    ...args,
+    educatorName: '<img src=x onerror=alert(1)>',
   });
+
+  const { html } = mockSend.mock.calls[0][0];
+
+  expect(html).not.toContain('<img src=x onerror=alert(1)>');
+  expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+});
 });

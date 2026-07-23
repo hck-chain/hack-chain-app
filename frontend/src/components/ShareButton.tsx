@@ -28,7 +28,7 @@ const buttonStyles = {
     "!h-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white text-xs font-semibold shadow transition-[transform,opacity] duration-200 active:scale-95 [&_svg]:text-white [&_svg]:size-3",
 };
 
-export function ShareButton({ url, displayName, qrCaption, shareText, variant, onShare }: ShareButtonProps) {
+export function ShareButton({ url, displayName, qrCaption, shareText, variant = "outline", onShare }: ShareButtonProps) {
   const { t } = useTranslation();
   const share = useShare({ url, shareText, onShare });
   

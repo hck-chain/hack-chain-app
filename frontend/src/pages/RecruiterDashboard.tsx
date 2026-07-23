@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle, Copy, Check } from 'lucide-react';
+import { Award, ChevronDown, Wallet, Briefcase, LogOut, CheckCircle, XCircle, Copy, Check, RefreshCw } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '@/services/api';
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,7 +54,11 @@ function RecruiterEmptyState() {
     );
 }
 
-function RecruiterErrorState() {
+interface RecruiterErrorStateProps {
+  onRetry: () => void;
+}
+
+function RecruiterErrorState({ onRetry }: RecruiterErrorStateProps) {
     const { t } =useTranslation();
 
     return (
@@ -68,6 +72,13 @@ function RecruiterErrorState() {
                 <p className="text-slate-400 mt-2">
                     {t("recruiterDashboard.errorLoadHint")}
                 </p>
+
+                <Button
+                    onClick={onRetry}
+                    className=" mt-6 flex items-center gap-2 h-8 px-6 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-purple-900/30 ">
+                    <RefreshCw className="h-4 w-4" />
+                    {t("common.retry")}
+                </Button>
             </div>
     );
 }
@@ -83,6 +94,7 @@ const RecruiterDashboard = () => {
         talents,
         loading,
         error,
+        refetch,
     } = useRecruiterDashboard();
 
     useSessionTimeout({
@@ -258,7 +270,7 @@ const RecruiterDashboard = () => {
                             ))}
                         </div>
                     ) : error ? (
-                        <RecruiterErrorState />
+                        <RecruiterErrorState  onRetry={refetch}/>
                     ) : talents.length === 0 ? (
                         <RecruiterEmptyState />
                     ) : (

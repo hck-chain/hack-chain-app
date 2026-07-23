@@ -323,7 +323,7 @@ describe("notifyEducatorClaimed", () => {
 
     const { html } = mockSend.mock.calls[0][0];
 
-    expect(html).toContain("/educator-dashboard");
+    expect(html).toContain("/educator/dashboard");
   });
 
 });

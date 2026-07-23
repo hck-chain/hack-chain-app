@@ -383,7 +383,7 @@ async function notifyEducatorApproved({ to, name }) {
     from: FROM,
     to,
     subject: "¡Tu cuenta de educador en HackChain fue aprobada!",
-    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya puedes emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator-dashboard\n\n— Equipo HackChain`,
+    text: `${greeting}\n\nTu cuenta de educador en HackChain fue aprobada. Ya puedes emitir certificados desde tu dashboard.\n\nDashboard: ${FRONTEND_URL}/educator/dashboard\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: "Cuenta de educador aprobada",
       headline: "¡Cuenta aprobada!",
@@ -530,7 +530,7 @@ async function notifyEducatorClaimed({ to, educatorName, studentWallet, studentN
     ? `${studentName} (${shortenWallet(studentWallet)})`
     : shortenWallet(studentWallet);
 
-  const dashboardUrl = `${FRONTEND_URL}/educator-dashboard`;
+  const dashboardUrl = `${FRONTEND_URL}/educator/dashboard`;
 
   await resend.emails.send({
     from: FROM,

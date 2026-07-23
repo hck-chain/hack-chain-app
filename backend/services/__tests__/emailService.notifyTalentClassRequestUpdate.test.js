@@ -219,23 +219,6 @@ describe("edge cases", () => {
 
 });
 
-test("preview html", async () => {
-
-  await notifyTalentClassRequestUpdate({
-    ...args,
-    status: "confirmed",
-  });
-
-  require("fs").writeFileSync(
-
-    "notifyTalentClassRequestUpdate-preview.html",
-
-    mockSend.mock.calls[0][0].html
-
-  );
-
-});
-
 test("confirmed uses green accent", async () => {
   await notifyTalentClassRequestUpdate({
     ...args,

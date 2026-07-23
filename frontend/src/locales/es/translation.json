@@ -989,7 +989,8 @@
   "common": {
     "back": "Volver",
     "prev": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "retry": "Reintentar"
   },
   "educatorClassRequests": {
     "title": "Solicitudes de Clases",
