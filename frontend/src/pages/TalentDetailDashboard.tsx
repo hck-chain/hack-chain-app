@@ -151,7 +151,7 @@ const TalentDetailDashboard = () => {
                                 </PopoverTrigger>
                                 {/* ... resto del PopoverContent se queda igual ... */}
                                 <PopoverContent
-                                    className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl"
+                                    className="w-80 p-0 bg-slate-900/40 backdrop-blur-xl border-white/10 shadow-2xl overflow-hidden"
                                     align="end"
                                     sideOffset={8}
                                 >
@@ -164,22 +164,22 @@ const TalentDetailDashboard = () => {
                                                 <h3 className="text-base font-title font-bold text-white">{talent.name}</h3>
                                             </div>
                                         </div>
-                                        <div className="space-y-3">
-                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                        <div className="space-y-2">
+                                            <div className="flex items-start gap-3 py-3 border-b border-white/10 last:border-b-0">
                                                 <Award className="h-4 w-4 text-slate-400 mt-0.5" />
                                                 <div>
                                                     <p className="text-xs uppercase text-slate-500 font-body font-semibold">Certificates</p>
                                                     <p className="text-sm text-slate-200 font-body">{talent.total_certificates}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <div className="flex items-start gap-3 py-3 border-b border-white/10 last:border-b-0">
                                                 <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                                 <div>
                                                     <p className="text-xs uppercase text-slate-500 font-body font-semibold">Field of Study</p>
                                                     <p className="text-sm text-slate-200 font-body">{talent.field_of_study}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <div className="flex items-start gap-3 py-3 border-b border-white/10 last:border-b-0">
                                                 <Wallet className="h-4 w-4 text-slate-400 mt-0.5" />
                                                 <div>
                                                     <p className="text-xs uppercase text-slate-500 font-body font-semibold">Wallet</p>
@@ -188,7 +188,7 @@ const TalentDetailDashboard = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <div className="flex items-start gap-3 py-3">
                                                 <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
                                                 <div>
                                                     <p className="text-xs uppercase text-slate-500 font-body font-semibold">Registered</p>
