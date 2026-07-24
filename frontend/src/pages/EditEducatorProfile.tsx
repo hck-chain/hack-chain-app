@@ -308,9 +308,9 @@ const EditEducatorProfile = () => {
   });
 
   setIsLogoMarkedForDeletion(false);
-  setIsCompressing(true);
+  setIsCompressingLogo(true);
   const compressed = await compressImage(file);
-  setIsCompressing(false);
+  setIsCompressingLogo(false);
 
   try {
     const ipfsUrl =
@@ -693,6 +693,31 @@ const EditEducatorProfile = () => {
                     onChange={handleLogoChange}
                     disabled={isSaving}
                   />
+                    {isCompressingLogo && (
+                      <span
+                        className="text-[11px] flex items-center gap-1.5"
+                        style={{ color: P.textMuted }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full animate-pulse"
+                          style={{ backgroundColor: P.accent }}
+                        />
+                        {t("editProfile.optimizing")}
+                      </span>
+                    )}
+
+                    {updateCertificateLogo.isPending && !isCompressingLogo && (
+                      <span
+                        className="text-[11px] flex items-center gap-1.5"
+                        style={{ color: P.textMuted }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full animate-pulse"
+                          style={{ backgroundColor: P.accent }}
+                        />
+                        {t("editProfile.uploading")}
+                      </span>
+                    )}
                 </div>
 
                 {/* Description */}
