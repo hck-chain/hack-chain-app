@@ -160,11 +160,18 @@ function NotificationBellPanel() {
   );
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const CERTIFICATE_SUBTITLES = {
+  personalized: "Clase Personalizada",
+} as const;
+
 const EducatorDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [classRequestId, setClassRequestId] = useState<number | null>(null);
+  const isClassRequestCertificate = classRequestId !== null;
 
   const [form, setForm] = useState({
     certificateType: '',
@@ -197,6 +204,8 @@ const EducatorDashboard = () => {
   const { toast } = useToast();
   const { data: pendingData } = usePendingClassRequestsCount();
   const pendingRequestsCount = pendingData?.count ?? 0;
+  const certificateLogo = resolveIpfs(userData?.certificate_logo_url ?? null);
+  const previewLogo = form.logo || certificateLogo;
 
   useSessionTimeout({
     onExpired: () => {
@@ -223,6 +232,8 @@ const EducatorDashboard = () => {
         ...(sn ? { talentName: sn } : {}),
         ...(cn ? { certificateTitle: cn } : {}),
         ...(cd ? { issueDate: cd } : {}),
+        ...(rid ? {certificateType: CERTIFICATE_SUBTITLES.personalized}
+                : {}),
       }));
     }
   }, [searchParams]);
@@ -236,6 +247,7 @@ const EducatorDashboard = () => {
           email: string | null;
           email_verified: boolean;
           photo_url: string | null;
+          certificate_logo_url: string | null;
         }>('/api/issuers/me');
 
         if (!profile.email_verified) {
@@ -249,6 +261,7 @@ const EducatorDashboard = () => {
           email: profile.email ?? "No email registered",
           role: "Educator",
           photo_url: profile.photo_url ?? null,
+          certificate_logo_url: profile.certificate_logo_url ?? null,
         });
 
         api.get<{ status: string; reason?: string }>('/api/issuers/me/status')
@@ -945,6 +958,14 @@ const EducatorDashboard = () => {
                       {t('educatorDashboard.formTitle')}
                     </p>
                     <p className="font-body text-sm text-white/40">{t('educatorDashboard.formSubtitle')}</p>
+                      {isClassRequestCertificate && (
+                        <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                          <p className="text-xs text-amber-200">
+                            Este certificado proviene de una clase completada. Algunos campos fueron
+                            completados automáticamente y no pueden modificarse.
+                          </p>
+                        </div>
+                      )}
                   </div>
 
                   <form className="relative z-10 space-y-5">
@@ -958,6 +979,7 @@ const EducatorDashboard = () => {
                           name="certificateTitle"
                           value={form.certificateTitle}
                           onChange={handleChange}
+                          readOnly={isClassRequestCertificate}
                           placeholder={t('educatorDashboard.fieldCertTitlePlaceholder')}
                           className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all"
                         />
@@ -967,7 +989,7 @@ const EducatorDashboard = () => {
                         <Label htmlFor="talentName" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
                           {t('educatorDashboard.fieldTalentName')}
                         </Label>
-                        <Select onValueChange={handleTalentChange} value={form.talentWallet}>
+                        <Select onValueChange={handleTalentChange} value={form.talentWallet} disabled={isClassRequestCertificate}>
                           <SelectTrigger className="w-full bg-black/20 border-white/10 text-white rounded-xl h-11">
                             <SelectValue placeholder={t('educatorDashboard.selectTalent')} />
                           </SelectTrigger>
@@ -1008,6 +1030,7 @@ const EducatorDashboard = () => {
                             type="date"
                             value={form.issueDate}
                             onChange={handleChange}
+                            readOnly={isClassRequestCertificate}
                             className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all [color-scheme:dark]"
                           />
                         </div>
@@ -1022,6 +1045,7 @@ const EducatorDashboard = () => {
                           name="certificateType"
                           value={form.certificateType}
                           onChange={handleChange}
+                          readOnly={isClassRequestCertificate}
                           placeholder={t('educatorDashboard.fieldTypePlaceholder')}
                           className="bg-black/20 border-white/10 text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11 transition-all"
                         />
@@ -1090,7 +1114,7 @@ const EducatorDashboard = () => {
                       title={form.certificateTitle || 'Certificate Title'}
                       issuer={form.issuer || 'Issuer Name'}
                       issueDate={form.issueDate || 'Issue Date'}
-                      logoUrl={form.logo || ''}
+                      logoUrl={previewLogo}
                       enableTilt={true}
                       innerGradient={""}
                     />

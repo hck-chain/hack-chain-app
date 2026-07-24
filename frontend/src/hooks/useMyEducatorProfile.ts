@@ -5,6 +5,7 @@ export interface MyEducatorProfile {
   organization_name: string;
   bio: string | null;
   photo_url: string | null;
+  certificate_logo_url: string | null;
   knowledge_areas: string[];
   website_url: string | null;
   linkedin_url: string | null;
