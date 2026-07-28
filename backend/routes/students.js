@@ -4,6 +4,68 @@ const router = express.Router();
 const { Student, User, Certificate, Issuer } = require("../models");
 const { authenticate } = require("../middleware/auth");
 const { validateDeletionMessage, deleteStudentAccount } = require("../services/studentService");
+const { getPublicStudentProfile } = require("../usecases/students/getPublicStudentProfile");
+const { getOwnStudentProfile } = require("../usecases/students/getOwnStudentProfile");
+const { updateOwnStudentProfile } = require("../usecases/students/updateOwnStudentProfile");
+
+// GET /api/students/me — own full profile (authenticated).
+// Must be registered before /:wallet_address to avoid param capture.
+router.get("/me", authenticate, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only talent accounts can access this endpoint" });
+  }
+
+  try {
+    const result = await getOwnStudentProfile({ models: { Student, User }, wallet: req.auth.wallet });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("GET /api/students/me error:", err);
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+
+// PATCH /api/students/me — update own profile.
+// Must be registered before /:wallet_address to avoid param capture.
+router.patch("/me", authenticate, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only talent accounts can update this profile" });
+  }
+
+  try {
+    const result = await updateOwnStudentProfile({
+      models: { Student },
+      wallet: req.auth.wallet,
+      bio: req.body.bio,
+      knowledgeAreas: req.body.knowledge_areas,
+      fieldOfStudy: req.body.field_of_study,
+      githubUrl: req.body.github_url,
+      linkedinUrl: req.body.linkedin_url,
+      twitterUrl: req.body.twitter_url,
+      instagramUrl: req.body.instagram_url,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("PATCH /api/students/me error:", err);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// GET /api/students/:wallet_address/public — public profile (no auth, no email exposed)
+router.get("/:wallet_address/public", async (req, res) => {
+  try {
+    const result = await getPublicStudentProfile({
+      models: { Student, User, Certificate },
+      walletAddress: req.params.wallet_address,
+    });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("GET /api/students/:wallet_address/public error:", err);
+    return res.status(500).json({ error: "Failed to fetch student profile" });
+  }
+});
 
 // GET /api/students
 router.get("/", authenticate, async (req, res) => {
