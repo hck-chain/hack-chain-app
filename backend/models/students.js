@@ -17,6 +17,40 @@ module.exports = (sequelize, DataTypes) => {
     field_of_study: {
       type: DataTypes.STRING(255),
       allowNull: true
+    },
+    photo_url: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
+    bio: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    knowledge_areas: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: []
+    },
+    github_url: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
+    linkedin_url: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
+    twitter_url: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
+    instagram_url: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
+    share_count: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     }
   }, {
     tableName: 'students',
