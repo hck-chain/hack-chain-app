@@ -23,6 +23,18 @@ async function updatePhoto(file: File): Promise<string> {
   return photoUrl;
 }
 
+async function updateCertificateLogo(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const result = await api.upload<{ cid: string }>('/api/upload/image', formData);
+  const logoUrl = `ipfs://${result.cid}`;
+  await api.patch('/api/issuers/me/certificate-logo', {
+    certificate_logo_url: logoUrl,
+  });
+
+  return logoUrl;
+}
+
 export function useUpdateEducatorProfile() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -49,9 +61,31 @@ export function useUpdateEducatorPhoto() {
   });
 }
 
+export function useUpdateCertificateLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateCertificateLogo,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['my-educator-profile'],
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Certificate logo update failed:', error.message);
+    },
+  });
+}
+
 
 async function deletePhoto() {
   await api.patch('/api/issuers/me/photo', { photo_url: null });
+}
+
+async function deleteCertificateLogo() {
+  await api.patch('/api/issuers/me/certificate-logo', {
+    certificate_logo_url: null,
+  });
 }
 
 export function useDeleteEducatorPhoto() {
@@ -63,6 +97,22 @@ export function useDeleteEducatorPhoto() {
     },
     onError: (error: Error) => {
       console.error('Photo deletion failed:', error.message);
+    },
+  });
+}
+
+export function useDeleteCertificateLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteCertificateLogo,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['my-educator-profile'],
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Certificate logo deletion failed:', error.message);
     },
   });
 }

@@ -267,11 +267,17 @@
     "subtitle": "Manage your talents efficiently and track their progress.",
     "welcome": "Welcome back,",
     "totalCandidates": "Total Candidates",
+    "talentsAvailable": "Talents on Platform",
     "walletLabel": "WALLET",
     "logout": "Logout",
     "recruiterFallback": "Recruiter",
-    "errorLoad": "Failed to load recruiter or talents.",
+    "errorLoad": "Failed to load talents.",
+    "errorLoadHint": "Please try again in a few moments.",
     "registered": "Registered:",
+    "admin": "Admin",
+    "adminPanel": "Administration Panel",
+    "noTalents": "No talents found",
+    "noTalentsHint": "New talents will appear here once they register on the platform.",
     "certificate_one": "{{count}} Certificate",
     "certificate_other": "{{count}} Certificates"
   },
@@ -703,6 +709,14 @@
     "bioLabel": "About you",
     "bioPlaceholder": "Tell talents what you teach, your background, and what makes you stand out…",
     "bioChars": "characters",
+    "brandingTitle": "Certificate Branding",
+    "brandingDescription": "Customize the logo displayed on your issued certificates.",
+    "certificateLogo": "Certificate Logo",
+    "certificateLogoHelp": "This logo will appear on every certificate you issue. For the best results, use a square image with a transparent background. Click the logo area to upload one.",
+    "upload": "Upload",
+    "logo": "Logo",
+    "changeLogo": "Change logo",
+    "removeLogo": "Remove logo",
     "areasSection": "Expertise",
     "photoHint": "Click to upload photo",
     "missingDialogTitle": "Your profile is incomplete",
@@ -983,7 +997,8 @@
   "common": {
     "back": "Back",
     "prev": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "retry":"Retry"
   },
   "educatorClassRequests": {
     "title": "Class Requests",
@@ -1029,13 +1044,19 @@
     "emptyEducator": "No classes scheduled yet.",
     "myCalendar": "My Calendar"
   },
-    "shareProfile": {
+    "share": {
+    "shareButton": "Share", 
     "title": "Share profile",
     "shareVia": "Share via",
     "profileLink": "Profile Link",
     "qrCode": "QR code",
     "retry": "Retry",
     "couldNotLoadQr": "Couldn't load QR",
-    "scanProfile": "Scan to view profile"
-  }
+    "scanProfile": "Scan to view profile of {{name}}"
+  },
+  "shareCertificate": {
+  "title": "Share Certificate",
+  "shareText": "Check out my certificate on HackChain",
+  "scanCertificate": "Scan to view {{name}}"
+}
 }

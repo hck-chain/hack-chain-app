@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BadgeCheck, CalendarDays } from 'lucide-react';
-import type React from 'react';
-// Workaround: lucide-react typings in this project cause strict prop issues for className/style.
-// Create typed aliases that accept arbitrary props to avoid many local type errors.
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,8 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { resolveIpfs } from '@/lib/ipfs';
-import { ShareProfileButton } from '@/components/ShareProfileButton';
-import { Helmet } from 'react-helmet-async';
+import { api } from '@/services/api';
+import { ShareButton } from '@/components/ShareButton';
 
 const HackChainLogo = '/images/logoHackchain2.webp';
 
@@ -166,13 +163,13 @@ function WalletChip({ address }: { address: string }) {
       aria-label={`Wallet: ${address}. Click to copy`}
     >
       {copied ? (
-        <Check size={11} style={{ color: P.accent }} aria-hidden={true} />
+        <Check size={11} style={{ color: P.accent }} aria-hidden />
       ) : (
         <img
           src="/icons/wallet.avif"
           className="h-3.5 w-3.5 shrink-0 object-contain"
           style={{ opacity: 0.55 }}
-                  aria-hidden={true}
+          aria-hidden
         />
       )}
       {shortAddress(address)}
@@ -286,47 +283,11 @@ const EducatorProfile = () => {
   };
 
   const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS as string | undefined;
-  const hasAnyLinks = !!educator?.website_url || !!educator?.linkedin_url || !!educator?.twitter_url;
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hackchain.app';
-  const profileUrl = wallet ? `${origin}/educator/${wallet}` : `${origin}/educator`;
-  const metaDescription = educator?.bio ?? educator?.short_bio ?? `${displayName} — Perfil público en HackChain.`;
-  const fallbackImageUrl = `${origin}${HackChainLogo.startsWith('/') ? HackChainLogo : `/${HackChainLogo}`}`;
-  const metaImage = educator?.photo_url ? resolveIpfs(educator.photo_url) : fallbackImageUrl;
-  const absoluteMetaImage = new URL(metaImage, origin).toString();
-  const twitterHandle = import.meta.env.VITE_TWITTER_HANDLE ?? '@hackchain';
-  const locale = (typeof document !== 'undefined' && document.documentElement?.lang) || (navigator?.language ?? 'es');
-  const sameAs = [educator?.website_url, educator?.linkedin_url, educator?.twitter_url].filter(Boolean);
-  const pageTitle = `${displayName} | HackChain`;
-  const ld = {
-    '@context': 'https://schema.org',
-    '@type': 'Person',
-    name: displayName,
-    url: profileUrl,
-    image: absoluteMetaImage,
-    description: metaDescription,
-    sameAs
-  };
+  const hasAnyLinks =
+    !!educator?.website_url || !!educator?.linkedin_url || !!educator?.twitter_url;
+  const profileUrl = `${window.location.origin}/educator/${wallet}`;
   return (
     <Layout>
-      <Helmet>
-        <title>{pageTitle}</title>
-        <link rel="canonical" href={profileUrl} />
-        <meta name="description" content={metaDescription} />
-        <meta property="og:type" content="profile" />
-        <meta property="og:locale" content={locale} />
-        <meta property="og:site_name" content="HackChain" />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={metaDescription} />
-        <meta property="og:image" content={absoluteMetaImage} />
-        <meta property="og:image:alt" content={displayName} />
-        <meta property="og:url" content={profileUrl} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content={twitterHandle} />
-        <meta name="twitter:creator" content={twitterHandle} />
-        <meta name="twitter:image" content={absoluteMetaImage} />
-        <meta name="twitter:image:alt" content={displayName} />
-        <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      </Helmet>
       <GrainOverlay />
 
       <div className="min-h-screen font-body" style={{ color: P.textPrimary }}>
@@ -345,7 +306,7 @@ const EducatorProfile = () => {
               className="flex items-center gap-2 rounded-full px-3 -ml-2"
               style={{ color: P.textMuted, minHeight: 44 }}
             >
-                          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden={true} />
+              <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
               <span className="hidden sm:inline text-sm">{t('backBtn')}</span>
             </Button>
 
@@ -497,11 +458,18 @@ const EducatorProfile = () => {
                           src="/icons/calendario.avif"
                           className="h-3.5 w-3.5 shrink-0 object-contain"
                           style={{ opacity: 0.55 }}
-                                                  aria-hidden={true}
+                          aria-hidden
                         />
                         {t('since')} {formatDate(educator.joined_at)}
                       </div>
-                      <ShareProfileButton profileUrl={profileUrl} displayName={displayName} issuerWallet={educator.wallet_address} />
+                      <ShareButton 
+                          url={profileUrl} 
+                          displayName={displayName} 
+                          qrCaption={t('share.scanProfile', { name: displayName })} 
+                          shareText={`Check out ${displayName}'s profile on HackChain`}  
+                          variant="outline"
+                          onShare={() => api.registerProfileShare(educator.wallet_address)} 
+                          />
                     </div>
                   </div>
                 </article>
@@ -518,7 +486,7 @@ const EducatorProfile = () => {
                       className="flex items-center justify-center h-10 w-10 rounded-xl shrink-0"
                       style={{ backgroundColor: P.accentSoft }}
                     >
-                      <img src="/icons/medalla.avif" className="h-6 w-6 object-contain" alt="" aria-hidden={true} />
+                      <img src="/icons/medalla.avif" className="h-6 w-6 object-contain" alt="" aria-hidden />
                     </span>
                     <div>
                       <div
@@ -535,12 +503,12 @@ const EducatorProfile = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 sm:pl-6" style={{ borderLeft: `1px solid ${P.borderSub}` }}>
+                  <div className="flex items-center gap-4 pl-6" style={{ borderLeft: `1px solid ${P.borderSub}` }}>
                     <span
                       className="flex items-center justify-center h-10 w-10 rounded-xl shrink-0"
                       style={{ backgroundColor: P.accentSoft }}
                     >
-                      <img src="/icons/talentsPlattform.avif" className="h-6 w-6 object-contain" alt="" aria-hidden={true} />
+                      <img src="/icons/talentsPlattform.avif" className="h-6 w-6 object-contain" alt="" aria-hidden />
                     </span>
                     <div>
                       <div
@@ -600,21 +568,21 @@ const EducatorProfile = () => {
                     <div className="space-y-2.5">
                       {educator.website_url && (
                         <SocialLink
-                                                  icon={<Globe className="h-4 w-4" /> }
+                          icon={<Globe className="h-4 w-4" />}
                           label={t('educatorProfile.websiteLabel')}
                           url={educator.website_url}
                         />
                       )}
                       {educator.linkedin_url && (
                         <SocialLink
-                                                  icon={<Linkedin className="h-4 w-4" /> }
+                          icon={<Linkedin className="h-4 w-4" />}
                           label={t('educatorProfile.linkedinLabel')}
                           url={educator.linkedin_url}
                         />
                       )}
                       {educator.twitter_url && (
                         <SocialLink
-                                                  icon={<Twitter className="h-4 w-4" /> }
+                          icon={<Twitter className="h-4 w-4" />}
                           label={t('educatorProfile.twitterLabel')}
                           url={educator.twitter_url}
                         />
@@ -628,7 +596,7 @@ const EducatorProfile = () => {
               <motion.div variants={itemVariants}>
                 <Section
                   label={t('educatorProfile.verificationSection')}
-                  icon={<ShieldCheck className="h-3.5 w-3.5" /> }
+                  icon={<ShieldCheck className="h-3.5 w-3.5" />}
                 >
                   <div className="space-y-3">
                     <div

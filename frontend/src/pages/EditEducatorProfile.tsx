@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Camera, Loader2, ExternalLink, Globe, Linkedin, Twitter, Check, X, BookOpen, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, ExternalLink, Globe, Linkedin, Twitter, Check, X, BookOpen, ChevronRight, BadgeCheck, Upload, Trash2} from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { KnowledgeAreasSelector } from '@/components/KnowledgeAreasSelector/KnowledgeAreasSelector';
 import { useMyEducatorProfile } from '@/hooks/useMyEducatorProfile';
-import { useUpdateEducatorProfile, useUpdateEducatorPhoto, useDeleteEducatorPhoto } from '@/hooks/useUpdateEducatorProfile';
+import { 
+  useUpdateEducatorProfile, 
+  useUpdateEducatorPhoto, 
+  useDeleteEducatorPhoto,
+  useUpdateCertificateLogo,
+  useDeleteCertificateLogo,
+ } from '@/hooks/useUpdateEducatorProfile';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -222,12 +228,15 @@ const EditEducatorProfile = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const prefersReduced = useReducedMotion();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const certificateLogoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: profile, isPending: isLoadingProfile } = useMyEducatorProfile();
   const updateProfile = useUpdateEducatorProfile();
   const updatePhoto = useUpdateEducatorPhoto();
   const deletePhoto = useDeleteEducatorPhoto();
+  const updateCertificateLogo = useUpdateCertificateLogo();
+  const deleteCertificateLogo = useDeleteCertificateLogo();
 
   const [organizationName, setOrganizationName] = useState('');
   const [bio, setBio] = useState('');
@@ -239,6 +248,12 @@ const EditEducatorProfile = () => {
   const [isPhotoMarkedForDeletion, setIsPhotoMarkedForDeletion] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isLogoMarkedForDeletion, setIsLogoMarkedForDeletion] = useState(false);
+  const [isCompressingLogo, setIsCompressingLogo] = useState(false);
+  const [certificateLogoPreview, setCertificateLogoPreview] = useState<string | null>(null);
+  const [isCertificateLogoMarkedForDeletion, setIsCertificateLogoMarkedForDeletion] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -249,6 +264,7 @@ const EditEducatorProfile = () => {
     setLinkedinUrl(profile.linkedin_url ?? '');
     setTwitterUrl(profile.twitter_url ?? '');
     setPhotoPreview(resolveIpfs(profile.photo_url));
+    setLogoPreview(resolveIpfs(profile.certificate_logo_url));
   }, [profile]);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,12 +297,54 @@ const EditEducatorProfile = () => {
     }
   };
 
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const previewUrl = URL.createObjectURL(file);
+  setLogoPreview(prev => {
+    if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+    return previewUrl;
+  });
+
+  setIsLogoMarkedForDeletion(false);
+  setIsCompressingLogo(true);
+  const compressed = await compressImage(file);
+  setIsCompressingLogo(false);
+
+  try {
+    const ipfsUrl =
+      await updateCertificateLogo.mutateAsync(compressed);
+    setLogoPreview(prev => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return resolveIpfs(ipfsUrl);
+    });
+  } catch (err) {
+    setLogoPreview(prev => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return resolveIpfs(profile?.certificate_logo_url ?? null);
+    });
+    const message = err instanceof Error ? err.message : 'Could not upload logo';
+    toast({ title: 'Error uploading logo', description: message, variant: 'destructive' });
+  }
+};
+
   const handleDeletePhotoIntent = () => {
     setPhotoPreview((prev) => {
       if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
       return null;
     });
     setIsPhotoMarkedForDeletion(true);
+  };
+
+  const handleDeleteLogoIntent = () => {
+    setLogoPreview(prev => {
+      if (prev?.startsWith("blob:")) {
+        URL.revokeObjectURL(prev);
+      }
+      return null;
+    });
+    setIsLogoMarkedForDeletion(true);
   };
 
   const handleSaveIntent = () => {
@@ -315,6 +373,10 @@ const EditEducatorProfile = () => {
         await deletePhoto.mutateAsync();
         setIsPhotoMarkedForDeletion(false);
       }
+      if (isLogoMarkedForDeletion) {
+      await deleteCertificateLogo.mutateAsync();
+      setIsLogoMarkedForDeletion(false);
+    }
       await updateProfile.mutateAsync({
         organization_name: organizationName.trim() || undefined,
         bio: bio.trim() || undefined,
@@ -336,7 +398,8 @@ const EditEducatorProfile = () => {
     }
   };
 
-  const isSaving = updateProfile.isPending || updatePhoto.isPending || deletePhoto.isPending;
+  const isSaving = updateProfile.isPending || updatePhoto.isPending || deletePhoto.isPending || updateCertificateLogo.isPending ||
+  deleteCertificateLogo.isPending; 
   const completion = profileCompletion(organizationName, bio, knowledgeAreas, photoPreview);
   const wallet = profile?.wallet_address ?? '';
 
@@ -444,7 +507,7 @@ const EditEducatorProfile = () => {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-44 z-50">
-                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer">
+                    <DropdownMenuItem onClick={() => profilePhotoInputRef.current?.click()} className="cursor-pointer">
                       {t('editProfile.uploadNewPhoto')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -457,7 +520,7 @@ const EditEducatorProfile = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={isSaving} />
+                <input ref={profilePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={isSaving} />
               </div>
 
               {/* Name + role */}
@@ -545,6 +608,139 @@ const EditEducatorProfile = () => {
               }}
             />
           </SectionCard>
+
+          <SectionCard
+            label={t('editProfile.brandingTitle')}
+            description={t('editProfile.brandingDescription')}
+          >
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+
+                {/* Preview */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-24 w-24 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-colors hover:bg-white/5"
+                      style={{
+                        backgroundColor: P.surface,
+                        border: `1px solid ${P.border}`,
+                      }}
+                      onClick={() => logoInputRef.current?.click()}
+                  >
+                    {logoPreview ? (
+                      <img
+                        src={logoPreview}
+                        alt="Certificate Logo"
+                        className="h-full w-full object-contain p-2"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <BadgeCheck
+                          className="h-7 w-7"
+                          style={{ color: P.textMuted }}
+                        />
+
+                        <span
+                          className="text-[10px] text-center leading-tight"
+                          style={{ color: P.textMuted }}
+                        >
+                        {t('editProfile.upload')}
+                          <br />
+                          {t('editProfile.logo')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {logoPreview && (
+                  <>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: 'rgba(168,85,247,.08)',
+                          border: '1px solid rgba(168,85,247,.25)',
+                          color: '#c084fc',
+                        }}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        {t('editProfile.changeLogo')}
+                      </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDeleteLogoIntent}
+                          disabled={isSaving}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                          style={{
+                            backgroundColor: 'rgba(239,68,68,.08)',
+                            border: '1px solid rgba(239,68,68,.25)',
+                            color: '#f87171',
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {t('editProfile.removeLogo')}
+                        </button>
+
+
+                    </div>
+                  </>
+                  )}
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    hidden  
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    disabled={isSaving}
+                  />
+                    {isCompressingLogo && (
+                      <span
+                        className="text-[11px] flex items-center gap-1.5"
+                        style={{ color: P.textMuted }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full animate-pulse"
+                          style={{ backgroundColor: P.accent }}
+                        />
+                        {t("editProfile.optimizing")}
+                      </span>
+                    )}
+
+                    {updateCertificateLogo.isPending && !isCompressingLogo && (
+                      <span
+                        className="text-[11px] flex items-center gap-1.5"
+                        style={{ color: P.textMuted }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full animate-pulse"
+                          style={{ backgroundColor: P.accent }}
+                        />
+                        {t("editProfile.uploading")}
+                      </span>
+                    )}
+                </div>
+
+                {/* Description */}
+                <div className="flex-1">
+
+                  <h3
+                    className="text-sm font-semibold"
+                    style={{ color: P.textPrimary }}
+                  >
+                    {t('editProfile.certificateLogo')}
+                  </h3>
+
+                  <p
+                    className="mt-2 text-sm"
+                    style={{ color: P.textSecondary }}
+                  >
+                    {t('editProfile.certificateLogoHelp')}
+                  </p>
+
+                </div>
+            </div>
+          </SectionCard>
+
 
           {/* ── Knowledge areas ── */}
           <SectionCard
