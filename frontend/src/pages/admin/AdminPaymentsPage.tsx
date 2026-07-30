@@ -72,6 +72,7 @@ export default function AdminPaymentsPage() {
       page, limit,
     }),
     placeholderData: (prev) => prev,
+    refetchInterval: 30_000,
   });
 
   const items = query.data?.items ?? [];
