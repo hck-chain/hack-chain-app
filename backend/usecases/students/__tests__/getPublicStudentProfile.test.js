@@ -59,6 +59,9 @@ describe("getPublicStudentProfile", () => {
     const issueDate = "2026-01-01";
     await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "A", certificate_hash: "h1", token_id: "1", issue_date: issueDate });
     await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "B", certificate_hash: "h2", token_id: "2", issue_date: issueDate });
+    // Neither of these counts towards the public total.
+    await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "Revocado", certificate_hash: "h3", token_id: "3", issue_date: issueDate, is_revoked: true });
+    await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "Reservado", status: "pending" });
   });
 
   afterAll(() => sequelize.close());
@@ -98,6 +101,13 @@ describe("getPublicStudentProfile", () => {
       total_certificates: 2,
       joined_at: expect.anything(),
     });
+  });
+
+  test("total_certificates skips revoked and still-pending certificates", async () => {
+    const result = await getPublicStudentProfile({ models, walletAddress: STUDENT });
+    // 4 rows exist for this student: 2 issued, 1 revoked, 1 reserved.
+    expect(await models.Certificate.count({ where: { student_wallet_address: STUDENT } })).toBe(4);
+    expect(result.data.student.total_certificates).toBe(2);
   });
 
   test("never exposes the student email at any level", async () => {

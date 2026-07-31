@@ -198,6 +198,27 @@ describe("Student profile routes", () => {
       expect(JSON.stringify(res.body)).not.toContain("ana@example.com");
     });
 
+    test("total_certificates skips revoked and still-pending certificates", async () => {
+      await Certificate.create({
+        issuer_wallet_address: ISSUER,
+        student_wallet_address: STUDENT,
+        title: "Revocado",
+        certificate_hash: "h2",
+        token_id: "2",
+        issue_date: "2026-01-01",
+        is_revoked: true,
+      });
+      await Certificate.create({
+        issuer_wallet_address: ISSUER,
+        student_wallet_address: STUDENT,
+        title: "Reservado",
+        status: "pending",
+      });
+
+      const res = await request(app).get(`/api/students/${STUDENT}/public`).expect(200);
+      expect(res.body.student.total_certificates).toBe(1);
+    });
+
     test("400 for a malformed wallet", async () => {
       const res = await request(app).get("/api/students/not-a-wallet/public").expect(400);
       expect(res.body).toEqual({ error: "Invalid wallet address" });

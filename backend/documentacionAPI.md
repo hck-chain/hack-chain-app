@@ -1755,6 +1755,10 @@ objeto `user` completo del talento.
 }
 ```
 
+> `total_certificates` cuenta **solo los certificados emitidos y no revocados** (`status: "issued"`
+> e `is_revoked: false`). Los revocados y los que siguen reservados sin mintear (`status: "pending"`)
+> quedan fuera, para que el número sea confiable en un endpoint público.
+
 ---
 
 ### GET `/api/students/me`
