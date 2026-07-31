@@ -72,6 +72,7 @@ export default function AdminTreasuryPage() {
     queryKey: ['admin', 'treasury', { tab, page, limit }],
     queryFn: () => adminApi.listTreasury({ status: tab, page, limit }),
     placeholderData: (prev) => prev,
+    refetchInterval: 30_000,
   });
 
   function invalidate() {
@@ -89,6 +90,16 @@ export default function AdminTreasuryPage() {
       invalidate();
     },
     onError: (err) => {
+      // A 409 (ALREADY_SENT/WRONG_STATE) means another admin already acted
+      // on this row — the usecase is idempotent, so refresh instead of
+      // showing a generic error.
+      if (err instanceof ApiServiceError && err.status === 409) {
+        toast({ title: 'Ya fue procesado por otro admin', description: 'Actualizando la lista…' });
+        setMarkRow(null);
+        setMarkHash('');
+        invalidate();
+        return;
+      }
       const msg = err instanceof ApiServiceError ? err.message : String(err);
       toast({ title: 'No se pudo registrar', description: msg, variant: 'destructive' });
     },
