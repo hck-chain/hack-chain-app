@@ -1710,6 +1710,150 @@ Obtiene el detalle de un estudiante específico por su wallet address, incluyend
 
 ---
 
+### GET `/api/students/:wallet_address/public`
+
+Perfil **público** del talento. **No requiere autenticación** y **nunca expone el email**.
+
+No confundir con `GET /api/students/:wallet_address`, que sí requiere autenticación y devuelve el
+objeto `user` completo del talento.
+
+**Parámetros de ruta**
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `wallet_address` | `string` | Wallet address del talento (se normaliza a minúsculas) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil público del talento |
+| `400` | `Invalid wallet address` — wallet mal formada |
+| `404` | `Student not found` |
+| `500` | Error al obtener el perfil |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "student": {
+    "wallet_address": "0x...",
+    "name": "Ana",
+    "lastname": "Pérez",
+    "field_of_study": "Ciberseguridad",
+    "photo_url": "ipfs://Qm...",
+    "bio": "Talento en formación",
+    "knowledge_areas": ["Rust", "Penetration Testing"],
+    "github_url": "https://github.com/ana",
+    "linkedin_url": null,
+    "twitter_url": null,
+    "instagram_url": null,
+    "share_count": 4,
+    "total_certificates": 2,
+    "joined_at": "2025-01-10T08:00:00.000Z"
+  }
+}
+```
+
+> `total_certificates` cuenta **solo los certificados emitidos y no revocados** (`status: "issued"`
+> e `is_revoked: false`). Los revocados y los que siguen reservados sin mintear (`status: "pending"`)
+> quedan fuera, para que el número sea confiable en un endpoint público.
+
+---
+
+### GET `/api/students/me`
+
+Perfil completo del talento autenticado. **Sí incluye el email** (solo lectura).
+
+**Autenticación:** requerida. Solo cuentas con rol `student`.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil propio del talento |
+| `403` | `Only talent accounts can access this endpoint` |
+| `404` | `Student not found` |
+| `500` | Error al obtener el perfil |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "wallet_address": "0x...",
+  "field_of_study": "Ciberseguridad",
+  "photo_url": null,
+  "bio": null,
+  "knowledge_areas": [],
+  "github_url": null,
+  "linkedin_url": null,
+  "twitter_url": null,
+  "instagram_url": null,
+  "share_count": 2,
+  "name": "Ana",
+  "lastname": "Pérez",
+  "email": "ana@ejemplo.com",
+  "email_verified": true
+}
+```
+
+> `name`, `lastname`, `email` y `email_verified` viven en la tabla `users` y son **de solo lectura**
+> acá: `PATCH /me` no los modifica. Cambiar el email requiere su propio flujo de reverificación.
+
+---
+
+### PATCH `/api/students/me`
+
+Actualiza el perfil del talento autenticado. Actualización **parcial**: solo se modifican los campos
+presentes en el body.
+
+**Autenticación:** requerida. Solo cuentas con rol `student`.
+
+**Body** (todos opcionales)
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `bio` | `string \| null` | Máximo 500 caracteres. Se le aplica `trim` |
+| `knowledge_areas` | `string[]` | Máximo 5 elementos, cada uno string de máximo 100 caracteres |
+| `field_of_study` | `string \| null` | Máximo 255 caracteres. Se le aplica `trim` |
+| `github_url` | `string \| null` | URL `https://` de máximo 500 caracteres. `null` borra el link |
+| `linkedin_url` | `string \| null` | Ídem |
+| `twitter_url` | `string \| null` | Ídem |
+| `instagram_url` | `string \| null` | Ídem |
+
+La foto (`photo_url`) **no** se actualiza por acá — tiene su propio endpoint.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil actualizado |
+| `400` | Validación fallida (`bio must be 500 characters or less`, `Maximum 5 knowledge areas allowed`, `github_url must be a valid https:// URL`, etc.) |
+| `403` | `Only talent accounts can update this profile` |
+| `404` | `Student not found` |
+| `500` | Error al actualizar |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "message": "Profile updated",
+  "student": {
+    "wallet_address": "0x...",
+    "field_of_study": "Ingeniería",
+    "photo_url": null,
+    "bio": "Talento en formación",
+    "knowledge_areas": ["Rust", "Penetration Testing"],
+    "github_url": "https://github.com/ana",
+    "linkedin_url": null,
+    "twitter_url": null,
+    "instagram_url": null
+  }
+}
+```
+
+---
+
 ### PUT `/api/students/:wallet_address`
 
 Actualiza el campo de estudio de un estudiante.
