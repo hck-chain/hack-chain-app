@@ -1,9 +1,17 @@
 // backend/routes/students.js
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
+const buildRateLimitStore = require("../lib/rateLimitStore");
 const { Student, User, Certificate, Issuer } = require("../models");
 const { authenticate } = require("../middleware/auth");
 const { validateDeletionMessage, deleteStudentAccount } = require("../services/studentService");
+
+// student usecases
+const { updateStudentPhoto } = require("../usecases/students/updateStudentPhoto");
+const { registerStudentProfileShare } = require("../usecases/students/registerStudentProfileShare");
+const { getStudentEducators } = require("../usecases/students/getStudentEducators");
+const { getPublicStudentProfile } = require("../usecases/students/getPublicStudentProfile");
 
 // GET /api/students
 router.get("/", authenticate, async (req, res) => {
@@ -40,14 +48,29 @@ router.get("/", authenticate, async (req, res) => {
 });
 
 
-// GET /api/students/:wallet_address
-router.get("/:wallet_address", authenticate, async (req, res) => {
+// GET /api/students/:wallet_address — public profile (privacy-focused)
+router.get("/:wallet_address", async (req, res) => {
   try {
-    const { wallet_address } = req.params;
+    const wallet = req.params.wallet_address;
 
-    // 1️⃣ Buscar el estudiante con su usuario
+    const result = await getPublicStudentProfile({ models: { Student, User, Certificate, Issuer }, walletAddress: wallet });
+    if (!result.ok) return res.status(result.httpStatus || 500).json({ error: result.message });
+
+    return res.json(result.data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch student" });
+  }
+});
+
+// GET /api/students/me — authenticated full profile (students only)
+router.get("/me", authenticate, async (req, res) => {
+  try {
+    if (req.auth.role !== "student") return res.status(403).json({ error: "Only student accounts can access this endpoint" });
+
+    const wallet = req.auth.wallet.toLowerCase();
     const student = await Student.findOne({
-      where: { wallet_address },
+      where: { wallet_address: wallet },
       include: [
         {
           model: User,
@@ -56,30 +79,23 @@ router.get("/:wallet_address", authenticate, async (req, res) => {
       ]
     });
 
-    if (!student) {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    if (!student) return res.status(404).json({ error: "Student not found" });
 
-    // 2️⃣ Contar certificados directamente
-    const totalCertificates = await Certificate.count({
-      where: { student_wallet_address: wallet_address }
-    });
+    const totalCertificates = await Certificate.count({ where: { student_wallet_address: wallet } });
 
-    // 3️⃣ Responder con toda la info
-    res.json({
+    return res.json({
       student: {
         id: student.id,
         wallet_address: student.wallet_address,
         field_of_study: student.field_of_study,
         user: student.User,
-        total_certificates: totalCertificates, // ✅ número correcto
+        total_certificates: totalCertificates,
         created_at: student.created_at
       }
     });
-
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch student" });
+    console.error("GET /api/students/me error:", err);
+    res.status(500).json({ error: "Failed to fetch profile" });
   }
 });
 
@@ -100,54 +116,12 @@ router.get("/:wallet_address/educators", authenticate, async (req, res) => {
       return res.status(403).json({ error: "Forbidden: cannot access another student's educators" });
     }
 
-    const certs = await Certificate.findAll({
-      where: { student_wallet_address: wallet },
-      attributes: ["issuer_wallet_address"],
-      include: [
-        {
-          model: Issuer,
-          attributes: [
-            "wallet_address",
-            "organization_name",
-            "photo_url",
-            "bio",
-            "knowledge_areas",
-            "certificates_issued",
-          ],
-          include: [
-            {
-              model: User,
-              attributes: ["name", "lastname", "created_at"],
-            },
-          ],
-        },
-      ],
-    });
+    // Use reusable aggregation usecase
+    const agg = await getStudentEducators({ models: { Certificate, Issuer, User }, wallet });
+    if (!agg.ok) return res.status(agg.httpStatus || 500).json({ error: agg.message });
 
-    // Group by issuer and count how many certs this specific student received from each
-    const issuerMap = new Map();
-    for (const cert of certs) {
-      const wa = cert.issuer_wallet_address;
-      if (!issuerMap.has(wa)) {
-        issuerMap.set(wa, { issuer: cert.Issuer, certs_to_me: 0 });
-      }
-      issuerMap.get(wa).certs_to_me += 1;
-    }
-
-    const educators = Array.from(issuerMap.values()).map(({ issuer, certs_to_me }) => ({
-      wallet_address: issuer.wallet_address,
-      organization_name: issuer.organization_name,
-      name: issuer.User?.name || null,
-      lastname: issuer.User?.lastname || null,
-      photo_url: issuer.photo_url || null,
-      bio: issuer.bio || null,
-      knowledge_areas: issuer.knowledge_areas || [],
-      certificates_issued: issuer.certificates_issued,
-      joined_at: issuer.User?.created_at || null,
-      certs_to_me,
-    }));
-
-    res.json({ educators });
+    const { educators } = agg.data;
+    return res.json({ educators });
 
   } catch (err) {
     console.error("Failed to fetch student educators:", err);
@@ -204,6 +178,46 @@ router.delete("/me", authenticate, async (req, res) => {
   } catch (err) {
     console.error("delete student error:", err);
     return res.status(500).json({ error: "Failed to delete account" });
+  }
+});
+
+// 60 requests/min per IP — public endpoint, mirrors issuers' shareLimiter.
+// Redis-backed store so the limit is shared across instances.
+const shareLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: "Too many requests, slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildRateLimitStore("/api/students/share"),
+});
+
+// POST /api/students/:wallet/share — public, increments the profile share counter.
+// No auth: anyone sharing a public profile bumps the count. No per-user tracking (MVP).
+router.post("/:wallet/share", shareLimiter, async (req, res) => {
+  try {
+    const result = await registerStudentProfileShare({ models: { Student }, walletAddress: req.params.wallet });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("POST /api/students/:wallet/share error:", err);
+    return res.status(500).json({ error: "Failed to register share" });
+  }
+});
+
+// PATCH /api/students/me/photo — update own profile photo (ipfs:// URI only)
+router.patch("/me/photo", authenticate, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only student accounts can update this profile" });
+  }
+
+  try {
+    const result = await updateStudentPhoto({ models: { Student }, wallet: req.auth.wallet, photoUrl: req.body.photo_url });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("Failed to update student photo:", err);
+    res.status(500).json({ error: "Failed to update photo" });
   }
 });
 
