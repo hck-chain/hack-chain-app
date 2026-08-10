@@ -4,13 +4,22 @@
  * Pilar 2: ProtectedRoute — auth redirect, role guard
  * Pilar 4: ErrorBoundary — crash recovery UI
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import type { ReactNode } from 'react';
+
+vi.mock('@/config/walletConfig', () => ({
+  appKit: { disconnect: vi.fn().mockResolvedValue(undefined) },
+}));
+
+vi.mock('@/services/api', () => ({
+  api: { post: vi.fn().mockResolvedValue({}) },
+}));
 
 // ─── Wrappers ─────────────────────────────────────────────────────────────────
 
@@ -24,22 +33,26 @@ interface WrapperProps {
  * Also adds a /login route so we can detect redirects.
  */
 function RouterWrapper({ children, initialPath = '/protected' }: WrapperProps) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
-    <MemoryRouter initialEntries={[initialPath]}>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<div>Login Page</div>} />
-          <Route path="/protected" element={children} />
-          <Route path="/protected/:id" element={children} />
-        </Routes>
-      </AuthProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<div>Login Page</div>} />
+            <Route path="/protected" element={children} />
+            <Route path="/protected/:id" element={children} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
+  localStorage.clear();
   sessionStorage.clear();
 });
 
@@ -60,8 +73,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children when authenticated (no role check)', () => {
-    sessionStorage.setItem('authToken', 'valid-jwt');
-    sessionStorage.setItem('user', JSON.stringify({
+    localStorage.setItem('user', JSON.stringify({
       id: 1, email: 'a@b.com', role: 'issuer',
       name: 'Ana', lastName: null, walletAddress: null,
     }));
@@ -78,8 +90,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children when user has the required role', () => {
-    sessionStorage.setItem('authToken', 'valid-jwt');
-    sessionStorage.setItem('user', JSON.stringify({
+    localStorage.setItem('user', JSON.stringify({
       id: 2, email: 'r@b.com', role: 'recruiter',
       name: 'Bob', lastName: null, walletAddress: null,
     }));
@@ -96,8 +107,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('redirects to /login when authenticated but wrong role', () => {
-    sessionStorage.setItem('authToken', 'valid-jwt');
-    sessionStorage.setItem('user', JSON.stringify({
+    localStorage.setItem('user', JSON.stringify({
       id: 3, email: 's@b.com', role: 'student',
       name: 'Sam', lastName: null, walletAddress: null,
     }));

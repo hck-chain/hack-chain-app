@@ -127,6 +127,26 @@ describe("requestClass", () => {
     expect(result.data.status).toBe("pending");
   });
 
+  test("stores hourly_rate_usd from the educator's own class_settings, not the caller", async () => {
+    const result = await requestClass(base());
+    expect(result.ok).toBe(true);
+    const saved = await models.ClassRequest.findByPk(result.data.id);
+    expect(Number(saved.hourly_rate_usd)).toBe(50);
+  });
+
+  // SECURITY: hourly_rate_usd is the basis for the on-chain USDT amount the
+  // student is later required to pay (submitPaymentProof.js) — it must never
+  // be settable by the client, or a student could pay a fraction of the
+  // real price. requestClass no longer even accepts a hourlyRateUsd param;
+  // this asserts that even if a caller (or a future regression) passes one
+  // through, it's silently ignored in favor of the trusted server value.
+  test("ignores a client-supplied hourlyRateUsd entirely", async () => {
+    const result = await requestClass({ ...base(), hourlyRateUsd: 0.01 });
+    expect(result.ok).toBe(true);
+    const saved = await models.ClassRequest.findByPk(result.data.id);
+    expect(Number(saved.hourly_rate_usd)).toBe(50);
+  });
+
   test("stores class_name snapshot when issuer_class_id is valid", async () => {
     const result = await requestClass({ ...base(), issuerClassId: classId });
     expect(result.ok).toBe(true);

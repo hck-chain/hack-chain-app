@@ -25,6 +25,8 @@ const { listTreasuryQueue, __ALLOWED_STATUSES: TQ_STATUSES } = require("../harjo
 const { markTreasurySent } = require("../harjoot/usecases/markTreasurySent");
 const { cancelReferral } = require("../usecases/referrals/cancelReferral");
 const { approveReferralReview } = require("../usecases/referrals/approveReferralReview");
+const { resolvePaymentDispute } = require("../usecases/classPayments/resolvePaymentDispute");
+const { resolveCertificateFlag } = require("../usecases/certificateConfirmation/resolveCertificateFlag");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -399,6 +401,100 @@ router.post(
     } catch (err) {
       console.error("POST /api/admin/referrals/:id/approve-review error:", err);
       return res.status(500).json({ error: "Failed to approve review" });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/payment-disputes
+ * Lists open (or all) class-payment disputes for HackChain arbitration.
+ */
+router.get(
+  "/payment-disputes",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [query("status").optional().isIn(["open", "resolved_paid", "resolved_unpaid", "all"])],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const status = req.query.status && req.query.status !== "all" ? req.query.status : "open";
+      const where = status === "open" ? { status: "open" } : req.query.status === "all" ? {} : { status };
+      const disputes = await db.ClassPaymentDispute.findAll({
+        where,
+        include: [{ model: db.ClassRequest, as: "classRequest" }],
+        order: [["created_at", "DESC"]],
+      });
+      return res.json({ disputes });
+    } catch (err) {
+      console.error("GET /api/admin/payment-disputes error:", err);
+      return res.status(500).json({ error: "Failed to fetch payment disputes" });
+    }
+  }
+);
+
+/**
+ * PATCH /api/admin/payment-disputes/:id/resolve
+ * HackChain arbitrates: wasPaid true confirms the deposit/final payment,
+ * false reverts the class request so the talent resubmits proof.
+ */
+router.patch(
+  "/payment-disputes/:id/resolve",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }).toInt(),
+    body("was_paid").isBoolean().toBoolean(),
+    body("resolution_note").optional().isString(),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await resolvePaymentDispute({
+        models: db,
+        disputeId: req.params.id,
+        adminWallet: req.auth.wallet,
+        wasPaid: req.body.was_paid,
+        resolutionNote: req.body.resolution_note,
+      });
+      if (!result.ok) return res.status(result.httpStatus).json({ error: result.code });
+      return res.json(result.data);
+    } catch (err) {
+      console.error("PATCH /api/admin/payment-disputes/:id/resolve error:", err);
+      return res.status(500).json({ error: "Failed to resolve dispute" });
+    }
+  }
+);
+
+/**
+ * PATCH /api/admin/certificates/:id/resolve-flag
+ * HackChain forces a flagged certificate back to confirmed after contacting
+ * both parties (step 11 of the class-payment workflow).
+ */
+router.patch(
+  "/certificates/:id/resolve-flag",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }).toInt(),
+    body("resolution_note").optional().isString(),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await resolveCertificateFlag({
+        models: db,
+        certificateId: req.params.id,
+        adminWallet: req.auth.wallet,
+        resolutionNote: req.body.resolution_note,
+      });
+      if (!result.ok) return res.status(result.httpStatus).json({ error: result.code });
+      return res.json(result.data);
+    } catch (err) {
+      console.error("PATCH /api/admin/certificates/:id/resolve-flag error:", err);
+      return res.status(500).json({ error: "Failed to resolve certificate flag" });
     }
   }
 );

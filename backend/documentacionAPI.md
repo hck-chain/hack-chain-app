@@ -442,12 +442,18 @@ otro emisor) responde `409` con el mismo mensaje genérico, para no revelar medi
 estado qué IDs existen en el sistema; la causa específica del rechazo queda en el log del
 servidor para detección de abuso.
 
+Además, si `class_request_id` corresponde a una clase pagada en dos partes (ver [Class Payment
+Workflow](#class-payment-workflow-endpoints)), la reserva se rechaza con `402` mientras
+`payment_status` de esa `ClassRequest` no sea `paid` — el certificado no puede emitirse hasta que
+ambos pagos (depósito + final) estén confirmados.
+
 **Respuestas**
 
 | Código | Descripción |
 |---|---|
 | `201` | Reserva creada correctamente |
 | `400` | Campos obligatorios faltantes o wallet inválida |
+| `402` | El pago de la clase todavía no está completo (`PAYMENT_NOT_COMPLETE`) |
 | `404` | Emisor no registrado como autorizado |
 | `409` | `class_request_id` no coincide, o ya existe un certificado igual (`DUPLICATE_CERTIFICATE`) |
 | `500` | Error interno del servidor |
@@ -2139,3 +2145,310 @@ Genera y almacena un nuevo nonce criptográfico para la wallet del usuario. Util
 - Al registrar un `student`, el campo `field_of_study` se inicializa con el valor `"Test participant"` si no se especifica otro.
 - El `nonce` generado en el registro y en `POST /nonce` usa `crypto.randomBytes(16)` en formato hexadecimal (32 caracteres). Es empleado típicamente para firmas de mensaje en autenticación Web3.
 - `PUT /:wallet_address` solo actualiza los datos de rol si el campo correspondiente está presente en el body (`!== undefined`); si se omite, el dato de rol permanece sin cambios.
+
+---
+
+## Class Requests — Status & Meeting Link
+
+### PATCH `/api/class-requests/:id/status`
+
+El educador cambia el estado de una solicitud que le pertenece. Al confirmar (`status: "confirmed"`),
+puede adjuntar el link de la clase en vivo (Meet, Zoom, Teams, etc.) — el talento lo recibe por
+email y lo ve en su dashboard. Llamar de nuevo con `status: "confirmed"` sobre una solicitud ya
+confirmada permite editar el link después.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `issuer`, dueño de la solicitud)
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `status` | `string` | ✅ | `"confirmed"`, `"cancelled"` o `"completed"` |
+| `meeting_url` | `string` | ❌ | Link de la clase (http/https). Solo se acepta cuando `status` es `"confirmed"` |
+| `cancellation_reason` | `string` | ❌ | Solo relevante cuando `status` es `"cancelled"` |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | `{ id, status, meeting_url }` |
+| `400` | `status` inválido, `meeting_url` mal formado (`INVALID_MEETING_URL`), o `meeting_url` enviado con un `status` distinto de `confirmed` (`MEETING_URL_REQUIRES_CONFIRMED`) |
+| `403` | El caller no es `issuer` |
+| `404` | Solicitud no encontrada o no pertenece al caller |
+
+---
+
+## Class Payment Workflow Endpoints
+
+Flujo de pago en dos partes (50% depósito + 50% final) sobre una `ClassRequest` ya `confirmed`, con
+dos formas de acreditar cada etapa:
+
+- **Comprobante manual** (`proof_url`/`proof_cid`) — el educador confirma a mano que le llegó el
+  pago (`PATCH .../confirm`). Sin verificación on-chain, sirve para cualquier moneda o método fuera
+  de la cadena.
+- **Pago directo por wallet** (`tx_hash`) — el talento transfiere USDT real desde su wallet
+  conectada directo a la wallet del educador (`issuer_wallet_address`), y el backend verifica la
+  transacción on-chain (`usdtPaymentService.verifyUsdtPayment`, Polygon) antes de aceptarla. Si
+  verifica, la etapa **se auto-confirma** — salta directo a `deposit_confirmed`/`paid`, sin pasar
+  por `deposit_submitted`/`final_submitted` ni requerir que el educador confirme nada, porque la
+  cadena ya es la prueba.
+
+Ninguno de los dos caminos depende de un smart contract propio — el `HackEscrow` on-chain está en
+desarrollo (área de blockchain) y HackChain nunca tiene custodia de los fondos en ninguno de los
+dos flujos; el pago por wallet solo hace que la transferencia sea verificable en vez de una captura
+de pantalla.
+
+**Ciclo de estados de `payment_status`:**
+
+```
+unpaid → deposit_submitted → deposit_confirmed → final_submitted → paid
+  ↓ (tx_hash verificado)         ↓ (tx_hash verificado)
+  └──────────────────────┘       └──────────────────────┘
+                ↓ (sin confirmar, solo vía proof)      ↓ (sin confirmar, solo vía proof)
+         deposit_disputed                        final_disputed
+                ↓ (admin resuelve)                     ↓ (admin resuelve)
+    deposit_confirmed | unpaid                  paid | deposit_confirmed
+```
+
+### POST `/api/class-requests/:id/payments/:stage`
+
+El talento acredita el pago de esa etapa — con un comprobante manual (link externo o CID de una
+captura subida previamente vía `POST /api/upload/payment-proof`) o con el hash de una transferencia
+USDT real hecha desde su wallet. `:stage` es `deposit` o `final`.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `student`, dueño de la solicitud)
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `tx_hash` | `string` | ⚠️ | Hash (0x + 64 hex) de una transferencia USDT en Polygon del talento al educador. Si se envía, `proof_url`/`proof_cid` se ignoran y no hace falta ninguno. |
+| `proof_url` | `string` | ⚠️ | Link externo a la transacción (uno de `proof_url`/`proof_cid` es obligatorio si no se envía `tx_hash`) |
+| `proof_cid` | `string` | ⚠️ | CID de IPFS de una captura subida previamente |
+| `amount` | `string` | ❌ | Monto pagado — ignorado cuando se envía `tx_hash` (se calcula server-side desde `hourly_rate_usd`) |
+| `currency` | `string` | ❌ | Moneda usada (por defecto `USDT`) — ignorado cuando se envía `tx_hash` (siempre queda `USDT`) |
+| `payment_network` | `string` | ❌ | Red usada (ej. `Polygon`, `Tron`) — necesaria para que el admin pueda verificar en caso de disputa. Ignorado cuando se envía `tx_hash` (siempre queda `polygon`) |
+
+`stage: "deposit"` requiere que la `ClassRequest` esté `status: "confirmed"` y `payment_status: "unpaid"`.
+`stage: "final"` requiere `payment_status: "deposit_confirmed"`.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Con `proof_url`/`proof_cid`: `payment_status` avanza a `deposit_submitted`/`final_submitted`. Con `tx_hash` verificado: `payment_status` salta directo a `deposit_confirmed`/`paid` |
+| `400` | `:stage` inválido, `tx_hash` mal formado (`INVALID_TX_HASH`), o falta `proof_url`/`proof_cid`/`tx_hash` |
+| `403` | El caller no es `student` |
+| `404` | Solicitud no encontrada o no pertenece al caller |
+| `409` | `tx_hash` ya fue usado en otra etapa/solicitud (`TX_ALREADY_USED`) |
+| `422` | La clase no está confirmada, `payment_status` no corresponde a esta etapa, la clase no tiene `hourly_rate_usd` (`MISSING_PRICE`), o la verificación on-chain falló — código específico en `error`: `TX_NOT_FOUND`, `TX_REVERTED`, `NO_USDT_TRANSFER`, `WRONG_RECIPIENT`, `WRONG_SENDER`, `INSUFFICIENT_AMOUNT` |
+| `503` | Error temporal del RPC de Polygon al verificar la transacción — reintentar |
+
+---
+
+### PATCH `/api/class-requests/:id/payments/:stage/confirm`
+
+El educador confirma que recibió el pago de esa etapa. Solo aplica al camino de comprobante
+manual — si el talento pagó con `tx_hash` verificado, la etapa ya quedó `deposit_confirmed`/`paid`
+automáticamente y este endpoint devuelve `422` (`UNEXPECTED_PAYMENT_STATUS`, nada pendiente).
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `issuer`, dueño de la solicitud)
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Confirmado — `deposit_confirmed` o `paid` según la etapa |
+| `403` | El caller no es `issuer` |
+| `404` | Solicitud no encontrada o no pertenece al caller |
+| `422` | `payment_status` no corresponde a esta etapa (nada pendiente de confirmar) |
+
+---
+
+### PATCH `/api/class-requests/:id/payments/:stage/dispute`
+
+El talento abre una disputa cuando el educador no confirmó el pago. Notifica a los admins de
+HackChain por email (`getAdminEmails`).
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `student`, dueño de la solicitud)
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Disputa creada, `payment_status` pasa a `deposit_disputed`/`final_disputed` |
+| `403` | El caller no es `student` |
+| `404` | Solicitud no encontrada o no pertenece al caller |
+| `422` | No hay un comprobante pendiente de confirmación para esa etapa |
+
+---
+
+### PATCH `/api/certificates/:id/confirm`
+
+El talento confirma que la clase se completó correctamente (paso final del flujo). Solo válido
+mientras el certificado esté `status: "issued"`.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `student`, dueño del certificado)
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Confirmado — `status: "confirmed"` |
+| `403` | El caller no es `student` |
+| `404` | Certificado no encontrado o no pertenece al caller |
+| `422` | El certificado no está en `status: "issued"` |
+
+---
+
+### PATCH `/api/certificates/:id/flag`
+
+El talento reporta un problema con el certificado emitido. HackChain se pone en contacto con
+ambas partes y puede resolver vía `PATCH /api/admin/certificates/:id/resolve-flag`.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `student`, dueño del certificado)
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `reason` | `string` | ❌ | Motivo del reporte (máx. 500 caracteres) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Reportado — `status: "flagged"` |
+| `403` | El caller no es `student` |
+| `404` | Certificado no encontrado o no pertenece al caller |
+| `422` | El certificado no está en `status: "issued"` |
+
+---
+
+### GET `/api/certificates/pending-confirmation`
+
+Lista los certificados emitidos del talento autenticado que siguen esperando confirmación
+(`status: "issued"` y vinculados a una `ClassRequest`). Si no se confirman ni reportan dentro de
+24h, `certificateConfirmationWorker` los confirma automáticamente.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo `student`)
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "certificates": [
+    { "id": 12, "title": "Introducción a Solidity", "confirmation_deadline": "2026-08-09T14:00:00.000Z" }
+  ]
+}
+```
+
+---
+
+### GET `/api/admin/payment-disputes`
+
+Lista disputas de pago para arbitraje. `status` por defecto `open`.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo admin, ver `ADMIN_WALLETS`)
+
+**Query params:** `status` — uno de `open` (default) | `resolved_paid` | `resolved_unpaid` | `all`
+
+---
+
+### PATCH `/api/admin/payment-disputes/:id/resolve`
+
+HackChain arbitra: confirma si el pago se hizo o no. `was_paid: true` confirma la etapa
+(`deposit_confirmed`/`paid`); `false` revierte la `ClassRequest` para que el talento reintente.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo admin)
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `was_paid` | `boolean` | ✅ | Si el pago efectivamente se hizo |
+| `resolution_note` | `string` | ❌ | Nota de resolución (máx. 1000 caracteres) |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Disputa resuelta |
+| `404` | Disputa no encontrada |
+| `422` | La disputa ya fue resuelta |
+
+---
+
+### PATCH `/api/admin/certificates/:id/resolve-flag`
+
+HackChain fuerza la confirmación de un certificado reportado (`status: "flagged"` → `"confirmed"`)
+después de contactar a ambas partes.
+
+**Headers:** `Authorization: Bearer <access_token>` (solo admin)
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `resolution_note` | `string` | ❌ | Nota de resolución |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Certificado confirmado |
+| `404` | Certificado no encontrado |
+| `422` | El certificado no está en `status: "flagged"` |
+
+---
+
+### POST `/api/upload/payment-proof`
+
+Sube una captura de comprobante de pago a IPFS (Pinata). A diferencia de `POST
+/api/upload/image`, no recorta la imagen a cuadrado — una captura de pantalla recortada sería
+ilegible.
+
+**Headers:** `Authorization: Bearer <access_token>` · `Content-Type: multipart/form-data`
+
+**Body:** campo `file` (imagen, máx. 10 MB)
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "cid": "bafybeigd...",
+  "uri": "ipfs://bafybeigd..."
+}
+```
+
+### GET `/api/exchange-rate/usd-mxn`
+
+Devuelve el tipo de cambio USD → MXN cacheado en memoria, usado para mostrar el precio de las
+clases también en pesos mexicanos junto al precio en dólares que carga el educador. No requiere
+autenticación.
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "rate": 17.153604,
+  "updated_at": "2026-08-08T23:01:08.997Z"
+}
+```
+
+**Errores posibles**
+
+| Status | Causa |
+|--------|-------|
+| 503 | El worker todavía no hizo el primer fetch (arranque del server) |
+
+### Notas generales
+
+- Este flujo es intencionalmente manual y no depende de blockchain — cuando el contrato
+  `HackEscrow` esté desplegado, se sumará como otro método de pago dentro del mismo `currency`,
+  sin romper el flujo manual existente.
+- `certificateConfirmationWorker` corre cada hora (`node-cron`, minuto `:10`) y auto-confirma
+  certificados `issued` cuyo `confirmation_deadline` ya pasó.
+- `exchangeRateWorker` refresca el tipo de cambio USD/MXN una vez al día (`node-cron`, 06:00) más
+  un fetch inmediato al arrancar el server, contra `open.er-api.com` (gratis, sin API key). El
+  valor vive solo en memoria — si el proceso se reinicia, se vuelve a pedir en el próximo boot.

@@ -43,7 +43,7 @@ export type WeeklyAvailability = Record<DayKey, DayAvailability>;
 
 export interface ClassSettings {
   hourly_rate_usd: number | null;
-  accept_usdc: boolean;
+  accept_usdt: boolean;
   durations: number[];
   availability: WeeklyAvailability;
   google_calendar_url: string | null;

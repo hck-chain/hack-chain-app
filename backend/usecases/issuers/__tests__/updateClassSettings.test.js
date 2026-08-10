@@ -76,12 +76,12 @@ describe("updateClassSettings", () => {
     expect(result.data.class_settings.hourly_rate_usd).toBe(75);
   });
 
-  // ---- accept_usdc ----
+  // ---- accept_usdt ----
 
-  test("rejects a non-boolean accept_usdc", async () => {
-    const result = await updateClassSettings({ ...base(), acceptUsdc: "yes" });
+  test("rejects a non-boolean accept_usdt", async () => {
+    const result = await updateClassSettings({ ...base(), acceptUsdt: "yes" });
     expect(result.ok).toBe(false);
-    expect(result.code).toBe("INVALID_ACCEPT_USDC");
+    expect(result.code).toBe("INVALID_ACCEPT_USDT");
   });
 
   // ---- durations ----
@@ -187,13 +187,13 @@ describe("updateClassSettings", () => {
 
   test("merges partial updates without wiping previously set fields", async () => {
     await updateClassSettings({ ...base(), hourlyRateUsd: 50, durations: [30, 60] });
-    const result = await updateClassSettings({ ...base(), acceptUsdc: true });
+    const result = await updateClassSettings({ ...base(), acceptUsdt: true });
 
     expect(result.ok).toBe(true);
     expect(result.data.class_settings).toEqual({
       hourly_rate_usd: 50,
       durations: [30, 60],
-      accept_usdc: true,
+      accept_usdt: true,
     });
   });
 });

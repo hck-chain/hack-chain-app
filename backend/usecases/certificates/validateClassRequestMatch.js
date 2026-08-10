@@ -1,4 +1,5 @@
 const CERT_LOCK_MESSAGE = "Los datos del certificado no coinciden con la solicitud de clase";
+const PAYMENT_INCOMPLETE_MESSAGE = "No se puede emitir el certificado: el pago de la clase todavía no está completo";
 
 /**
  * When a class_request_id is provided, the certificate being reserved must
@@ -36,6 +37,13 @@ async function validateClassRequestMatch({ models, classRequestId, issuerWallet,
   if (classRequest.class_name != null && String(title).trim() !== String(classRequest.class_name).trim()) {
     console.warn(`[cert-lock] class_request_id ${classRequestId} title mismatch, attempted by ${issuerWallet}`);
     return { ok: false, code: "CLASS_REQUEST_MISMATCH", httpStatus: 409, message: CERT_LOCK_MESSAGE };
+  }
+
+  // Certificate issuance is step 10 of the payment workflow — it can't happen
+  // before both 50% installments are confirmed (payment_status === 'paid').
+  if (classRequest.payment_status !== "paid") {
+    console.warn(`[cert-lock] class_request_id ${classRequestId} payment not complete (${classRequest.payment_status}), attempted by ${issuerWallet}`);
+    return { ok: false, code: "PAYMENT_NOT_COMPLETE", httpStatus: 402, message: PAYMENT_INCOMPLETE_MESSAGE };
   }
 
   return { ok: true };
