@@ -31,12 +31,28 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 'pending',
       validate: { isIn: [['pending', 'confirmed', 'cancelled', 'completed']] },
     },
-    // Payment fields — populated when HackEscrow contract is deployed
+    // Manual payment workflow (deposit + final, proof-based confirmation).
+    // escrow_tx_hash/release_tx_hash/amount_hack stay for when HackEscrow ships —
+    // not read/written by the manual flow below.
     payment_status: {
       type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'unpaid',
-      validate: { isIn: [['unpaid', 'escrowed', 'released', 'refunded']] },
+      validate: {
+        isIn: [[
+          'unpaid',
+          'deposit_submitted',
+          'deposit_confirmed',
+          'deposit_disputed',
+          'final_submitted',
+          'paid',
+          'final_disputed',
+          // legacy values kept valid for rows written before this migration
+          'escrowed',
+          'released',
+          'refunded',
+        ]],
+      },
     },
     amount_hack: {
       type: DataTypes.DECIMAL(28, 8),
@@ -48,6 +64,62 @@ module.exports = (sequelize, DataTypes) => {
     },
     release_tx_hash: {
       type: DataTypes.STRING(66),
+      allowNull: true,
+    },
+    currency: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      defaultValue: 'USDT',
+    },
+    amount: {
+      type: DataTypes.DECIMAL(28, 8),
+      allowNull: true,
+    },
+    payment_network: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+    },
+    deposit_proof_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    deposit_proof_cid: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    final_proof_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    final_proof_cid: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    deposit_confirmed_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    final_confirmed_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    // On-chain USDT wallet payment (verified via usdtPaymentService) — set
+    // instead of deposit_proof_url/deposit_proof_cid when the talent pays
+    // directly from their wallet rather than uploading a manual proof.
+    deposit_tx_hash: {
+      type: DataTypes.STRING(66),
+      unique: true,
+      allowNull: true,
+    },
+    final_tx_hash: {
+      type: DataTypes.STRING(66),
+      unique: true,
+      allowNull: true,
+    },
+    // Set by the educator when confirming — a Meet/Zoom/Teams/etc. link the
+    // talent uses to join the live session.
+    meeting_url: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     cancellation_reason: {
@@ -86,6 +158,12 @@ module.exports = (sequelize, DataTypes) => {
       ClassRequest.hasOne(models.Certificate, {
         foreignKey: 'class_request_id',
         as: 'certificate',
+      });
+    }
+    if (models.ClassPaymentDispute) {
+      ClassRequest.hasMany(models.ClassPaymentDispute, {
+        foreignKey: 'class_request_id',
+        as: 'paymentDisputes',
       });
     }
   };

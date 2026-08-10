@@ -4,8 +4,9 @@
  * Pilar 1: API Service Layer
  * Tests cover:
  * - GET / POST / postPublic method signatures
- * - Auth header injection from sessionStorage
- * - 401 handling (clears sessionStorage)
+ * - credentials: 'include' on every request (auth is via httpOnly cookies,
+ *   not a client-readable token — there is no Authorization header)
+ * - 401 handling (clears cached user, redirects to /login)
  * - Error extraction from backend response shape
  * - ApiServiceError type
  */
@@ -59,21 +60,13 @@ describe('api.get', () => {
     expect(result.user.id).toBe(1);
   });
 
-  it('injects Authorization header when authToken is in sessionStorage', async () => {
-    sessionStorage.setItem('authToken', 'test-token-123');
+  it('sends credentials: include so the httpOnly auth cookie is attached', async () => {
     mockFetch(200, {});
     await api.get('/api/auth/me');
 
-    const headers = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].headers;
-    expect(headers['Authorization']).toBe('Bearer test-token-123');
-  });
-
-  it('does NOT inject Authorization header when no token', async () => {
-    mockFetch(200, {});
-    await api.get('/api/auth/me');
-
-    const headers = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].headers;
-    expect(headers['Authorization']).toBeUndefined();
+    const options = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(options.credentials).toBe('include');
+    expect(options.headers['Authorization']).toBeUndefined();
   });
 
   it('throws ApiServiceError with extracted error message on non-ok', async () => {
@@ -92,14 +85,16 @@ describe('api.get', () => {
     });
   });
 
-  it('clears sessionStorage auth keys and redirects on 401', async () => {
-    sessionStorage.setItem('authToken', 'expired-token');
+  it('clears the cached user and redirects on 401 (after a failed refresh)', async () => {
+    localStorage.setItem('user', '{"id":1}');
     sessionStorage.setItem('user', '{"id":1}');
+    // Every fetch call — the original request AND the refresh attempt it
+    // triggers — returns 401, so withAutoRefresh gives up and logs out.
     mockFetch(401, {});
 
     await expect(api.get('/api/auth/me')).rejects.toMatchObject({ status: 401 });
 
-    expect(sessionStorage.getItem('authToken')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
     expect(sessionStorage.getItem('user')).toBeNull();
     expect(window.location.href).toBe('/login');
   });
@@ -118,13 +113,12 @@ describe('api.post', () => {
     expect(options.headers['Content-Type']).toBe('application/json');
   });
 
-  it('injects auth header on authenticated post', async () => {
-    sessionStorage.setItem('authToken', 'my-jwt');
+  it('sends credentials: include on POST too', async () => {
     mockFetch(200, {});
     await api.post('/api/certificates/database', { title: 'Test' });
 
     const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(options.headers['Authorization']).toBe('Bearer my-jwt');
+    expect(options.credentials).toBe('include');
   });
 });
 

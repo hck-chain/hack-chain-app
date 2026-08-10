@@ -13,6 +13,7 @@ import {
   Users,
   Receipt,
   Banknote,
+  ShieldAlert,
   LogOut,
   Menu,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   { to: '/admin/educators', label: 'Educators', icon: <Users           className="h-4 w-4" /> },
   { to: '/admin/payments',  label: 'Pagos',     icon: <Receipt         className="h-4 w-4" /> },
   { to: '/admin/treasury',  label: 'Treasury',  icon: <Banknote        className="h-4 w-4" /> },
+  { to: '/admin/payment-disputes', label: 'Disputas', icon: <ShieldAlert className="h-4 w-4" /> },
 ];
 
 function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {

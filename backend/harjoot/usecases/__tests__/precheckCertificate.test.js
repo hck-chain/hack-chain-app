@@ -65,13 +65,13 @@ describe("Section 4 precheck use case", () => {
     };
   });
 
-  async function makeIssuer({ id, status = "approved", wallet = ISSUER_WALLET }) {
+  async function makeIssuer({ id, status = "approved", wallet = ISSUER_WALLET, email = `edu${id}@x.com` }) {
     return User.create({
       id,
       wallet_address: wallet,
       role: "issuer",
       name: "Edu",
-      email: "edu@x.com",
+      email,
       nonce: crypto.randomBytes(16).toString("hex"),
       educator_approval_status: status,
     });

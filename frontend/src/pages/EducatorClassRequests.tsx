@@ -1,14 +1,21 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
   ArrowLeft, Clock, CheckCircle, XCircle, Award,
-  Calendar, CalendarPlus, Download, User,
+  Calendar, CalendarPlus, Download, User, CreditCard, AlertTriangle, ExternalLink,
+  ChevronRight, Video,
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Layout from '@/components/Layout';
-import { useEducatorClassRequests, useUpdateClassRequestStatus, type EducatorClassRequest } from '@/hooks/useEducatorClassRequests';
+import { PriceTag } from '@/components/PriceTag';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,
+} from '@/components/ui/dialog';
+import { useEducatorClassRequests, useUpdateClassRequestStatus, useConfirmPayment, type EducatorClassRequest, type PaymentStage } from '@/hooks/useEducatorClassRequests';
 import { buildGoogleCalendarUrl, downloadICS } from '@/utils/calendarUtils';
+import { isSafeHref } from '@/utils/safeLink';
+import { resolveIpfs } from '@/lib/ipfs';
 
 type FilterTab = 'all' | 'pending' | 'confirmed' | 'history';
 
@@ -58,7 +65,238 @@ function SkeletonRow() {
   );
 }
 
-function RequestRow({ request, index }: { request: EducatorClassRequest; index: number }) {
+function PaymentProofDialog({ proofUrl, proofCid }: { proofUrl?: string; proofCid?: string | null }) {
+  const { t } = useTranslation();
+  const imageUrl = proofCid ? resolveIpfs(`ipfs://${proofCid}`) : null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button className="inline-flex items-center text-[12px] text-purple-400 hover:text-purple-300 underline underline-offset-2 min-h-[36px] px-1.5 -mx-1.5 rounded-lg hover:bg-white/[0.05] transition-colors duration-150">
+          {t('educatorClassRequests.payment.viewProof', 'Ver comprobante')}
+        </button>
+      </DialogTrigger>
+      <DialogContent className="bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] text-slate-200 rounded-2xl max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-white text-base">
+            {t('educatorClassRequests.payment.proofTitle', 'Comprobante de pago')}
+          </DialogTitle>
+        </DialogHeader>
+
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={t('educatorClassRequests.payment.proofTitle', 'Comprobante de pago')}
+            className="w-full rounded-xl border border-white/10"
+          />
+        )}
+
+        {proofUrl && (
+          <a
+            href={proofUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[13px] text-purple-400 hover:text-purple-300 break-all"
+          >
+            {proofUrl}
+            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+          </a>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type StageStatus = 'not_started' | 'submitted' | 'confirmed' | 'disputed';
+
+function getStageStatus(paymentStatus: EducatorClassRequest['payment_status'], stage: PaymentStage): StageStatus {
+  if (stage === 'deposit') {
+    if (paymentStatus === 'unpaid') return 'not_started';
+    if (paymentStatus === 'deposit_submitted') return 'submitted';
+    if (paymentStatus === 'deposit_disputed') return 'disputed';
+    return 'confirmed'; // deposit_confirmed, final_submitted, final_disputed, paid
+  }
+  // final stage — nothing to show until the deposit is actually confirmed
+  if (paymentStatus === 'unpaid' || paymentStatus === 'deposit_submitted' || paymentStatus === 'deposit_disputed' || paymentStatus === 'deposit_confirmed') {
+    return 'not_started';
+  }
+  if (paymentStatus === 'final_submitted') return 'submitted';
+  if (paymentStatus === 'final_disputed') return 'disputed';
+  return 'confirmed'; // paid
+}
+
+function polygonTxUrl(txHash: string): string {
+  const isAmoy = import.meta.env.VITE_CHAIN_ID === '80002';
+  return isAmoy ? `https://amoy.polygonscan.com/tx/${txHash}` : `https://polygonscan.com/tx/${txHash}`;
+}
+
+// One row per stage (deposit/final) that stays visible for the life of the
+// request — confirming payment used to make PaymentSection return null,
+// hiding the proof forever. Now the proof/tx link persists regardless of
+// whether it's still pending confirmation or already confirmed.
+function PaymentStageRow({ request, stage }: { request: EducatorClassRequest; stage: PaymentStage }) {
+  const { t } = useTranslation();
+  const { mutate: confirmPayment, isPending } = useConfirmPayment();
+  const stageStatus = getStageStatus(request.payment_status, stage);
+
+  const rawProofUrl = stage === 'deposit' ? request.deposit_proof_url : request.final_proof_url;
+  const proofUrl = isSafeHref(rawProofUrl) ? rawProofUrl : undefined;
+  const proofCid = stage === 'deposit' ? request.deposit_proof_cid : request.final_proof_cid;
+  const txHash = stage === 'deposit' ? request.deposit_tx_hash : request.final_tx_hash;
+
+  const label = stage === 'deposit'
+    ? t('educatorClassRequests.payment.depositLabel', 'Depósito (50%)')
+    : t('educatorClassRequests.payment.finalLabel', 'Pago final (50%)');
+
+  if (stageStatus === 'not_started') return null;
+
+  return (
+    <div className="py-2.5 border-b border-white/[0.05] last:border-b-0">
+      <span className="block text-[12px] font-medium text-slate-300 mb-1">{label}</span>
+
+      {stageStatus === 'disputed' ? (
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-amber-500">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {t('educatorClassRequests.payment.disputed', 'En disputa — HackChain está arbitrando')}
+        </span>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {txHash ? (
+            <a
+              href={polygonTxUrl(txHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[12px] text-emerald-400 hover:text-emerald-300"
+            >
+              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+              {t('educatorClassRequests.payment.verifiedOnChain', 'Verificado on-chain')}
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </a>
+          ) : (
+            <>
+              {stageStatus === 'confirmed' && (
+                <span className="inline-flex items-center gap-1 text-[12px] text-emerald-500">
+                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                  {t('educatorClassRequests.payment.confirmed', 'Confirmado')}
+                </span>
+              )}
+              {stageStatus === 'submitted' && (
+                <span className="text-[12px] text-slate-500">
+                  {t('educatorClassRequests.payment.submitted', 'Comprobante enviado')}
+                </span>
+              )}
+              {(proofUrl || proofCid) && <PaymentProofDialog proofUrl={proofUrl} proofCid={proofCid} />}
+            </>
+          )}
+
+          {stageStatus === 'submitted' && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+              disabled={isPending}
+              onClick={() => confirmPayment({ id: request.id, stage })}
+              className="inline-flex items-center gap-1.5 text-[12px] text-emerald-600 hover:text-emerald-400 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/[0.07] min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+            >
+              <CreditCard className="h-3.5 w-3.5 shrink-0" />
+              {t('educatorClassRequests.payment.confirm', 'Confirmar pago recibido')}
+            </motion.button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentSection({ request }: { request: EducatorClassRequest }) {
+  if (request.payment_status === 'unpaid') return null;
+
+  return (
+    <div className="mt-2">
+      <PaymentStageRow request={request} stage="deposit" />
+      <PaymentStageRow request={request} stage="final" />
+    </div>
+  );
+}
+
+// The link only makes sense once the educator has actually accepted a
+// payment — before that, "confirmed" just means the booking was accepted,
+// there's no money in yet and possibly no class to link to.
+const DEPOSIT_CONFIRMED_OR_LATER: EducatorClassRequest['payment_status'][] = [
+  'deposit_confirmed', 'final_submitted', 'final_disputed', 'paid',
+];
+
+function MeetingLinkSection({ request, extraAction }: { request: EducatorClassRequest; extraAction?: ReactNode }) {
+  const { t } = useTranslation();
+  const { mutate: updateStatus, isPending } = useUpdateClassRequestStatus();
+  const [editing, setEditing] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState(request.meeting_url ?? '');
+
+  if (request.status !== 'confirmed') return null;
+  if (!DEPOSIT_CONFIRMED_OR_LATER.includes(request.payment_status)) return null;
+
+  if (request.meeting_url && !editing) {
+    return (
+      <div className="mt-3 space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href={request.meeting_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600 px-4 py-2 rounded-xl transition-colors min-h-[38px]"
+          >
+            <Video className="h-4 w-4 shrink-0" />
+            {t('educatorClassRequests.meeting.join', 'Unirse a la clase')}
+          </a>
+          {extraAction}
+        </div>
+        <button
+          onClick={() => { setMeetingUrl(request.meeting_url ?? ''); setEditing(true); }}
+          className="text-[12px] text-slate-500 hover:text-slate-300 px-2 py-1.5 -ml-2 rounded-lg hover:bg-white/[0.05] min-h-[36px] transition-colors duration-150"
+        >
+          {t('educatorClassRequests.meeting.edit', 'Editar link')}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-1.5">
+      <label className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-semibold">
+        {t('educatorClassRequests.meeting.label', 'Link de la clase (opcional)')}
+      </label>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <input
+          type="url"
+          value={meetingUrl}
+          onChange={(e) => setMeetingUrl(e.target.value)}
+          placeholder={t('educatorClassRequests.meeting.placeholder', 'https://meet.google.com/...')}
+          className="flex-1 min-w-[200px] text-[13px] text-white placeholder:text-slate-600 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 focus:outline-none focus:border-white/[0.2] transition-colors duration-150"
+        />
+        <button
+          disabled={isPending}
+          onClick={() => {
+            updateStatus({ id: request.id, status: 'confirmed', meetingUrl: meetingUrl.trim() || undefined });
+            setEditing(false);
+          }}
+          className="text-[12px] font-medium text-emerald-400 hover:text-emerald-300 min-h-[36px] px-2.5 rounded-lg hover:bg-emerald-500/[0.07] disabled:opacity-40 transition-colors duration-150"
+        >
+          {t('educatorClassRequests.meeting.save', 'Guardar')}
+        </button>
+        {request.meeting_url && (
+          <button
+            onClick={() => setEditing(false)}
+            className="text-[12px] text-slate-600 hover:text-slate-300 min-h-[36px] px-2 rounded-lg hover:bg-white/[0.05] transition-colors duration-150"
+          >
+            {t('educatorClassRequests.meeting.cancel', 'Cancelar')}
+          </button>
+        )}
+      </div>
+      {extraAction && <div className="mt-1">{extraAction}</div>}
+    </div>
+  );
+}
+
+function RequestDetail({ request }: { request: EducatorClassRequest }) {
   const { t, i18n } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateClassRequestStatus();
@@ -67,12 +305,8 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
   const [cancelReason, setCancelReason] = useState('');
 
   const status = request.status;
-  const displayName = request.student_name
-    ? request.student_name
-    : `${request.student_wallet.slice(0, 6)}…${request.student_wallet.slice(-4)}`;
-
   const canConfirm = status === 'pending';
-  const canCancel  = status === 'pending' || status === 'confirmed';
+  const canCancel = status === 'pending' || status === 'confirmed';
 
   const calendarParams = {
     title: request.class_name
@@ -90,180 +324,246 @@ function RequestRow({ request, index }: { request: EducatorClassRequest; index: 
   };
 
   return (
+    <div>
+      {/* Student message — no box, just inline italic */}
+      {request.student_message && (
+        <p className="text-[13px] text-slate-400 italic leading-relaxed">
+          "{request.student_message}"
+        </p>
+      )}
+
+      {/* Confirm / cancel — plain actions, no link here yet */}
+      {(canConfirm || canCancel) && !confirmCancel && (
+        <div className="flex items-center gap-0.5 mt-2.5">
+          {canConfirm && (
+            <motion.button
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+              disabled={isUpdating}
+              onClick={() => updateStatus({ id: request.id, status: 'confirmed' })}
+              className="inline-flex items-center gap-1.5 text-[12px] text-emerald-600 hover:text-emerald-400 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/[0.07] min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+            >
+              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+              {t('educatorClassRequests.actions.confirm')}
+            </motion.button>
+          )}
+          {canCancel && (
+            <motion.button
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+              transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+              disabled={isUpdating}
+              onClick={() => setConfirmCancel(true)}
+              className="inline-flex items-center gap-1.5 text-[12px] text-slate-600 hover:text-slate-300 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+            >
+              <XCircle className="h-3.5 w-3.5 shrink-0" />
+              {t('educatorClassRequests.actions.cancel')}
+            </motion.button>
+          )}
+        </div>
+      )}
+
+      {/* Cancel confirm panel */}
+      <AnimatePresence>
+        {confirmCancel && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.14, ease: EASE }}
+            className="mt-2.5 flex flex-col gap-1.5"
+          >
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder={t('educatorClassRequests.cancelReasonPlaceholder', 'Motivo de cancelación (opcional)')}
+              maxLength={500}
+              rows={2}
+              className="w-full text-[11px] text-slate-300 placeholder:text-slate-600 bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 resize-none focus:outline-none focus:border-white/[0.15] transition-colors duration-150"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] text-slate-500 mr-1">
+                {t('educatorClassRequests.confirmCancel', '¿Cancelar esta clase?')}
+              </span>
+              <motion.button
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+                transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+                disabled={isUpdating}
+                onClick={() => updateStatus({
+                  id: request.id,
+                  status: 'cancelled',
+                  cancellationReason: cancelReason.trim() || undefined,
+                })}
+                className="text-[11px] font-medium text-red-500 hover:text-red-400 min-h-[36px] px-2 rounded-lg hover:bg-red-500/[0.07] disabled:opacity-40 transition-colors duration-150"
+              >
+                {t('educatorClassRequests.cancelYes', 'Sí, cancelar')}
+              </motion.button>
+              <motion.button
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+                transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+                onClick={() => { setConfirmCancel(false); setCancelReason(''); }}
+                className="text-[11px] text-slate-600 hover:text-slate-300 min-h-[36px] px-2 rounded-lg hover:bg-white/[0.05] transition-colors duration-150"
+              >
+                {t('educatorClassRequests.cancelNo', 'No')}
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment status — confirmed only */}
+      {status === 'confirmed' && !confirmCancel && <PaymentSection request={request} />}
+
+      {/* Meeting link — only once the deposit is confirmed, editable afterward.
+          Issue Certificate rides along next to "Join the class" once fully paid. */}
+      {!confirmCancel && (
+        <MeetingLinkSection
+          request={request}
+          extraAction={
+            status === 'confirmed' && request.payment_status === 'paid' ? (
+              <Link
+                to={`/educator/dashboard?classRequestId=${request.id}&studentWallet=${encodeURIComponent(request.student_wallet)}&classDate=${encodeURIComponent(request.requested_date)}${request.student_name ? `&studentName=${encodeURIComponent(request.student_name)}` : ''}${request.class_name ? `&className=${encodeURIComponent(request.class_name)}` : ''}`}
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-purple-300 border border-purple-500/30 hover:bg-purple-500/10 px-4 py-2 rounded-xl transition-colors min-h-[38px]"
+              >
+                <Award className="h-4 w-4 shrink-0" />
+                {t('educatorClassRequests.actions.issueCertificate', 'Emitir Certificado')}
+              </Link>
+            ) : undefined
+          }
+        />
+      )}
+
+      {/* Calendar shortcuts — confirmed only */}
+      {status === 'confirmed' && (
+        <div className="flex items-center gap-0.5 mt-1">
+          <motion.a
+            href={buildGoogleCalendarUrl(calendarParams)}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+            transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+            className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px] transition-colors duration-150"
+          >
+            <CalendarPlus className="h-3 w-3 shrink-0" />
+            {t('calendar.googleCalendar')}
+          </motion.a>
+          <motion.button
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+            transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
+            onClick={() => downloadICS(calendarParams)}
+            className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-300 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px] transition-colors duration-150"
+            title={t('calendar.downloadIcs')}
+          >
+            <Download className="h-3 w-3 shrink-0" />
+            .ics
+          </motion.button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RequestRow({ request, index, autoOpenId }: { request: EducatorClassRequest; index: number; autoOpenId?: number | null }) {
+  const { t, i18n } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
+  const [open, setOpen] = useState(false);
+  const locale = i18n.language.startsWith('es') ? 'es-MX' : 'en-US';
+
+  // Deep link from the notification bell — open straight to this request.
+  useEffect(() => {
+    if (autoOpenId === request.id) setOpen(true);
+  }, [autoOpenId, request.id]);
+
+  const status = request.status;
+  const displayName = request.student_name
+    ? request.student_name
+    : `${request.student_wallet.slice(0, 6)}…${request.student_wallet.slice(-4)}`;
+
+  return (
     <motion.div
       initial={shouldReduceMotion ? false : { opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18, delay: Math.min(index, 5) * 0.038, ease: EASE }}
-      className="border-b border-white/[0.05] last:border-b-0 group"
+      className="border-b border-white/[0.05] last:border-b-0"
     >
-      <div className="flex items-start gap-3 py-3.5">
-        <StudentAvatar name={request.student_name} wallet={request.student_wallet} />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <button
+            className="w-full flex items-center gap-3 py-3.5 -mx-2 px-2 rounded-xl hover:bg-white/[0.03] transition-colors duration-150 text-left"
+            aria-label={`Ver detalle de la solicitud de ${displayName}`}
+          >
+            <StudentAvatar name={request.student_name} wallet={request.student_wallet} />
 
-        <div className="flex-1 min-w-0">
-          {/* Name + status */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-white truncate leading-snug">
-                {displayName}
-              </p>
-              {request.class_name && (
-                <p className="text-xs text-slate-400 mt-0.5 truncate">
-                  <span className="text-slate-600 font-medium">{t('educatorClassRequests.topic', 'Tema')}:</span>{' '}
-                  {request.class_name}
-                </p>
-              )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-white truncate leading-snug">
+                    {displayName}
+                  </p>
+                  {request.class_name && (
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                      <span className="text-slate-600 font-medium">{t('educatorClassRequests.topic', 'Tema')}:</span>{' '}
+                      {request.class_name}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 mt-[3px]">
+                  <span className={`h-[6px] w-[6px] rounded-full shrink-0 ${STATUS_DOT[status]}`} />
+                  <span className={`text-[11px] font-medium ${STATUS_TEXT[status]}`}>
+                    {t(`educatorClassRequests.status.${status}`)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[12px] text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-[11px] w-[11px] shrink-0" />
+                  {formatDate(request.requested_date, locale)} · {request.start_time}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-[11px] w-[11px] shrink-0" />
+                  {request.duration_minutes} min
+                </span>
+                {request.hourly_rate_usd != null && (
+                  <PriceTag usdAmount={request.hourly_rate_usd} className="text-[12px]" />
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0 mt-[3px]">
-              <span className={`h-[6px] w-[6px] rounded-full shrink-0 ${STATUS_DOT[status]}`} />
-              <span className={`text-[11px] font-medium ${STATUS_TEXT[status]}`}>
-                {t(`educatorClassRequests.status.${status}`)}
-              </span>
-            </div>
-          </div>
+            <ChevronRight className="h-4 w-4 text-slate-600 shrink-0" />
+          </button>
+        </DialogTrigger>
 
-          {/* Date / time / duration */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[12px] text-slate-500">
+        <DialogContent className="bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] text-slate-200 rounded-2xl max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <StudentAvatar name={request.student_name} wallet={request.student_wallet} />
+              <div className="min-w-0">
+                <DialogTitle className="text-white text-base truncate">{displayName}</DialogTitle>
+                {request.class_name && (
+                  <DialogDescription className="truncate">{request.class_name}</DialogDescription>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-400 -mt-1">
             <span className="flex items-center gap-1.5">
-              <Calendar className="h-[11px] w-[11px] shrink-0" />
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
               {formatDate(request.requested_date, locale)} · {request.start_time}
             </span>
             <span className="flex items-center gap-1.5">
-              <Clock className="h-[11px] w-[11px] shrink-0" />
+              <Clock className="h-3.5 w-3.5 shrink-0" />
               {request.duration_minutes} min
             </span>
             {request.hourly_rate_usd != null && (
-              <span className="tabular-nums">${request.hourly_rate_usd} USD</span>
+              <PriceTag usdAmount={request.hourly_rate_usd} className="text-[13px]" />
             )}
           </div>
 
-          {/* Student message — no box, just inline italic */}
-          {request.student_message && (
-            <p className="mt-1.5 text-[12px] text-slate-600 italic leading-relaxed line-clamp-2">
-              "{request.student_message}"
-            </p>
-          )}
-
-          {/* Actions */}
-          {(canConfirm || canCancel) && !confirmCancel && (
-            <div className="flex items-center gap-0.5 mt-2.5">
-              {canConfirm && (
-                <motion.button
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
-                  transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                  disabled={isUpdating}
-                  onClick={() => updateStatus({ id: request.id, status: 'confirmed' })}
-                  className="inline-flex items-center gap-1.5 text-[12px] text-emerald-600 hover:text-emerald-400 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/[0.07] min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
-                >
-                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                  {t('educatorClassRequests.actions.confirm')}
-                </motion.button>
-              )}
-              {canCancel && (
-                <motion.button
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
-                  transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                  disabled={isUpdating}
-                  onClick={() => setConfirmCancel(true)}
-                  className="inline-flex items-center gap-1.5 text-[12px] text-slate-600 hover:text-slate-300 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
-                >
-                  <XCircle className="h-3.5 w-3.5 shrink-0" />
-                  {t('educatorClassRequests.actions.cancel')}
-                </motion.button>
-              )}
-            </div>
-          )}
-
-          {/* Cancel confirm panel */}
-          <AnimatePresence>
-            {confirmCancel && (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.14, ease: EASE }}
-                className="mt-2.5 flex flex-col gap-1.5"
-              >
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder={t('educatorClassRequests.cancelReasonPlaceholder', 'Motivo de cancelación (opcional)')}
-                  maxLength={500}
-                  rows={2}
-                  className="w-full text-[11px] text-slate-300 placeholder:text-slate-600 bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 resize-none focus:outline-none focus:border-white/[0.15] transition-colors duration-150"
-                />
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-slate-500 mr-1">
-                    {t('educatorClassRequests.confirmCancel', '¿Cancelar esta clase?')}
-                  </span>
-                  <motion.button
-                    whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
-                    transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                    disabled={isUpdating}
-                    onClick={() => updateStatus({
-                      id: request.id,
-                      status: 'cancelled',
-                      cancellationReason: cancelReason.trim() || undefined,
-                    })}
-                    className="text-[11px] font-medium text-red-500 hover:text-red-400 min-h-[36px] px-2 rounded-lg hover:bg-red-500/[0.07] disabled:opacity-40 transition-colors duration-150"
-                  >
-                    {t('educatorClassRequests.cancelYes', 'Sí, cancelar')}
-                  </motion.button>
-                  <motion.button
-                    whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
-                    transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                    onClick={() => { setConfirmCancel(false); setCancelReason(''); }}
-                    className="text-[11px] text-slate-600 hover:text-slate-300 min-h-[36px] px-2 rounded-lg hover:bg-white/[0.05] transition-colors duration-150"
-                  >
-                    {t('educatorClassRequests.cancelNo', 'No')}
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Issue certificate — confirmed only */}
-          {status === 'confirmed' && !confirmCancel && (
-            <div className="mt-1.5">
-              <Link
-                to={`/educator/dashboard?classRequestId=${request.id}&studentWallet=${encodeURIComponent(request.student_wallet)}&classDate=${encodeURIComponent(request.requested_date)}${request.student_name ? `&studentName=${encodeURIComponent(request.student_name)}` : ''}${request.class_name ? `&className=${encodeURIComponent(request.class_name)}` : ''}`}
-                className="inline-flex items-center gap-1.5 text-[12px] text-purple-400 hover:text-purple-300 px-2.5 py-1.5 rounded-lg hover:bg-purple-500/[0.08] min-h-[36px] transition-colors duration-150"
-              >
-                <Award className="h-3.5 w-3.5 shrink-0" />
-                {t('educatorClassRequests.actions.issueCertificate', 'Emitir Certificado')}
-              </Link>
-            </div>
-          )}
-
-          {/* Calendar shortcuts — confirmed only */}
-          {status === 'confirmed' && (
-            <div className="flex items-center gap-0.5 mt-1">
-              <motion.a
-                href={buildGoogleCalendarUrl(calendarParams)}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
-                transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px] transition-colors duration-150"
-              >
-                <CalendarPlus className="h-3 w-3 shrink-0" />
-                {t('calendar.googleCalendar')}
-              </motion.a>
-              <motion.button
-                whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
-                transition={{ type: 'spring', duration: 0.12, bounce: 0 }}
-                onClick={() => downloadICS(calendarParams)}
-                className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-300 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] min-h-[36px] transition-colors duration-150"
-                title={t('calendar.downloadIcs')}
-              >
-                <Download className="h-3 w-3 shrink-0" />
-                .ics
-              </motion.button>
-            </div>
-          )}
-        </div>
-      </div>
+          <RequestDetail request={request} />
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
@@ -279,11 +579,27 @@ export default function EducatorClassRequests() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
-  const [activeTab, setActiveTab] = useState<FilterTab>('pending');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestIdParam = searchParams.get('requestId');
+  const openRequestId = requestIdParam ? Number(requestIdParam) : null;
+  // Deep link from the bell — jump straight to "All" so the target row is
+  // guaranteed to be in the filtered list regardless of its status.
+  const [activeTab, setActiveTab] = useState<FilterTab>(openRequestId ? 'all' : 'pending');
   const { data, isPending } = useEducatorClassRequests();
+
+  // Consume the deep link once — clears the param so switching tabs or
+  // reopening the page later doesn't keep forcing the modal open.
+  useEffect(() => {
+    if (openRequestId) {
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const all = data ?? [];
 
+  // API already orders most-recent-first (requested_date/start_time DESC),
+  // so every tab reads newest-on-top with no extra client-side sorting.
   const filtered = all.filter(r => {
     if (activeTab === 'all')       return true;
     if (activeTab === 'pending')   return r.status === 'pending';
@@ -434,7 +750,7 @@ export default function EducatorClassRequests() {
               transition={{ duration: 0.1 }}
             >
               {filtered.map((req, i) => (
-                <RequestRow key={req.id} request={req} index={i} />
+                <RequestRow key={req.id} request={req} index={i} autoOpenId={openRequestId} />
               ))}
             </motion.div>
           </AnimatePresence>

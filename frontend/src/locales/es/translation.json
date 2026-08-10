@@ -222,6 +222,8 @@
     "tabClasesLink": "Ir a mis clases",
     "noCertificates": "Sin certificados aún.",
     "noCertificatesHint": "Completa un curso para ganar tu primer NFT.",
+    "errorCertificates": "No se pudieron cargar tus certificados.",
+    "retry": "Intentar de nuevo",
     "noEducators": "Sin educadores aún.",
     "noEducatorsHint": "Tus educadores aparecerán aquí cuando recibas un certificado.",
     "discoverComingSoon": "Próximamente.",
@@ -237,7 +239,12 @@
     "bellViewAll": "Ver todas mis solicitudes",
     "bellStatusConfirmed": "Clase confirmada",
     "bellStatusCancelled": "Solicitud cancelada",
-    "bellStatusCompleted": "Clase completada"
+    "bellStatusCompleted": "Clase completada",
+    "bellStatusAwaitingDeposit": "Confirmada — paga tu depósito",
+    "bellStatusDepositConfirmed": "Depósito confirmado",
+    "bellStatusMeetingReady": "Ya tienes el link de tu clase",
+    "bellStatusPaid": "Pago completo — todo listo",
+    "bellStatusDisputed": "Disputa de pago abierta"
   },
   "talentClasses": {
     "title": "Mis clases",
@@ -260,7 +267,42 @@
     "cancelReasonPlaceholder": "Motivo (opcional)",
     "pendingTopicHint": "Tema: {{topic}}.",
     "pendingStatusHint": "Podés ver si el educador aceptó o declinó tu solicitud aquí mismo.",
-    "viewCertificate": "Ver mis certificados"
+    "viewCertificate": "Ver mis certificados",
+    "joinClass": "Unirse a la clase",
+    "payment": {
+      "disputed": "En disputa — HackChain está arbitrando",
+      "awaitingConfirmation": "Esperando que el educador confirme el pago",
+      "noResponse": "¿No confirmó? Abrir disputa",
+      "depositPrompt": "Paga el depósito inicial (50%)",
+      "finalPrompt": "Paga el pago final (50%)",
+      "linkPlaceholder": "Link de la transacción",
+      "submitLink": "Enviar link",
+      "uploadScreenshot": "Subir captura",
+      "uploading": "Subiendo...",
+      "uploadFailed": "No se pudo subir el comprobante",
+      "wallet": {
+        "payButton": "Pagar con mi wallet",
+        "orManual": "o sube el comprobante manualmente",
+        "addressLabel": "Wallet del educador",
+        "addressHint": "Puedes transferir por cualquier red que prefieras (Tron, BNB Chain, etc.) — luego sube el comprobante o el link de la transacción abajo.",
+        "errorTxNotFound": "Todavía no encontramos esa transacción. Espera un momento e inténtalo de nuevo.",
+        "errorTxReverted": "Esa transacción falló en la cadena.",
+        "errorNoTransfer": "No se encontró ninguna transferencia de USDT en esa transacción.",
+        "errorWrongRecipient": "Esa transferencia de USDT no llegó a la wallet del educador.",
+        "errorWrongSender": "Esa transferencia de USDT no se envió desde tu wallet.",
+        "errorInsufficientAmount": "Enviaste menos USDT del que requiere esta etapa.",
+        "errorAlreadyUsed": "Esa transacción ya se usó para otro pago.",
+        "errorMissingPrice": "Esta clase no tiene un precio configurado — pídele al educador que lo configure primero.",
+        "errorGeneric": "No se pudo verificar el pago. Inténtalo de nuevo o sube el comprobante manualmente."
+      }
+    }
+  },
+  "pendingCertConfirmations": {
+    "title": "Confirma tus clases",
+    "confirm": "Confirmar",
+    "report": "Reportar problema",
+    "reasonPlaceholder": "¿Qué está mal?",
+    "submitReport": "Enviar reporte"
   },
   "recruiterDashboard": {
     "title": "Recruiter Dashboard",
@@ -303,6 +345,7 @@
     "noneYet": "Ninguno aún",
     "formTitle": "Detalles",
     "formSubtitle": "Completá la información del certificado.",
+    "classRequestCertificateNotice": "Este certificado proviene de una clase completada. Algunos campos fueron completados automáticamente y no pueden modificarse.",
     "fieldCertTitle": "Título del Certificado",
     "fieldCertTitlePlaceholder": "ej. Master of Blockchain 2024",
     "fieldTalentName": "Nombre del Talento",
@@ -315,6 +358,10 @@
     "fieldType": "Tipo / Subtítulo",
     "fieldTypePlaceholder": "ej. Certificado de Excelencia",
     "fieldLogo": "Subir Logo",
+    "chooseFile": "Seleccionar archivo",
+    "noFileChosen": "Ningún archivo seleccionado",
+    "usingProfileLogo": "Usando el logo de tu perfil. Puedes cambiarlo desde la configuración de tu perfil.",
+    "personalizedClassType": "Clase Personalizada",
     "creating": "Creando...",
     "createCertificate": "Crear Certificado",
     "preview": "Vista previa",
@@ -798,8 +845,8 @@
     "hourlyRateLabel": "Tarifa por hora",
     "perSessionBreakdown": "Precio por sesión",
     "min": "min",
-    "acceptUsdc": "Aceptar USDC",
-    "acceptUsdcHint": "Los talentos podrán pagar con USDC directamente desde su wallet.",
+    "acceptUsdt": "Aceptar USDT",
+    "acceptUsdtHint": "Los talentos podrán pagar con USDT directamente desde su wallet.",
     "invalidRate": "La tarifa debe ser un número entre 0 y 9999.",
     "durationSection": "Duración",
     "durationHint": "Elige los formatos de clase que ofreces. Puedes seleccionar varios.",
@@ -934,7 +981,7 @@
     "comingSoon": "Próximamente",
     "classesSection": "Clases disponibles",
     "classesPerHour": "/ hora",
-    "classesUsdcAccepted": "USDC aceptado",
+    "classesUsdtAccepted": "USDT aceptado",
     "classesDurationFilter": "Duración",
     "classesMin": "min",
     "classesNoAvailability": "Este educador todavía no configuró su disponibilidad.",
@@ -1006,6 +1053,11 @@
     "viewAll": "Ver todas las solicitudes",
     "notifTitle": "Solicitudes pendientes",
     "noPending": "No hay solicitudes pendientes",
+    "notifDepositSubmitted": "Subió el comprobante del depósito",
+    "notifFinalSubmitted": "Subió el comprobante del pago final",
+    "notifNewRequest": "Nueva solicitud de clase",
+    "notifCancelled": "La clase se canceló",
+    "notifDisputed": "Disputa de pago abierta",
     "tabs": {
       "all": "Todas",
       "pending": "Pendientes",
@@ -1032,6 +1084,25 @@
     "empty": {
       "pending": "No hay solicitudes pendientes",
       "other": "No hay solicitudes en esta sección"
+    },
+    "payment": {
+      "disputed": "En disputa — HackChain está arbitrando",
+      "depositLabel": "Depósito (50%)",
+      "finalLabel": "Pago final (50%)",
+      "submitted": "Comprobante enviado",
+      "confirmed": "Confirmado",
+      "verifiedOnChain": "Verificado on-chain",
+      "viewProof": "Ver comprobante",
+      "proofTitle": "Comprobante de pago",
+      "confirm": "Confirmar pago recibido"
+    },
+    "meeting": {
+      "label": "Link de la clase (opcional)",
+      "placeholder": "https://meet.google.com/...",
+      "join": "Unirse a la clase",
+      "edit": "Editar link",
+      "save": "Guardar",
+      "cancel": "Cancelar"
     }
   },
   "calendar": {

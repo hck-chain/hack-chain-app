@@ -123,15 +123,15 @@ describe("GET/PATCH /api/issuers/me/classes", () => {
   test("PATCH: 200 persists and returns updated class_settings", async () => {
     const res = await request(app)
       .patch("/api/issuers/me/classes")
-      .send({ hourly_rate_usd: 60, accept_usdc: true, durations: [30, 60] })
+      .send({ hourly_rate_usd: 60, accept_usdt: true, durations: [30, 60] })
       .expect(200);
     expect(res.body).toEqual({
-      class_settings: { hourly_rate_usd: 60, accept_usdc: true, durations: [30, 60] },
+      class_settings: { hourly_rate_usd: 60, accept_usdt: true, durations: [30, 60] },
     });
 
     const getRes = await request(app).get("/api/issuers/me/classes").expect(200);
     expect(getRes.body).toEqual({
-      class_settings: { hourly_rate_usd: 60, accept_usdc: true, durations: [30, 60] },
+      class_settings: { hourly_rate_usd: 60, accept_usdt: true, durations: [30, 60] },
     });
   });
 });

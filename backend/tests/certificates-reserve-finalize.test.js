@@ -71,7 +71,7 @@ describe("POST /api/certificates/reserve + /:id/finalize", () => {
     return { issuerWallet, studentWallet };
   };
 
-  const seedClassRequest = async ({ issuerWallet, studentWallet, className, status = "confirmed" }) =>
+  const seedClassRequest = async ({ issuerWallet, studentWallet, className, status = "confirmed", paymentStatus = "paid" }) =>
     ClassRequest.create({
       student_wallet_address: studentWallet,
       issuer_wallet_address: issuerWallet,
@@ -80,6 +80,7 @@ describe("POST /api/certificates/reserve + /:id/finalize", () => {
       duration_minutes: 60,
       class_name: className ?? null,
       status,
+      payment_status: paymentStatus,
     });
 
   const issueSession = async (wallet, role) => {

@@ -36,6 +36,13 @@ const BASE: Omit<MyClassRequest, 'status'> = {
   duration_minutes: 60,
   hourly_rate_usd: null,
   class_name: null,
+  payment_status: 'unpaid',
+  currency: 'USDT',
+  amount: null,
+  deposit_proof_url: null,
+  deposit_proof_cid: null,
+  final_proof_url: null,
+  final_proof_cid: null,
   created_at: '2026-06-01T00:00:00Z',
   updated_at: '2026-06-01T00:00:00Z',
 };

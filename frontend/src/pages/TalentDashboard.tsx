@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Award, Briefcase, Wallet, LogOut, ChevronDown, ChevronRight, ExternalLink, GraduationCap, Users, Mail, Copy, Check, Bell, CheckCircle, XCircle, Flag } from 'lucide-react';
+import { Award, Briefcase, Wallet, LogOut, ChevronDown, ChevronRight, ExternalLink, GraduationCap, Users, Mail, Copy, Check, Bell, CheckCircle, XCircle, Flag, CreditCard, AlertTriangle, Video } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { appKit } from '@/config/walletConfig';
@@ -73,7 +73,7 @@ function EducatorSkeleton() {
 
 function TrayectoriaSection({ wallet }: { wallet: string }) {
   const { t } = useTranslation();
-  const { data: certificates = [], isPending } = useTalentCertificates(wallet);
+  const { data: certificates = [], isPending, isError, refetch } = useTalentCertificates(wallet);
 
   const viewOnOpenSea = (contract: string, identifier: string) => {
     window.open(
@@ -87,6 +87,21 @@ function TrayectoriaSection({ wallet }: { wallet: string }) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[...Array(4)].map((_, i) => <CertificateSkeleton key={i} />)}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+        <Award className="h-10 w-10 mb-3 opacity-30" />
+        <p className="font-body text-base">{t('talentDashboard.errorCertificates')}</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-3 text-sm text-purple-400 hover:text-purple-300 underline underline-offset-2 min-h-[44px] px-2"
+        >
+          {t('talentDashboard.retry')}
+        </button>
       </div>
     );
   }
@@ -242,22 +257,59 @@ function DescubrirSection() {
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
-const STATUS_LABEL_KEY: Record<Exclude<MyClassRequest['status'], 'pending'>, string> = {
-  confirmed: 'talentDashboard.bellStatusConfirmed',
-  cancelled:  'talentDashboard.bellStatusCancelled',
-  completed:  'talentDashboard.bellStatusCompleted',
+type TalentBellKind =
+  | 'confirmed_awaiting_deposit'
+  | 'deposit_confirmed'
+  | 'meeting_ready'
+  | 'paid'
+  | 'disputed'
+  | 'cancelled'
+  | 'completed';
+
+// One explicit kind per flow moment the talent should hear about — derived
+// from the request's current status/payment_status/meeting_url snapshot.
+// deposit_submitted/final_submitted are the TALENT's own pending action
+// (they just did it), so they're not worth a bell ping about themselves.
+function getTalentBellKind(r: MyClassRequest): TalentBellKind | null {
+  if (r.status === 'cancelled') return 'cancelled';
+  if (r.status === 'completed') return 'completed';
+  if (r.status !== 'confirmed') return null;
+  if (r.payment_status === 'deposit_disputed' || r.payment_status === 'final_disputed') return 'disputed';
+  if (r.payment_status === 'paid') return 'paid';
+  if (r.meeting_url) return 'meeting_ready';
+  if (r.payment_status === 'deposit_confirmed') return 'deposit_confirmed';
+  if (r.payment_status === 'unpaid') return 'confirmed_awaiting_deposit';
+  return null;
+}
+
+const TALENT_BELL_LABEL_KEY: Record<TalentBellKind, string> = {
+  confirmed_awaiting_deposit: 'talentDashboard.bellStatusAwaitingDeposit',
+  deposit_confirmed:          'talentDashboard.bellStatusDepositConfirmed',
+  meeting_ready:               'talentDashboard.bellStatusMeetingReady',
+  paid:                        'talentDashboard.bellStatusPaid',
+  disputed:                    'talentDashboard.bellStatusDisputed',
+  cancelled:                   'talentDashboard.bellStatusCancelled',
+  completed:                   'talentDashboard.bellStatusCompleted',
 };
 
-const STATUS_DOT: Record<Exclude<MyClassRequest['status'], 'pending'>, string> = {
-  confirmed: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]',
-  cancelled:  'bg-slate-500',
-  completed:  'bg-purple-400 shadow-[0_0_6px_rgba(192,132,252,0.7)]',
+const TALENT_BELL_DOT: Record<TalentBellKind, string> = {
+  confirmed_awaiting_deposit: 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)]',
+  deposit_confirmed:          'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]',
+  meeting_ready:               'bg-purple-400 shadow-[0_0_6px_rgba(192,132,252,0.7)]',
+  paid:                        'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]',
+  disputed:                    'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.7)]',
+  cancelled:                   'bg-slate-500',
+  completed:                   'bg-purple-400 shadow-[0_0_6px_rgba(192,132,252,0.7)]',
 };
 
-const STATUS_LABEL_COLOR: Record<Exclude<MyClassRequest['status'], 'pending'>, string> = {
-  confirmed: 'text-emerald-400',
-  cancelled:  'text-slate-400',
-  completed:  'text-purple-400',
+const TALENT_BELL_LABEL_COLOR: Record<TalentBellKind, string> = {
+  confirmed_awaiting_deposit: 'text-amber-400',
+  deposit_confirmed:          'text-emerald-400',
+  meeting_ready:               'text-purple-400',
+  paid:                        'text-emerald-400',
+  disputed:                    'text-red-400',
+  cancelled:                   'text-slate-400',
+  completed:                   'text-purple-400',
 };
 
 function timeAgo(dateStr: string): string {
@@ -287,15 +339,18 @@ function TalentNotificationBell() {
 
   const all = data ?? [];
 
-  const updates = all
-    .filter((r): r is MyClassRequest & { status: 'confirmed' | 'cancelled' | 'completed' } =>
-      r.status !== 'pending'
-    )
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 6);
+  const allUpdates = all
+    .map((req) => {
+      const kind = getTalentBellKind(req);
+      return kind ? { req, kind } : null;
+    })
+    .filter((u): u is { req: MyClassRequest; kind: TalentBellKind } => u !== null)
+    .sort((a, b) => new Date(b.req.updated_at).getTime() - new Date(a.req.updated_at).getTime());
 
-  const unreadCount = all.filter(
-    r => r.status !== 'pending' && new Date(r.updated_at).getTime() > lastOpenedTs
+  const updates = allUpdates.slice(0, 6);
+
+  const unreadCount = allUpdates.filter(
+    (u) => new Date(u.req.updated_at).getTime() > lastOpenedTs
   ).length;
 
   function handleOpenChange(open: boolean) {
@@ -412,20 +467,20 @@ function TalentNotificationBell() {
         {/* Directory-pattern list — no card boxes, rows separated by border */}
         {!isPending && updates.length > 0 && (
           <div className="relative z-10 px-4">
-            {updates.map((req, i) => {
+            {updates.map(({ req, kind }, i) => {
               const isNew = new Date(req.updated_at).getTime() > panelOpenedAt;
-              const dotClass = STATUS_DOT[req.status];
-              const labelColor = STATUS_LABEL_COLOR[req.status];
-              const labelKey = STATUS_LABEL_KEY[req.status];
+              const dotClass = TALENT_BELL_DOT[kind];
+              const labelColor = TALENT_BELL_LABEL_COLOR[kind];
+              const labelKey = TALENT_BELL_LABEL_KEY[kind];
 
               return (
-                <motion.div
+                <motion.button
                   key={req.id}
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: Math.min(i, 5) * 0.04, ease: EASE_OUT }}
-                  className={`-mx-4 px-4 py-3.5 border-b border-white/[0.05] last:border-b-0 ${isNew ? 'bg-white/[0.02]' : ''}`}
-                  style={{ transition: 'background-color 200ms ease-out' }}
+                  onClick={() => navigate(`/dashboard/talent/classes?requestId=${req.id}`)}
+                  className={`w-full text-left -mx-4 px-4 py-3.5 border-b border-white/[0.05] last:border-b-0 hover:bg-white/[0.04] transition-colors duration-150 ${isNew ? 'bg-white/[0.02]' : ''}`}
                 >
                   <div className="flex items-start gap-2.5">
                     {/* Status dot */}
@@ -450,7 +505,7 @@ function TalentNotificationBell() {
                       )}
                     </div>
                   </div>
-                </motion.div>
+                </motion.button>
               );
             })}
           </div>

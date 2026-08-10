@@ -758,17 +758,23 @@ function getTalentClassStatusVariant(status, cancellationReason) {
 
   return {
     confirmed: {
-      subject: "¡Tu solicitud de clase fue confirmada!",
+      subject: "¡Tu solicitud de clase fue confirmada! — Falta el depósito",
       title: "Clase confirmada",
       headline: "¡Clase confirmada!",
-      subheadline: "Todo está listo. Tu clase fue aceptada por el educador.",
+      subheadline: "El educador aceptó tu clase. Ahora falta cubrir el depósito para asegurar tu lugar.",
       icon: "📅",
       accentColor: "#059669",
-      ctaLabel: "Ver mis clases",
+      ctaLabel: "Pagar el depósito",
       body: `
         <p style="margin:0 0 20px;">
           Tu solicitud fue <strong>confirmada</strong>.
         </p>
+
+        <div style="margin:0 0 20px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:8px; padding:16px;">
+          <strong>Siguiente paso:</strong> paga el depósito inicial (50%) desde tu dashboard —
+          directo con tu wallet en USDT, o subiendo el comprobante manualmente. El educador
+          recibe una notificación en cuanto lo hagas.
+        </div>
 
         <p style="margin:0;">
           Guarda el evento en tu calendario para no olvidar la fecha y horario de la sesión.
@@ -776,7 +782,7 @@ function getTalentClassStatusVariant(status, cancellationReason) {
       `,
     },
 
-    canceled: {
+    cancelled: {
       subject: "Tu solicitud de clase fue cancelada",
       title: "Clase cancelada",
       headline: "Solicitud cancelada",
@@ -840,7 +846,7 @@ function getTalentClassStatusVariant(status, cancellationReason) {
   }[status];
 }
 
-async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, className, requestedDate, startTime, durationMinutes, requestId, status, cancellationReason }) {
+async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, className, requestedDate, startTime, durationMinutes, requestId, status, cancellationReason, meetingUrl }) {
   console.log(`[emailService] Notificando actualización de clase al talento: ${to} — status=${status}`);
 
   const eStudentName       = esc(studentName);
@@ -849,6 +855,7 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
   const eDate              = esc(requestedDate);
   const eTime              = esc(startTime);
   const eCancellationReason = esc(cancellationReason);
+  const eMeetingUrl        = esc(meetingUrl);
 
   const greeting = eStudentName ? `Hola, ${eStudentName}.` : "Hola.";
   const dashboardUrl = `${FRONTEND_URL}/dashboard/talent/classes`;
@@ -865,6 +872,16 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
     : "";
   const educatorLine = eEducatorName
     ? `<tr><td style="padding:6px 0;color:#888;">Educador</td><td style="padding:6px 0;">${eEducatorName}</td></tr>`
+    : "";
+
+  // Meeting link — only included when the educator set one on confirm.
+  const meetingHtml = status === "confirmed" && meetingUrl
+    ? `<p style="margin:0 0 8px;text-align:center;">
+        <a href="${eMeetingUrl}" target="_blank" rel="noopener noreferrer"
+           style="display:inline-block;background-color:#680099;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:700;font-size:15px;">
+          🎥 Únete a la clase
+        </a>
+      </p>`
     : "";
 
   // Calendar links — only included when the class was confirmed
@@ -904,7 +921,7 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
     from: FROM,
     to,
     subject: variant.subject,
-    text: `${greeting}\n\n${variant.body.replace(/<[^>]+>/g, "")}\n\n${className ? `Clase: ${className}\n` : ""}${educatorName ? `Educador: ${educatorName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\n\nVer mis clases: ${dashboardUrl}\n\n— Equipo HackChain`,
+    text: `${greeting}\n\n${variant.body.replace(/<[^>]+>/g, "")}\n\n${className ? `Clase: ${className}\n` : ""}${educatorName ? `Educador: ${educatorName}\n` : ""}Fecha: ${requestedDate}\nHora: ${startTime}\n\n${status === "confirmed" && meetingUrl ? `Link de la clase: ${meetingUrl}\n\n` : ""}Ver mis clases: ${dashboardUrl}\n\n— Equipo HackChain`,
     html: renderEducatorEmail({
       title: variant.subject,
       headline: variant.headline,
@@ -941,10 +958,11 @@ async function notifyTalentClassRequestUpdate({ to, studentName, educatorName, c
             }
         </table>
       </div>
+      ${meetingHtml}
       ${calendarHtml}
     `,
       ctaUrl: dashboardUrl,
-      ctaLabel: "Ver mis clases",
+      ctaLabel: variant.ctaLabel || "Ver mis clases",
     }),
   };
 
@@ -1050,6 +1068,48 @@ async function notifyEducatorClassConfirmed({ to, educatorName, studentName, cla
       content: icsBuffer,
       contentType: "text/calendar; charset=utf-8; method=PUBLISH",
     }],
+  });
+}
+
+/**
+ * The educator can only set the meeting link once the deposit is already
+ * confirmed (see class-payment workflow), which means saving/editing it
+ * always happens on an ALREADY-confirmed request — reusing the "clase
+ * confirmada, falta el depósito" email for that would be wrong (the deposit
+ * is done) and would also spam a fresh calendar invite to the educator on
+ * every edit. This is the lightweight, purpose-built notification instead.
+ */
+async function notifyTalentMeetingLinkReady({ to, studentName, educatorName, className, meetingUrl }) {
+  console.log(`[emailService] Notificando link de clase listo → ${to}`);
+  const greeting = studentName ? `Hola, ${studentName}.` : "Hola.";
+  const dashboardUrl = `${FRONTEND_URL}/dashboard/talent/classes`;
+  const eMeetingUrl = esc(meetingUrl);
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${educatorName || "El educador"} agregó el link de tu clase`,
+    text: `${greeting}\n\n${educatorName || "El educador"} agregó el link para tu clase${className ? ` "${className}"` : ""}.\n\nÚnete aquí: ${meetingUrl}\n\nVer mis clases: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Link de la clase listo",
+      headline: "¡Ya tienes el link de tu clase!",
+      subheadline: `${educatorName || "El educador"} agregó el link para unirte a la sesión.`,
+      icon: "🎥",
+      accentColor: "#680099",
+      recipientEmail: to,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+        <p style="margin:0 0 20px;">Ya puedes unirte a tu clase${className ? ` <strong>${esc(className)}</strong>` : ""} cuando llegue la hora.</p>
+        <p style="margin:24px 0 0;text-align:center;">
+          <a href="${eMeetingUrl}" target="_blank" rel="noopener noreferrer"
+             style="display:inline-block;background-color:#680099;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:700;font-size:15px;">
+            🎥 Únete a la clase
+          </a>
+        </p>
+      `,
+      ctaUrl: dashboardUrl,
+      ctaLabel: "Ver mis clases",
+    }),
   });
 }
 
@@ -1308,6 +1368,176 @@ async function notifyTalentCertificateIssued({ to, studentName, educatorName, ce
   });
 }
 
+async function notifyEducatorPaymentSubmitted({ to, educatorName, studentName, stage, className }) {
+  console.log(`[emailService] Notificando comprobante de pago enviado → ${to}`);
+  const greeting = educatorName ? `Hola, ${esc(educatorName)}.` : "Hola.";
+  const stageLabel = stage === "final" ? "el pago final (50% restante)" : "el depósito inicial (50%)";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${esc(studentName || "Un talento")} subió el comprobante de pago`,
+    text: `${greeting}\n\n${studentName || "El talento"} subió el comprobante de ${stageLabel}${className ? ` para la clase "${className}"` : ""}.\n\nRevísalo y confírmalo desde tu dashboard: ${FRONTEND_URL}/educator/class-requests\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Comprobante de pago recibido",
+      headline: "Comprobante recibido",
+      subheadline: `${studentName || "El talento"} subió el comprobante de ${stageLabel}.`,
+      icon: "💳",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+             <p style="margin:0;">Revisa el comprobante y confírmalo desde tu dashboard para continuar con la clase${className ? ` <strong>${esc(className)}</strong>` : ""}.</p>`,
+      ctaUrl: `${FRONTEND_URL}/educator/class-requests`,
+      ctaLabel: "Revisar comprobante",
+    }),
+  });
+}
+
+async function notifyEducatorPaymentConfirmedOnChain({ to, educatorName, studentName, stage, className }) {
+  console.log(`[emailService] Notificando pago verificado on-chain → ${to}`);
+  const greeting = educatorName ? `Hola, ${esc(educatorName)}.` : "Hola.";
+  const stageLabel = stage === "final" ? "el pago final (50% restante)" : "el depósito inicial (50%)";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${esc(studentName || "Un talento")} pagó ${stageLabel} con su wallet`,
+    text: `${greeting}\n\n${studentName || "El talento"} envió ${stageLabel} en USDT desde su wallet${className ? ` para la clase "${className}"` : ""}. La transacción ya fue verificada on-chain — no necesitas confirmar nada.\n\nVe el detalle en tu dashboard: ${FRONTEND_URL}/educator/class-requests\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Pago verificado on-chain",
+      headline: "¡Pago recibido y verificado!",
+      subheadline: `${studentName || "El talento"} pagó ${stageLabel} directo desde su wallet — ya está verificado on-chain, no hace falta que confirmes nada.`,
+      icon: "✓",
+      accentColor: "#059669",
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+             <p style="margin:0;">Puedes continuar con la clase${className ? ` <strong>${esc(className)}</strong>` : ""}.</p>`,
+      ctaUrl: `${FRONTEND_URL}/educator/class-requests`,
+      ctaLabel: "Ver detalle",
+    }),
+  });
+}
+
+async function notifyTalentPaymentConfirmed({ to, studentName, educatorName, stage, className }) {
+  console.log(`[emailService] Notificando pago confirmado → ${to}`);
+  const greeting = studentName ? `Hola, ${esc(studentName)}.` : "Hola.";
+  const stageLabel = stage === "final" ? "pago final" : "depósito inicial";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${educatorName || "El educador"} confirmó tu ${stageLabel}`,
+    text: `${greeting}\n\n${educatorName || "El educador"} confirmó que recibió tu ${stageLabel}${className ? ` de la clase "${className}"` : ""}.\n\nVe el estado en tu dashboard: ${FRONTEND_URL}/dashboard/talent\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Pago confirmado",
+      headline: "¡Pago confirmado!",
+      subheadline: `${educatorName || "El educador"} confirmó que recibió tu ${stageLabel}.`,
+      icon: "✓",
+      accentColor: "#059669",
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+             <p style="margin:0;">Ya puedes continuar con tu clase${className ? ` <strong>${esc(className)}</strong>` : ""}.</p>`,
+      ctaUrl: `${FRONTEND_URL}/dashboard/talent`,
+      ctaLabel: "Ver mi dashboard",
+    }),
+  });
+}
+
+async function notifyPaymentDisputeOpened({ to, studentName, educatorName, stage, className, requestId }) {
+  if (!to || (Array.isArray(to) && to.length === 0)) return;
+  console.log(`[emailService] Notificando disputa de pago abierta → ${to}`);
+  const stageLabel = stage === "final" ? "pago final" : "depósito inicial";
+  const adminUrl = `${FRONTEND_URL}/admin/payment-disputes`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Disputa de pago abierta — solicitud #${requestId}`,
+    text: `Se abrió una disputa de ${stageLabel} entre ${studentName || "el talento"} y ${educatorName || "el educador"}${className ? ` para la clase "${className}"` : ""}.\n\nRevisa y arbitra desde el panel de admin: ${adminUrl} — Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Disputa de pago abierta",
+      headline: "Disputa de pago",
+      subheadline: `El educador no confirmó el ${stageLabel} a tiempo — se requiere arbitraje.`,
+      icon: "⚠",
+      accentColor: "#C84B4B",
+      recipientEmail: Array.isArray(to) ? to.join(", ") : to,
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">Solicitud #${requestId}</p>
+             <p style="margin:0;">Talento: ${esc(studentName || "—")} · Educador: ${esc(educatorName || "—")}${className ? ` · Clase: ${esc(className)}` : ""}</p>`,
+      ctaUrl: adminUrl,
+      ctaLabel: "Revisar disputa",
+    }),
+  });
+}
+
+async function notifyPaymentDisputeResolved({ to, recipientName, stage, wasPaid, resolutionNote }) {
+  console.log(`[emailService] Notificando disputa resuelta → ${to}`);
+  const greeting = recipientName ? `Hola, ${esc(recipientName)}.` : "Hola.";
+  const stageLabel = stage === "final" ? "pago final" : "depósito inicial";
+  const outcome = wasPaid ? "el pago fue confirmado" : "el pago no pudo confirmarse";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `HackChain resolvió tu disputa de ${stageLabel}`,
+    text: `${greeting}\n\nHackChain revisó tu disputa de ${stageLabel} y determinó que ${outcome}.${resolutionNote ? `\n\nNota: ${resolutionNote}` : ""}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Disputa resuelta",
+      headline: "Disputa resuelta",
+      subheadline: `HackChain determinó que ${outcome}.`,
+      icon: wasPaid ? "✓" : "✕",
+      accentColor: wasPaid ? "#059669" : "#C84B4B",
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+             ${resolutionNote ? `<p style="margin:0;">${esc(resolutionNote)}</p>` : ""}`,
+      ctaUrl: `${FRONTEND_URL}/dashboard`,
+      ctaLabel: "Ver mi dashboard",
+    }),
+  });
+}
+
+async function notifyCertificateFlagged({ to, certificateTitle, studentName, reason }) {
+  if (!to || (Array.isArray(to) && to.length === 0)) return;
+  console.log(`[emailService] Notificando certificado reportado → ${to}`);
+  const adminUrl = `${FRONTEND_URL}/admin/payment-disputes`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Certificado reportado${certificateTitle ? `: ${certificateTitle}` : ""}`,
+    text: `${studentName || "Un talento"} reportó un problema con su certificado${certificateTitle ? ` "${certificateTitle}"` : ""}.\n\nMotivo: ${reason || "No especificado"}\n\nRevisa y contacta a ambas partes desde el panel de admin: ${adminUrl} — Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Certificado reportado",
+      headline: "Problema reportado",
+      subheadline: `${studentName || "Un talento"} reportó un problema con su certificado.`,
+      icon: "⚠",
+      accentColor: "#C84B4B",
+      recipientEmail: Array.isArray(to) ? to.join(", ") : to,
+      body: `<p style="margin:0;">${esc(reason || "No se especificó un motivo.")}</p>`,
+      ctaUrl: adminUrl,
+      ctaLabel: "Revisar reporte",
+    }),
+  });
+}
+
+async function notifyCertificateAutoConfirmed({ to, studentName, certificateTitle }) {
+  console.log(`[emailService] Notificando auto-confirmación de certificado → ${to}`);
+  const greeting = studentName ? `Hola, ${esc(studentName)}.` : "Hola.";
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Tu certificado${certificateTitle ? ` "${certificateTitle}"` : ""} quedó confirmado automáticamente`,
+    text: `${greeting}\n\nNo recibimos respuesta dentro de las 24 horas, así que tu certificado${certificateTitle ? ` "${certificateTitle}"` : ""} quedó confirmado automáticamente como finalizado.\n\nSi consideras que hay un error, contáctanos en contacto@hackchain.app.\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: "Certificado confirmado automáticamente",
+      headline: "Clase finalizada",
+      subheadline: "No hubo respuesta dentro de las 24 horas, así que confirmamos la clase automáticamente.",
+      icon: "✓",
+      accentColor: "#680099",
+      body: `<p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+             <p style="margin:0;">Si consideras que hubo un error, escríbenos a contacto@hackchain.app.</p>`,
+      ctaUrl: `${FRONTEND_URL}/dashboard/talent`,
+      ctaLabel: "Ver mi dashboard",
+    }),
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   notifyEducatorApproved,
@@ -1319,7 +1549,15 @@ module.exports = {
   notifyEducatorClassRequest,
   notifyTalentClassRequestUpdate,
   notifyEducatorClassConfirmed,
+  notifyTalentMeetingLinkReady,
   notifyEducatorClassCancelled,
   notifyClassReminder,
   notifyTalentCertificateIssued,
+  notifyEducatorPaymentSubmitted,
+  notifyEducatorPaymentConfirmedOnChain,
+  notifyTalentPaymentConfirmed,
+  notifyPaymentDisputeOpened,
+  notifyPaymentDisputeResolved,
+  notifyCertificateFlagged,
+  notifyCertificateAutoConfirmed,
 };

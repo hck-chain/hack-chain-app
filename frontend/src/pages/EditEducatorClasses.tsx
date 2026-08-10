@@ -489,13 +489,13 @@ const EditEducatorClasses = () => {
   const updateSettings = useUpdateClassSettings();
 
   const [hourlyRate, setHourlyRate] = useState<string>('');
-  const [acceptUsdc, setAcceptUsdc] = useState(false);
+  const [acceptUsdt, setAcceptUsdt] = useState(false);
   const [durations, setDurations] = useState<number[]>([30, 60]);
   const [availability, setAvailability] = useState<WeeklyAvailability>(DEFAULT_AVAILABILITY);
   useEffect(() => {
     if (!settings) return;
     setHourlyRate(settings.hourly_rate_usd != null ? String(settings.hourly_rate_usd) : '');
-    setAcceptUsdc(settings.accept_usdc ?? false);
+    setAcceptUsdt(settings.accept_usdt ?? false);
     setDurations(settings.durations?.length ? settings.durations : [30, 60]);
     setAvailability({ ...DEFAULT_AVAILABILITY, ...(settings.availability ?? {}) });
   }, [settings]);
@@ -545,7 +545,7 @@ const EditEducatorClasses = () => {
 
     const payload: Partial<ClassSettings> = {
       hourly_rate_usd: hourlyRate.trim() ? parsedRate : null,
-      accept_usdc: acceptUsdc,
+      accept_usdt: acceptUsdt,
       durations,
       availability,
     };
@@ -692,13 +692,13 @@ const EditEducatorClasses = () => {
               >
                 <div>
                   <p className="text-sm font-medium" style={{ color: P.textPrimary }}>
-                    {t('editClasses.acceptUsdc')}
+                    {t('editClasses.acceptUsdt')}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: P.textMuted }}>
-                    {t('editClasses.acceptUsdcHint')}
+                    {t('editClasses.acceptUsdtHint')}
                   </p>
                 </div>
-                <Toggle checked={acceptUsdc} onChange={setAcceptUsdc} disabled={isSaving} />
+                <Toggle checked={acceptUsdt} onChange={setAcceptUsdt} disabled={isSaving} />
               </div>
             </div>
           </SectionCard>

@@ -4,24 +4,42 @@
  * Pilar 2: AuthProvider + Protected Routes
  * Tests cover:
  * - Initial state (unauthenticated)
- * - sessionStorage rehydration on mount
- * - login() persists to sessionStorage and updates state
- * - logout() clears sessionStorage and resets state
+ * - localStorage rehydration on mount (auth itself is an httpOnly cookie —
+ *   only the non-sensitive user object is cached client-side, in
+ *   localStorage, not sessionStorage)
+ * - login() persists the user to localStorage and updates state
+ * - logout() clears the cached user and resets state
  * - useAuth() throws if used outside AuthProvider
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
+vi.mock('@/config/walletConfig', () => ({
+  appKit: {
+    disconnect: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('@/services/api', () => ({
+  api: {
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 // ─── Wrapper ──────────────────────────────────────────────────────────────────
 
 function wrapper({ children }: { children: ReactNode }) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
-    <MemoryRouter>
-      <AuthProvider>{children}</AuthProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <AuthProvider>{children}</AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -37,90 +55,90 @@ const MOCK_USER = {
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
+  localStorage.clear();
   sessionStorage.clear();
 });
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('AuthContext — initial state', () => {
-  it('starts unauthenticated when sessionStorage is empty', () => {
+  it('starts unauthenticated when localStorage is empty', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
-    expect(result.current.token).toBeNull();
   });
 });
 
-describe('AuthContext — sessionStorage rehydration', () => {
-  it('restores session if authToken and user are in sessionStorage', () => {
-    sessionStorage.setItem('authToken', 'existing-jwt');
-    sessionStorage.setItem('user', JSON.stringify(MOCK_USER));
+describe('AuthContext — localStorage rehydration', () => {
+  it('restores session if a user is cached in localStorage', async () => {
+    localStorage.setItem('user', JSON.stringify(MOCK_USER));
 
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    // After rehydration (isLoading resolves sync in jsdom)
     expect(result.current.isAuthenticated).toBe(true);
-    expect(result.current.token).toBe('existing-jwt');
     expect(result.current.user?.email).toBe('test@hackchain.io');
   });
 
-  it('stays unauthenticated if sessionStorage data is corrupted', () => {
-    sessionStorage.setItem('authToken', 'some-token');
-    sessionStorage.setItem('user', 'NOT_VALID_JSON{{{');
+  it('stays unauthenticated and clears the key if localStorage data is corrupted', async () => {
+    localStorage.setItem('user', 'NOT_VALID_JSON{{{');
 
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.isAuthenticated).toBe(false);
-    expect(sessionStorage.getItem('authToken')).toBeNull();
-    expect(sessionStorage.getItem('user')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
   });
 });
 
 describe('AuthContext — login()', () => {
-  it('sets user and token in state', () => {
+  it('sets the user in state', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
-      result.current.login('new-jwt', MOCK_USER);
+      result.current.login(MOCK_USER);
     });
 
     expect(result.current.isAuthenticated).toBe(true);
     expect(result.current.user?.role).toBe('issuer');
-    expect(result.current.token).toBe('new-jwt');
   });
 
-  it('persists token and user to sessionStorage', () => {
+  it('persists the user to localStorage, stripping email (PII stays in memory only)', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
-      result.current.login('new-jwt', MOCK_USER);
+      result.current.login(MOCK_USER);
     });
 
-    expect(sessionStorage.getItem('authToken')).toBe('new-jwt');
-    expect(JSON.parse(sessionStorage.getItem('user')!).email).toBe('test@hackchain.io');
+    const stored = JSON.parse(localStorage.getItem('user')!);
+    expect(stored.email).toBeUndefined();
+    expect(stored.role).toBe('issuer');
   });
 });
 
 describe('AuthContext — logout()', () => {
-  it('clears state after logout', () => {
+  it('clears state after logout', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    act(() => { result.current.login('jwt', MOCK_USER); });
+    act(() => { result.current.login(MOCK_USER); });
     act(() => { result.current.logout(); });
 
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
-    expect(result.current.token).toBeNull();
   });
 
-  it('removes authToken and user from sessionStorage after logout', () => {
+  it('removes the cached user from localStorage after logout', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    act(() => { result.current.login('jwt', MOCK_USER); });
+    act(() => { result.current.login(MOCK_USER); });
     act(() => { result.current.logout(); });
 
-    expect(sessionStorage.getItem('authToken')).toBeNull();
-    expect(sessionStorage.getItem('user')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
   });
 });
 

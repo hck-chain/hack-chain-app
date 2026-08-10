@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Check, Globe, Linkedin, Twitter, ExternalLink, ShieldCheck, BadgeCheck, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
+import { PriceTag } from '@/components/PriceTag';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useEducatorProfile } from '@/hooks/useEducatorProfile';
@@ -651,14 +652,14 @@ const EducatorProfile = () => {
                         </p>
                         <div className="flex flex-wrap items-baseline gap-2">
                           {educator.class_settings.hourly_rate_usd != null && (
-                            <span className="text-2xl font-bold tabular-nums" style={{ color: P.textPrimary }}>
-                              ${educator.class_settings.hourly_rate_usd}
+                            <span className="text-2xl" style={{ color: P.textPrimary }}>
+                              <PriceTag usdAmount={educator.class_settings.hourly_rate_usd} />
                               <span className="text-sm font-normal ml-1" style={{ color: P.textMuted }}>
-                                USD {t('educatorProfile.classesPerHour')}
+                                {t('educatorProfile.classesPerHour')}
                               </span>
                             </span>
                           )}
-                          {educator.class_settings.accept_usdc && (
+                          {educator.class_settings.accept_usdt && (
                             <span
                               className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
                               style={{ backgroundColor: P.surface, color: P.emerald, border: `1px solid oklch(0.72 0.14 155 / 0.25)` }}

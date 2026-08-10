@@ -70,6 +70,7 @@ REDIS_URL=redis://...                      # Redis connection string; if absent,
 POLYGON_RPC_URL=https://...               # Polygon RPC endpoint (Amoy testnet or mainnet)
 PRIVATE_KEY=0x...                          # Backend wallet private key for contract interactions
 CONTRACT_ADDRESS=0x...                     # Deployed HackCertificate contract address
+USDT_CONTRACT_ADDRESS=0x...               # USDT (ERC20) contract address on Polygon
 
 # IPFS / Pinata
 PINATA_JWT=...                             # Pinata API JWT token
@@ -99,6 +100,7 @@ NODE_ENV=production                        # Set to "development" locally
 VITE_API_URL=https://api.hackchain.app     # Backend API base URL
 VITE_REOWN_PROJECT_ID=...                  # Reown AppKit project ID (from cloud.reown.com)
 VITE_CONTRACT_ADDRESS=0x...               # Deployed HackCertificate contract address
+VITE_USDT_CONTRACT_ADDRESS=0x...          # USDT (ERC20) contract address on Polygon
 VITE_CHAIN_ID=137                          # Polygon chain ID (137 mainnet, 80002 Amoy testnet)
 ```
 
