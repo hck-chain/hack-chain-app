@@ -2,7 +2,7 @@ const express = require("express");
 const request = require("supertest");
 
 // Mock the authenticate middleware used by the router
-jest.mock("C:\\dev\\hackchain\\hack-chain-app\\backend\\middleware\\auth", () => ({
+jest.mock("../middleware/auth", () => ({
   authenticate: jest.fn((req, res, next) => {
     // mark request to assert middleware ran
     req.authenticated = true;
@@ -11,17 +11,17 @@ jest.mock("C:\\dev\\hackchain\\hack-chain-app\\backend\\middleware\\auth", () =>
 }));
 
 // Create mocks for the controller methods used by the router
-jest.mock("C:\\dev\\hackchain\\hack-chain-app\\backend\\controllers\\profileController", () => ({
+jest.mock("../controllers/profileController", () => ({
   getMe: jest.fn((req, res) => res.status(200).json({ called: true, auth: !!req.authenticated })),
   updateMe: jest.fn((req, res) => res.status(200).json({ updated: true, body: req.body })),
 }));
 
-const profileController = require("C:\\dev\\hackchain\\hack-chain-app\\backend\\controllers\\profileController");
+const profileController = require("../controllers/profileController");
 const getMeMock = profileController.getMe;
 const updateMeMock = profileController.updateMe;
 
 // Require the router after mocks so requires inside the module use the mocks
-const router = require("C:\\dev\\hackchain\\hack-chain-app\\backend\\routes\\profile");
+const router = require("../routes/profile");
 
 // Helper to mount router into an express app for testing
 function createApp() {
