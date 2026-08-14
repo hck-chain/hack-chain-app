@@ -56,6 +56,31 @@ export type AdminStats = {
   generated_at: string;
 };
 
+export type PaymentDisputeRow = {
+  id: number;
+  class_request_id: number;
+  dispute_type: 'deposit' | 'final';
+  status: 'open' | 'resolved_paid' | 'resolved_unpaid';
+  opened_by_wallet: string;
+  resolution_note: string | null;
+  resolved_by_wallet: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  classRequest: {
+    id: number;
+    class_name: string | null;
+    student_wallet_address: string;
+    issuer_wallet_address: string;
+    currency: string;
+    amount: string | null;
+    payment_network: string | null;
+    deposit_proof_url: string | null;
+    deposit_proof_cid: string | null;
+    final_proof_url: string | null;
+    final_proof_cid: string | null;
+  } | null;
+};
+
 export type PaymentRow = {
   id: number;
   txHash: string;
@@ -180,5 +205,21 @@ export const adminApi = {
     usdtTxHash: string,
   ): Promise<{ message: string; transfer: { id: number; status: 'sent'; usdtTxHash: string; sentAt: string } }> {
     return api.post(`/api/admin/treasury-queue/${transferId}/mark-sent`, { usdtTxHash });
+  },
+
+  // -------------------------------------------------------------------------
+  // Class-payment disputes
+  // -------------------------------------------------------------------------
+
+  listPaymentDisputes(status: 'open' | 'resolved_paid' | 'resolved_unpaid' | 'all' = 'open'): Promise<{ disputes: PaymentDisputeRow[] }> {
+    return api.get(`/api/admin/payment-disputes${qs({ status })}`);
+  },
+
+  resolvePaymentDispute(disputeId: number, wasPaid: boolean, resolutionNote?: string) {
+    return api.patch(`/api/admin/payment-disputes/${disputeId}/resolve`, { was_paid: wasPaid, resolution_note: resolutionNote });
+  },
+
+  resolveCertificateFlag(certificateId: number, resolutionNote?: string) {
+    return api.patch(`/api/admin/certificates/${certificateId}/resolve-flag`, { resolution_note: resolutionNote });
   },
 };

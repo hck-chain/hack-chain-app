@@ -101,7 +101,7 @@ describe("notifyTalentClassRequestUpdate - canceled", () => {
 
       ...args,
 
-      status: "canceled",
+      status: "cancelled",
 
       cancellationReason:
         "El educador no estará disponible",
@@ -122,7 +122,7 @@ describe("notifyTalentClassRequestUpdate - canceled", () => {
 
       ...args,
 
-      status: "canceled",
+      status: "cancelled",
 
     });
 

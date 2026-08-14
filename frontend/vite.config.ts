@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
@@ -17,6 +18,27 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
     dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
+  },
+  optimizeDeps: {
+    // @reown/appkit only import()s these scaffold-ui subpaths at runtime,
+    // inside the wallet modal, gated by remote feature flags — Vite's dep
+    // scanner never sees that branch execute, so it never pre-bundles them
+    // and every first modal open 404s on the missing chunk. Listing them
+    // here forces the pre-bundle at server start instead of on demand.
+    include: [
+      '@reown/appkit-scaffold-ui',
+      '@reown/appkit-scaffold-ui/w3m-modal',
+      '@reown/appkit-scaffold-ui/swaps',
+      '@reown/appkit-scaffold-ui/send',
+      '@reown/appkit-scaffold-ui/receive',
+      '@reown/appkit-scaffold-ui/onramp',
+      '@reown/appkit-scaffold-ui/transactions',
+      '@reown/appkit-scaffold-ui/embedded-wallet',
+      '@reown/appkit-scaffold-ui/socials',
+      '@reown/appkit-scaffold-ui/email',
+      '@reown/appkit-scaffold-ui/pay-with-exchange',
+      '@reown/appkit-pay',
+    ],
   },
   build: {
     // Strip all console.* calls from production bundles — prevents PII leaks in DevTools
@@ -48,6 +70,10 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    // e2e/ holds Playwright specs (import { test } from '@playwright/test') —
+    // without this, Vitest's default glob picks them up too and runs them
+    // with the wrong test runner.
+    exclude: [...configDefaults.exclude, "e2e/**"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
       // Pin React to the workspace copy in the test environment only. The

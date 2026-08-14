@@ -67,11 +67,25 @@ export default function AdminEducatorsPage() {
     queryKey: ['admin', 'educators', { tab, search, page, limit }],
     queryFn: () => adminApi.listEducators({ status: tab, search, page, limit }),
     placeholderData: (prev) => prev,
+    refetchInterval: 30_000,
   });
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ['admin', 'educators'] });
     qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+  }
+
+  // A 409 here means another admin already approved/rejected this row —
+  // the backend usecase is idempotent, so this is a stale-view race, not
+  // a real failure. Refresh instead of showing a generic error.
+  function handleConflictAwareError(err: unknown, fallbackTitle: string) {
+    if (err instanceof ApiServiceError && err.status === 409) {
+      toast({ title: 'Ya fue procesado por otro admin', description: 'Actualizando la lista…' });
+      invalidate();
+      return;
+    }
+    const msg = err instanceof ApiServiceError ? err.message : String(err);
+    toast({ title: fallbackTitle, description: msg, variant: 'destructive' });
   }
 
   const approveMutation = useMutation({
@@ -82,8 +96,8 @@ export default function AdminEducatorsPage() {
       invalidate();
     },
     onError: (err) => {
-      const msg = err instanceof ApiServiceError ? err.message : String(err);
-      toast({ title: 'No se pudo aprobar', description: msg, variant: 'destructive' });
+      setConfirmRow(null);
+      handleConflictAwareError(err, 'No se pudo aprobar');
     },
   });
 
@@ -97,8 +111,9 @@ export default function AdminEducatorsPage() {
       invalidate();
     },
     onError: (err) => {
-      const msg = err instanceof ApiServiceError ? err.message : String(err);
-      toast({ title: 'No se pudo rechazar', description: msg, variant: 'destructive' });
+      setRejectRow(null);
+      setRejectReason('');
+      handleConflictAwareError(err, 'No se pudo rechazar');
     },
   });
 

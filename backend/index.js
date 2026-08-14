@@ -117,6 +117,7 @@ const adminRouter = require("./routes/admin");
 const referralsRouter = require("./routes/referrals");
 const classRequestsRouter = require("./routes/classRequests");
 const issuerClassesRouter = require("./routes/issuerClasses");
+const exchangeRateRouter = require("./routes/exchangeRate");
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
@@ -131,6 +132,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/referrals", referralsRouter);
 app.use("/api/class-requests", classRequestsRouter);
 app.use("/api/issuer-classes", issuerClassesRouter);
+app.use("/api/exchange-rate", exchangeRateRouter);
 
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -265,6 +267,14 @@ let server;
     // Class expiry worker — cancels pending requests whose date has already passed.
     require("./workers/classExpiryWorker").scheduleClassExpiry();
 
+    // Certificate confirmation worker — auto-confirms issued certificates the
+    // talent didn't confirm or flag within 24h (class-payment workflow step 11).
+    require("./workers/certificateConfirmationWorker").scheduleCertificateConfirmation();
+
+    // Exchange rate worker — keeps the USD/MXN rate shown next to class
+    // prices fresh (daily refresh, immediate fetch on boot).
+    require("./workers/exchangeRateWorker").scheduleExchangeRateRefresh();
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);
@@ -273,7 +283,7 @@ let server;
 
 // ---------- Graceful shutdown ----------
 async function shutdown(signal) {
-  console.log(`\n⚠️  Received ${signal}. Shutting down gracefully...`);
+  console.log(`\n  Received ${signal}. Shutting down gracefully...`);
   try {
     if (server) {
       await new Promise((resolve, reject) => {

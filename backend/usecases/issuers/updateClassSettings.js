@@ -42,7 +42,7 @@ async function updateClassSettings({
   models,
   wallet,
   hourlyRateUsd,
-  acceptUsdc,
+  acceptUsdt,
   durations,
   availability,
   googleCalendarUrl,
@@ -60,10 +60,10 @@ async function updateClassSettings({
     }
   }
 
-  if (acceptUsdc !== undefined && typeof acceptUsdc !== "boolean") {
+  if (acceptUsdt !== undefined && typeof acceptUsdt !== "boolean") {
     return {
-      ok: false, code: "INVALID_ACCEPT_USDC", httpStatus: 400,
-      message: "accept_usdc must be a boolean",
+      ok: false, code: "INVALID_ACCEPT_USDT", httpStatus: 400,
+      message: "accept_usdt must be a boolean",
     };
   }
 
@@ -117,7 +117,7 @@ async function updateClassSettings({
   const updated = {
     ...current,
     ...(hourlyRateUsd !== undefined && { hourly_rate_usd: hourlyRateUsd ?? null }),
-    ...(acceptUsdc !== undefined && { accept_usdc: acceptUsdc }),
+    ...(acceptUsdt !== undefined && { accept_usdt: acceptUsdt }),
     ...(durations !== undefined && { durations }),
     ...(availability !== undefined && { availability }),
     ...(googleCalendarUrl !== undefined && { google_calendar_url: googleCalendarUrl?.trim() || null }),

@@ -1,6 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 
+export type PaymentStatus =
+  | 'unpaid'
+  | 'deposit_submitted'
+  | 'deposit_confirmed'
+  | 'deposit_disputed'
+  | 'final_submitted'
+  | 'paid'
+  | 'final_disputed';
+
+export type PaymentStage = 'deposit' | 'final';
+
 export interface MyClassRequest {
   id: number;
   issuer_organization: string | null;
@@ -12,6 +23,14 @@ export interface MyClassRequest {
   hourly_rate_usd: string | null;
   class_name: string | null;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  payment_status: PaymentStatus;
+  currency: string;
+  amount: string | null;
+  deposit_proof_url: string | null;
+  deposit_proof_cid: string | null;
+  final_proof_url: string | null;
+  final_proof_cid: string | null;
+  meeting_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +44,36 @@ export function useMyClassRequests() {
     queryKey: ['my-class-requests'],
     queryFn: () =>
       api.get<MyClassRequestsResponse>('/api/class-requests/sent').then((r) => r.requests),
+  });
+}
+
+export function useSubmitPaymentProof() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id, stage, proofUrl, proofCid, txHash, amount, currency, paymentNetwork,
+    }: {
+      id: number; stage: PaymentStage; proofUrl?: string; proofCid?: string; txHash?: string;
+      amount?: string; currency?: string; paymentNetwork?: string;
+    }) =>
+      api.post(`/api/class-requests/${id}/payments/${stage}`, {
+        proof_url: proofUrl,
+        proof_cid: proofCid,
+        tx_hash: txHash,
+        amount,
+        currency,
+        payment_network: paymentNetwork,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-class-requests'] }),
+  });
+}
+
+export function useDisputePayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, stage }: { id: number; stage: PaymentStage }) =>
+      api.patch(`/api/class-requests/${id}/payments/${stage}/dispute`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-class-requests'] }),
   });
 }
 

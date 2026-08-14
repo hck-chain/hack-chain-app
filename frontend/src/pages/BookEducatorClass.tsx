@@ -6,6 +6,7 @@ import {
   CheckCircle2, MessageSquare, BookOpen,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import { PriceTag } from '@/components/PriceTag';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEducatorProfile } from '@/hooks/useEducatorProfile';
 import { useIssuerClasses } from '@/hooks/useIssuerClasses';
@@ -56,10 +57,9 @@ function toISODate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function calcPrice(hourlyRate: number | null | undefined, durationMinutes: number): string | null {
+function calcPrice(hourlyRate: number | null | undefined, durationMinutes: number): number | null {
   if (hourlyRate == null) return null;
-  const price = (hourlyRate * durationMinutes) / 60;
-  return price % 1 === 0 ? `$${price}` : `$${price.toFixed(2)}`;
+  return (hourlyRate * durationMinutes) / 60;
 }
 
 // ---------------------------------------------------------------------------
@@ -428,10 +428,10 @@ const BookEducatorClass = () => {
                     {selectedClass.startTime}
                     <span className="mx-1.5 opacity-40">·</span>
                     {selectedClass.durationMinutes} {t('bookClass.min')}
-                    {priceLabel && (
+                    {priceLabel != null && (
                       <>
                         <span className="mx-1.5 opacity-40">·</span>
-                        {priceLabel} USD
+                        <PriceTag usdAmount={priceLabel} />
                       </>
                     )}
                   </p>
@@ -507,15 +507,15 @@ const BookEducatorClass = () => {
                   <p className="text-[10px] uppercase tracking-[0.16em] font-semibold mb-1" style={{ color: P.textMuted }}>
                     {t('bookClass.priceLabel')}
                   </p>
-                  <p className="text-2xl font-bold tabular-nums" style={{ color: P.textPrimary }}>
-                    ${cs.hourly_rate_usd}
+                  <p className="text-2xl" style={{ color: P.textPrimary }}>
+                    <PriceTag usdAmount={cs.hourly_rate_usd} />
                     <span className="text-sm font-normal ml-1.5" style={{ color: P.textMuted }}>
-                      USD {t('educatorProfile.classesPerHour')}
+                      {t('educatorProfile.classesPerHour')}
                     </span>
                   </p>
                 </div>
               )}
-              {cs.accept_usdc && (
+              {cs.accept_usdt && (
                 <span
                   className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full self-end mb-0.5"
                   style={{ backgroundColor: P.surface, color: P.emerald, border: `1px solid oklch(0.72 0.14 155 / 0.25)` }}
@@ -662,10 +662,10 @@ const BookEducatorClass = () => {
                         {selectedClass.startTime}
                         <span className="mx-1.5 opacity-40">·</span>
                         {selectedClass.durationMinutes} {t('bookClass.min')}
-                        {priceLabel && (
+                        {priceLabel != null && (
                           <>
                             <span className="mx-1.5 opacity-40">·</span>
-                            <span className="font-semibold" style={{ color: P.accent }}>{priceLabel} USD</span>
+                            <PriceTag usdAmount={priceLabel} className="font-semibold" style={{ color: P.accent }} />
                           </>
                         )}
                       </p>

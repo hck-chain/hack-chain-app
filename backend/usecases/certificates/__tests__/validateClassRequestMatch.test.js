@@ -10,7 +10,7 @@ const STUDENT = "0x" + "aa".repeat(20);
 const OTHER_STUDENT = "0x" + "dd".repeat(20);
 
 describe("validateClassRequestMatch", () => {
-  let sequelize, models, classId, namelessClassId;
+  let sequelize, models, classId, namelessClassId, unpaidClassId;
 
   beforeAll(async () => {
     sequelize = new SequelizePkg.Sequelize("sqlite::memory:", { logging: false });
@@ -36,16 +36,23 @@ describe("validateClassRequestMatch", () => {
     const cr = await models.ClassRequest.create({
       student_wallet_address: STUDENT, issuer_wallet_address: ISSUER,
       requested_date: "2026-07-20", start_time: "10:00", duration_minutes: 60,
-      class_name: "Introduccion a Linux", status: "confirmed",
+      class_name: "Introduccion a Linux", status: "confirmed", payment_status: "paid",
     });
     classId = cr.id;
 
     const crNameless = await models.ClassRequest.create({
       student_wallet_address: STUDENT, issuer_wallet_address: ISSUER,
       requested_date: "2026-07-21", start_time: "10:00", duration_minutes: 60,
-      class_name: null, status: "confirmed",
+      class_name: null, status: "confirmed", payment_status: "paid",
     });
     namelessClassId = crNameless.id;
+
+    const crUnpaid = await models.ClassRequest.create({
+      student_wallet_address: STUDENT, issuer_wallet_address: ISSUER,
+      requested_date: "2026-07-22", start_time: "10:00", duration_minutes: 60,
+      class_name: "Introduccion a Docker", status: "confirmed", payment_status: "deposit_confirmed",
+    });
+    unpaidClassId = crUnpaid.id;
   });
 
   afterAll(() => sequelize.close());
@@ -96,5 +103,14 @@ describe("validateClassRequestMatch", () => {
       models, classRequestId: classId, issuerWallet: ISSUER, studentWallet: STUDENT, title: "Introduccion a Linux",
     });
     expect(result.ok).toBe(true);
+  });
+
+  test("rejects with PAYMENT_NOT_COMPLETE (402) when payment_status isn't paid", async () => {
+    const result = await validateClassRequestMatch({
+      models, classRequestId: unpaidClassId, issuerWallet: ISSUER, studentWallet: STUDENT, title: "Introduccion a Docker",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("PAYMENT_NOT_COMPLETE");
+    expect(result.httpStatus).toBe(402);
   });
 });

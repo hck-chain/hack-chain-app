@@ -29,7 +29,12 @@ async function getPublicStudentProfile({ models, walletAddress }) {
     return { ok: false, httpStatus: 404, message: 'Student not found' };
   }
 
-  const totalCertificates = await Certificate.count({ where: { student_wallet_address: wallet } });
+  // Public count a recruiter relies on: revoked certificates and ones still
+  // reserved (status 'pending', never minted on-chain) must not inflate it.
+  // Revoking only flips is_revoked and leaves status as 'issued', so both apply.
+  const totalCertificates = await Certificate.count({
+    where: { student_wallet_address: wallet, is_revoked: false, status: 'issued' },
+  });
 
   // Reuse educational aggregation usecase
   const educatorsAgg = await getStudentEducators({ models, wallet });
