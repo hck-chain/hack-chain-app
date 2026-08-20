@@ -31,6 +31,7 @@ const RegisterEducator = lazy(() => import("./pages/RegisterEducator"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
 const Contact = lazy(() => import("./pages/Contact"));
 const TokenHack = lazy(() => import("./pages/TokenHack"));
+const PresalePage = lazy(() => import("./pages/PresalePage"));
 const CookiePolicy = lazy(() => import("./pages/legal/CookiePolicy"));
 const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
@@ -90,6 +91,7 @@ const App = () => {
                 <Route path="/register/issuer" element={<RegisterEducator />} />
                 <Route path="/about" element={<AboutUs />} />
                 <Route path="/token" element={<TokenHack />} />
+                <Route path="/presale" element={<PresalePage />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/nft-creator" element={<NFTCreator />} />
 
