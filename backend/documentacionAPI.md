@@ -749,6 +749,35 @@ Envía una transacción a la blockchain para autorizar a una wallet como emisor 
 
 ---
 
+### PATCH `/api/issuers/me/classes`
+
+Updates the authenticated educator's `class_settings` (rate, accepted payment methods, durations, weekly availability, Google Calendar link). Partial merge — only the fields present in the body are updated.
+
+**Authentication:** Required — Bearer token or session cookie; `issuer` role only, and `educator_approval_status` must be `"approved"`.
+
+**Body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `hourly_rate_usd` | `number` | ❌ | `0`–`9999` |
+| `accept_usdt` | `boolean` | ❌ | |
+| `durations` | `number[]` | ❌ | Unique values from `[30, 45, 60]` |
+| `availability` | `object` | ❌ | Keyed by weekday; whitelist-only keys |
+| `google_calendar_url` | `string` | ❌ | Must start with `https://calendar.google.com/`, or empty string to clear it |
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `200` | Returns the updated `class_settings` |
+| `400` | Invalid value for any field above |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+| `404` | Issuer not found |
+
+**Note:** the approval check was added as a fix — a pending/rejected educator could previously configure bookable class settings before an admin ever reviewed them, making the approval step purely cosmetic. See `usecases/issuers/updateClassSettings.js`.
+
+---
+
 ### PATCH `/api/issuers/me/certificate-logo`
 
 Actualiza el logo de certificados del emisor autenticado (URI `ipfs://` únicamente). Separado del
@@ -1005,6 +1034,59 @@ usuario (MVP). Limitado a 60 solicitudes por minuto por IP.
 - El endpoint `GET /:wallet_address` es público y devuelve solo campos públicos del emisor (sin email ni lista de certificados); los certificados se resumen en `certificates_issued` y `talents_formed`, e incluye `share_count`.
 - `POST /authorize` delega la lógica de blockchain al servicio `authorizeIssuer`.
 - Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.
+
+## Issuer Classes Endpoints (issuerClasses.js)
+
+Manages an educator's class catalog (e.g. "Pentest 101") — separate from `class_settings` (rate/availability), which lives on the Issuer profile. An `IssuerClass` row is what `issuer_class_id` in `POST /api/class-requests` points to.
+
+### POST `/api/issuer-classes`
+
+**Authentication:** Required — `issuer` role, and `educator_approval_status` must be `"approved"`.
+
+**Body:** `name` (string, 5–80 chars, required), `description` (string, optional), `topics` (string[], max 10, optional)
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `201` | Class created |
+| `400` | `NAME_REQUIRED`, or `MAX_CLASSES_REACHED` (20 classes per educator) |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+
+### PATCH `/api/issuer-classes/:id`
+
+Partial update. Same authentication and approval requirement as `POST`.
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `200` | Class updated |
+| `400` | `NAME_CANNOT_BE_EMPTY` |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+| `404` | `CLASS_NOT_FOUND` — the class does not exist or belongs to another educator |
+
+### DELETE `/api/issuer-classes/:id`
+
+**Authentication:** Required — `issuer` role only. **Not gated on approval status** — removing a class reduces attack surface rather than expanding it, so a pending/rejected educator may still delete their own entries.
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `204` | Class deleted |
+| `403` | Caller is not an `issuer` |
+| `404` | `CLASS_NOT_FOUND` |
+
+**Note:** the `EDUCATOR_NOT_APPROVED` case on `POST`/`PATCH` was added as a fix — a pending/rejected educator could previously build out a full class catalog before an admin ever reviewed them. See `usecases/classes/createIssuerClass.js` and `updateIssuerClass.js`.
+
+---
+
+### GET `/api/issuer-classes/by-wallet/:wallet` and `GET /api/issuer-classes/mine`
+
+Public (by-wallet, active classes only) and own-classes (authenticated `issuer`, all classes) read endpoints. Read-only — not gated on approval status.
+
+---
 
 ## OpenSea Endpoints (opensea.js)
 
@@ -2149,6 +2231,37 @@ Genera y almacena un nuevo nonce criptográfico para la wallet del usuario. Util
 ---
 
 ## Class Requests — Status & Meeting Link
+
+### POST `/api/class-requests`
+
+Student sends a class request to an educator. `hourly_rate_usd` is never taken from the request body — it is derived server-side from the educator's own `class_settings`, so a student cannot under-pay by spoofing the rate.
+
+**Headers:** `Authorization: Bearer <access_token>` (only `student`)
+
+**Body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `issuer_wallet_address` | `string` | ✅ | Target educator's wallet |
+| `requested_date` | `string` | ✅ | `YYYY-MM-DD` |
+| `start_time` | `string` | ✅ | `HH:MM` |
+| `duration_minutes` | `number` | ✅ | One of `30`, `45`, `60`, `90`, `120` |
+| `student_message` | `string` | ❌ | Truncated to 500 chars |
+| `issuer_class_id` | `number` | ❌ | Must belong to the target educator and be active |
+| `requested_timestamp_utc` | `string` | ❌ | ISO timestamp, preferred over `requested_date`+`start_time` for timezone safety |
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `201` | `{ id, status: "pending", class_name }` |
+| `400` | Missing/invalid fields, invalid duration, invalid time format, invalid or past date, insufficient lead time (< 24h), or `issuer_class_id` not found for that educator |
+| `403` | Caller is not a `student`, or the target educator's `educator_approval_status` is not `"approved"` (`EDUCATOR_NOT_APPROVED`) |
+| `404` | Target educator has no `class_settings` configured (`EDUCATOR_NOT_FOUND`) |
+
+**Note:** the `EDUCATOR_NOT_APPROVED` case was added as a fix — a pending/rejected educator could previously receive and get paid for class requests despite never having been approved by an admin. See `usecases/classes/requestClass.js`.
+
+---
 
 ### PATCH `/api/class-requests/:id/status`
 

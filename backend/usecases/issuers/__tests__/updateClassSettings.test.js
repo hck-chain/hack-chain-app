@@ -35,7 +35,7 @@ describe("updateClassSettings", () => {
   beforeEach(async () => {
     await sequelize.sync({ force: true });
     const nonce = () => crypto.randomBytes(16).toString("hex");
-    await models.User.create({ wallet_address: ISSUER, role: "issuer", name: "Prof", nonce: nonce() });
+    await models.User.create({ wallet_address: ISSUER, role: "issuer", name: "Prof", nonce: nonce(), educator_approval_status: "approved" });
     await models.Issuer.create({ wallet_address: ISSUER, organization_name: "HackAcademy" });
   });
 
@@ -194,6 +194,57 @@ describe("updateClassSettings", () => {
       hourly_rate_usd: 50,
       durations: [30, 60],
       accept_usdt: true,
+    });
+  });
+
+  // SECURITY: an educator pending/rejected by admin review must not be able
+  // to configure class_settings — otherwise requestClass.js's own approval
+  // gate is moot, since a pending educator would already look bookable.
+  describe("educator approval gate", () => {
+    const PENDING = "0x" + "55".repeat(20);
+
+    const setStatus = async (status) => {
+      await models.User.update({ educator_approval_status: status }, { where: { wallet_address: PENDING } });
+    };
+
+    beforeEach(async () => {
+      const nonce = () => crypto.randomBytes(16).toString("hex");
+      await models.User.create({ wallet_address: PENDING, role: "issuer", name: "Pending", nonce: nonce(), educator_approval_status: "pending_approval" });
+      await models.Issuer.create({ wallet_address: PENDING, organization_name: "PendingAcademy" });
+    });
+
+    test("returns EDUCATOR_NOT_APPROVED for pending_approval", async () => {
+      const result = await updateClassSettings({ models, wallet: PENDING, hourlyRateUsd: 50 });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("EDUCATOR_NOT_APPROVED");
+      expect(result.httpStatus).toBe(403);
+    });
+
+    test("returns EDUCATOR_NOT_APPROVED for rejected", async () => {
+      await setStatus("rejected");
+      const result = await updateClassSettings({ models, wallet: PENDING, hourlyRateUsd: 50 });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("EDUCATOR_NOT_APPROVED");
+    });
+
+    test("returns EDUCATOR_NOT_APPROVED for null status", async () => {
+      await setStatus(null);
+      const result = await updateClassSettings({ models, wallet: PENDING, hourlyRateUsd: 50 });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("EDUCATOR_NOT_APPROVED");
+    });
+
+    test("does not persist class_settings when the educator is not approved", async () => {
+      await updateClassSettings({ models, wallet: PENDING, hourlyRateUsd: 50, durations: [30] });
+      const issuer = await models.Issuer.findOne({ where: { wallet_address: PENDING } });
+      expect(issuer.class_settings).toBeNull();
+    });
+
+    test("allows the update once the educator is approved", async () => {
+      await setStatus("approved");
+      const result = await updateClassSettings({ models, wallet: PENDING, hourlyRateUsd: 50 });
+      expect(result.ok).toBe(true);
+      expect(result.data.class_settings.hourly_rate_usd).toBe(50);
     });
   });
 });

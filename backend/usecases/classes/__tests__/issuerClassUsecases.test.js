@@ -36,8 +36,8 @@ describe("IssuerClass use cases", () => {
     await sequelize.sync({ force: true });
 
     const nonce = () => crypto.randomBytes(16).toString("hex");
-    await User.create({ wallet_address: ISSUER,  role: "issuer",  nonce: nonce() });
-    await User.create({ wallet_address: ISSUER2, role: "issuer",  nonce: nonce() });
+    await User.create({ wallet_address: ISSUER,  role: "issuer",  nonce: nonce(), educator_approval_status: "approved" });
+    await User.create({ wallet_address: ISSUER2, role: "issuer",  nonce: nonce(), educator_approval_status: "approved" });
     await User.create({ wallet_address: STUDENT, role: "student", nonce: nonce() });
     await Issuer.create({ wallet_address: ISSUER,  organization_name: "A" });
     await Issuer.create({ wallet_address: ISSUER2, organization_name: "B" });
@@ -75,7 +75,7 @@ describe("IssuerClass use cases", () => {
 
     test("returns MAX_CLASSES_REACHED when issuer already has 20", async () => {
       const wallet = "0x" + "ff".repeat(20);
-      await models.User.create({ wallet_address: wallet, role: "issuer", nonce: crypto.randomBytes(16).toString("hex") });
+      await models.User.create({ wallet_address: wallet, role: "issuer", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "approved" });
       await models.Issuer.create({ wallet_address: wallet, organization_name: "Full" });
       for (let i = 0; i < 20; i++) {
         await models.IssuerClass.create({ issuer_wallet_address: wallet, name: `C${i}`, topics: [] });
@@ -83,6 +83,48 @@ describe("IssuerClass use cases", () => {
       const r = await createIssuerClass({ models, issuerWallet: wallet, name: "One Too Many" });
       expect(r.ok).toBe(false);
       expect(r.code).toBe("MAX_CLASSES_REACHED");
+    });
+
+    // SECURITY: an educator pending/rejected by admin review must not be able
+    // to build out a class catalog — same gate as requestClass.js.
+    describe("educator approval gate", () => {
+      const makeIssuer = async (wallet, status) => {
+        await models.User.create({ wallet_address: wallet, role: "issuer", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: status });
+        await models.Issuer.create({ wallet_address: wallet, organization_name: "PendingAcademy" });
+      };
+
+      test("returns EDUCATOR_NOT_APPROVED when status is pending_approval", async () => {
+        const wallet = "0x" + "11".repeat(20);
+        await makeIssuer(wallet, "pending_approval");
+        const r = await createIssuerClass({ models, issuerWallet: wallet, name: "Sneaky Class" });
+        expect(r.ok).toBe(false);
+        expect(r.code).toBe("EDUCATOR_NOT_APPROVED");
+        expect(r.httpStatus).toBe(403);
+      });
+
+      test("returns EDUCATOR_NOT_APPROVED when status is rejected", async () => {
+        const wallet = "0x" + "22".repeat(20);
+        await makeIssuer(wallet, "rejected");
+        const r = await createIssuerClass({ models, issuerWallet: wallet, name: "Sneaky Class" });
+        expect(r.ok).toBe(false);
+        expect(r.code).toBe("EDUCATOR_NOT_APPROVED");
+      });
+
+      test("returns EDUCATOR_NOT_APPROVED when status is null", async () => {
+        const wallet = "0x" + "33".repeat(20);
+        await makeIssuer(wallet, null);
+        const r = await createIssuerClass({ models, issuerWallet: wallet, name: "Sneaky Class" });
+        expect(r.ok).toBe(false);
+        expect(r.code).toBe("EDUCATOR_NOT_APPROVED");
+      });
+
+      test("does not create a row when the educator is not approved", async () => {
+        const wallet = "0x" + "44".repeat(20);
+        await makeIssuer(wallet, "pending_approval");
+        await createIssuerClass({ models, issuerWallet: wallet, name: "Sneaky Class" });
+        const count = await models.IssuerClass.count({ where: { issuer_wallet_address: wallet } });
+        expect(count).toBe(0);
+      });
     });
   });
 
@@ -124,6 +166,40 @@ describe("IssuerClass use cases", () => {
       const r = await updateIssuerClass({ models, classId, issuerWallet: ISSUER, updates: { description: "New desc" } });
       expect(r.ok).toBe(true);
       expect(r.data.name).toBe("Updated");
+    });
+
+    // SECURITY: an educator pending/rejected by admin review must not be able
+    // to edit their class catalog — same gate as createIssuerClass.
+    describe("educator approval gate", () => {
+      let pendingClassId;
+      const PENDING = "0x" + "55".repeat(20);
+
+      beforeAll(async () => {
+        await models.User.create({ wallet_address: PENDING, role: "issuer", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+        await models.Issuer.create({ wallet_address: PENDING, organization_name: "PendingAcademy" });
+        const cls = await models.IssuerClass.create({ issuer_wallet_address: PENDING, name: "Pending Class", topics: [] });
+        pendingClassId = cls.id;
+      });
+
+      test("returns EDUCATOR_NOT_APPROVED when the owner is not approved", async () => {
+        const r = await updateIssuerClass({ models, classId: pendingClassId, issuerWallet: PENDING, updates: { name: "Changed" } });
+        expect(r.ok).toBe(false);
+        expect(r.code).toBe("EDUCATOR_NOT_APPROVED");
+        expect(r.httpStatus).toBe(403);
+      });
+
+      test("does not persist the change when the owner is not approved", async () => {
+        await updateIssuerClass({ models, classId: pendingClassId, issuerWallet: PENDING, updates: { name: "Changed" } });
+        const record = await models.IssuerClass.findByPk(pendingClassId);
+        expect(record.name).toBe("Pending Class");
+      });
+
+      test("allows the update once the educator is approved", async () => {
+        await models.User.update({ educator_approval_status: "approved" }, { where: { wallet_address: PENDING } });
+        const r = await updateIssuerClass({ models, classId: pendingClassId, issuerWallet: PENDING, updates: { name: "Changed" } });
+        expect(r.ok).toBe(true);
+        expect(r.data.name).toBe("Changed");
+      });
     });
   });
 

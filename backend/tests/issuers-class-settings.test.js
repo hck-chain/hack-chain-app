@@ -70,7 +70,7 @@ describe("GET/PATCH /api/issuers/me/classes", () => {
 
   beforeEach(async () => {
     await sequelize.sync({ force: true });
-    await User.create({ wallet_address: ISSUER, role: "issuer", name: "Prof", nonce: crypto.randomBytes(16).toString("hex") });
+    await User.create({ wallet_address: ISSUER, role: "issuer", name: "Prof", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "approved" });
     await Issuer.create({ wallet_address: ISSUER, organization_name: "HackAcademy" });
   });
 
@@ -133,5 +133,23 @@ describe("GET/PATCH /api/issuers/me/classes", () => {
     expect(getRes.body).toEqual({
       class_settings: { hourly_rate_usd: 60, accept_usdt: true, durations: [30, 60] },
     });
+  });
+
+  // SECURITY: an educator not yet approved by an admin must not be able to
+  // configure bookable class settings over HTTP, end to end.
+  test("PATCH: 403 when the educator is not approved", async () => {
+    const PENDING = "0x" + "cc".repeat(20);
+    await User.create({ wallet_address: PENDING, role: "issuer", name: "Pending", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+    await Issuer.create({ wallet_address: PENDING, organization_name: "PendingAcademy" });
+
+    const res = await request(app)
+      .patch("/api/issuers/me/classes")
+      .set("x-test-wallet", PENDING)
+      .send({ hourly_rate_usd: 60 })
+      .expect(403);
+    expect(res.body).toEqual({ error: "Only approved educators can configure class settings" });
+
+    const issuer = await Issuer.findOne({ where: { wallet_address: PENDING } });
+    expect(issuer.class_settings).toBeNull();
   });
 });

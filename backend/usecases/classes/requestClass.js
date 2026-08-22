@@ -65,9 +65,21 @@ async function requestClass({
 
   const issuer = await models.Issuer.findOne({
     where: { wallet_address: issuerWalletAddress.toLowerCase() },
+    include: [{ model: models.User, attributes: ["educator_approval_status"] }],
   });
 
-  if (!issuer || !issuer.class_settings) {
+  if (!issuer) {
+    return { ok: false, code: "EDUCATOR_NOT_FOUND", httpStatus: 404 };
+  }
+
+  // SECURITY: an educator pending or rejected by admin review must not be able
+  // to receive paid class requests — only certificate minting was gated
+  // before this fix (see precheckCertificate.js), leaving this as a bypass.
+  if (issuer.User?.educator_approval_status !== "approved") {
+    return { ok: false, code: "EDUCATOR_NOT_APPROVED", httpStatus: 403 };
+  }
+
+  if (!issuer.class_settings) {
     return { ok: false, code: "EDUCATOR_NOT_FOUND", httpStatus: 404 };
   }
 
