@@ -1068,17 +1068,17 @@ Partial update. Same authentication and approval requirement as `POST`.
 
 ### DELETE `/api/issuer-classes/:id`
 
-**Authentication:** Required — `issuer` role only. **Not gated on approval status** — removing a class reduces attack surface rather than expanding it, so a pending/rejected educator may still delete their own entries.
+**Authentication:** Required — `issuer` role, and `educator_approval_status` must be `"approved"`. Deliberately consistent with `POST`/`PATCH` — nothing about the class catalog operates until an educator is approved, including deleting their own entries.
 
 **Responses**
 
 | Code | Description |
 |---|---|
 | `204` | Class deleted |
-| `403` | Caller is not an `issuer` |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
 | `404` | `CLASS_NOT_FOUND` |
 
-**Note:** the `EDUCATOR_NOT_APPROVED` case on `POST`/`PATCH` was added as a fix — a pending/rejected educator could previously build out a full class catalog before an admin ever reviewed them. See `usecases/classes/createIssuerClass.js` and `updateIssuerClass.js`.
+**Note:** the `EDUCATOR_NOT_APPROVED` case on all three write endpoints (`POST`/`PATCH`/`DELETE`) was added as a fix — a pending/rejected educator could previously build out (and, before this endpoint was also gated, tear down) a full class catalog before an admin ever reviewed them. See `usecases/classes/createIssuerClass.js`, `updateIssuerClass.js`, and `deleteIssuerClass.js`.
 
 ---
 

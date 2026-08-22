@@ -231,6 +231,42 @@ describe("IssuerClass use cases", () => {
       expect(r.ok).toBe(false);
       expect(r.code).toBe("CLASS_NOT_FOUND");
     });
+
+    // SECURITY: nothing about the class catalog operates until an educator is
+    // approved — delete is deliberately not exempted, kept consistent with
+    // create/update rather than treated as a special case.
+    describe("educator approval gate", () => {
+      let pendingClassId;
+      const PENDING = "0x" + "88".repeat(20);
+
+      beforeAll(async () => {
+        await models.User.create({ wallet_address: PENDING, role: "issuer", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+        await models.Issuer.create({ wallet_address: PENDING, organization_name: "PendingAcademy" });
+        const cls = await models.IssuerClass.create({ issuer_wallet_address: PENDING, name: "Pending Class", topics: [] });
+        pendingClassId = cls.id;
+      });
+
+      test("returns EDUCATOR_NOT_APPROVED when the owner is not approved", async () => {
+        const r = await deleteIssuerClass({ models, classId: pendingClassId, issuerWallet: PENDING });
+        expect(r.ok).toBe(false);
+        expect(r.code).toBe("EDUCATOR_NOT_APPROVED");
+        expect(r.httpStatus).toBe(403);
+      });
+
+      test("does not delete the row when the owner is not approved", async () => {
+        await deleteIssuerClass({ models, classId: pendingClassId, issuerWallet: PENDING });
+        const record = await models.IssuerClass.findByPk(pendingClassId);
+        expect(record).not.toBeNull();
+      });
+
+      test("allows the delete once the educator is approved", async () => {
+        await models.User.update({ educator_approval_status: "approved" }, { where: { wallet_address: PENDING } });
+        const r = await deleteIssuerClass({ models, classId: pendingClassId, issuerWallet: PENDING });
+        expect(r.ok).toBe(true);
+        const record = await models.IssuerClass.findByPk(pendingClassId);
+        expect(record).toBeNull();
+      });
+    });
   });
 
   // ── updateClassRequestStatus ──────────────────────────────────────────────

@@ -326,5 +326,23 @@ describe("IssuerClasses endpoints", () => {
       const res = await request(issuerApp).delete("/api/issuer-classes/999999");
       expect(res.status).toBe(404);
     });
+
+    // SECURITY: an educator not yet approved by an admin must not be able to
+    // delete their class catalog over HTTP either — kept consistent with
+    // POST/PATCH rather than exempted.
+    test("returns 403 when the educator is not approved", async () => {
+      const wallet = "0x" + "99".repeat(20);
+      await User.create({ wallet_address: wallet, role: "issuer", name: "Pending", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+      await Issuer.create({ wallet_address: wallet, organization_name: "PendingAcademy" });
+      const pendingCls = await IssuerClass.create({ issuer_wallet_address: wallet, name: "Pending Class", topics: [] });
+      const pendingApp = buildApp(models, { role: "issuer", wallet });
+
+      const res = await request(pendingApp).delete(`/api/issuer-classes/${pendingCls.id}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe("EDUCATOR_NOT_APPROVED");
+
+      const stillThere = await IssuerClass.findByPk(pendingCls.id);
+      expect(stillThere).not.toBeNull();
+    });
   });
 });
