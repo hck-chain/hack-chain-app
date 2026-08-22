@@ -78,7 +78,7 @@ describe("Class settings endpoints", () => {
 
     await sequelize.sync({ force: true });
 
-    await User.create({ wallet_address: ISSUER_WALLET, role: "issuer", name: "Prof", nonce: crypto.randomBytes(16).toString("hex") });
+    await User.create({ wallet_address: ISSUER_WALLET, role: "issuer", name: "Prof", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "approved" });
     await Issuer.create({ wallet_address: ISSUER_WALLET, organization_name: "HackAcademy" });
 
     await User.create({ wallet_address: STUDENT_WALLET, role: "student", name: "Stu", nonce: crypto.randomBytes(16).toString("hex") });

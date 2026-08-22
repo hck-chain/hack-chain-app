@@ -17,6 +17,16 @@ async function createIssuerClass({ models, issuerWallet, name, description, topi
     return { ok: false, code: "NAME_REQUIRED", httpStatus: 400 };
   }
 
+  // SECURITY: an educator pending or rejected by admin review must not be able
+  // to build out a class catalog — same gate as requestClass.js / updateClassSettings.js.
+  const user = await models.User.findOne({
+    where: { wallet_address: issuerWallet.toLowerCase() },
+    attributes: ["educator_approval_status"],
+  });
+  if (user?.educator_approval_status !== "approved") {
+    return { ok: false, code: "EDUCATOR_NOT_APPROVED", httpStatus: 403 };
+  }
+
   const count = await models.IssuerClass.count({
     where: { issuer_wallet_address: issuerWallet.toLowerCase() },
   });

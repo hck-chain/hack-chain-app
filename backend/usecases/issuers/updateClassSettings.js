@@ -108,9 +108,23 @@ async function updateClassSettings({
     }
   }
 
-  const issuer = await models.Issuer.findOne({ where: { wallet_address: wallet.toLowerCase() } });
+  const issuer = await models.Issuer.findOne({
+    where: { wallet_address: wallet.toLowerCase() },
+    include: [{ model: models.User, attributes: ["educator_approval_status"] }],
+  });
   if (!issuer) {
     return { ok: false, code: "ISSUER_NOT_FOUND", httpStatus: 404, message: "Issuer not found" };
+  }
+
+  // SECURITY: class_settings is what makes an educator bookable by students
+  // (requestClass.js relies on it). An educator pending or rejected by admin
+  // review must not be able to configure it — otherwise approval is only
+  // cosmetic once they fill in a rate/availability.
+  if (issuer.User?.educator_approval_status !== "approved") {
+    return {
+      ok: false, code: "EDUCATOR_NOT_APPROVED", httpStatus: 403,
+      message: "Only approved educators can configure class settings",
+    };
   }
 
   const current = issuer.class_settings ?? {};

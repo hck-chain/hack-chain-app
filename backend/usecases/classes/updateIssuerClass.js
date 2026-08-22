@@ -21,6 +21,16 @@ async function updateIssuerClass({ models, classId, issuerWallet, updates }) {
     return { ok: false, code: "CLASS_NOT_FOUND", httpStatus: 404 };
   }
 
+  // SECURITY: an educator pending or rejected by admin review must not be able
+  // to edit their class catalog — same gate as requestClass.js / updateClassSettings.js.
+  const user = await models.User.findOne({
+    where: { wallet_address: issuerWallet.toLowerCase() },
+    attributes: ["educator_approval_status"],
+  });
+  if (user?.educator_approval_status !== "approved") {
+    return { ok: false, code: "EDUCATOR_NOT_APPROVED", httpStatus: 403 };
+  }
+
   const patch = {};
 
   if (updates.name !== undefined) {
