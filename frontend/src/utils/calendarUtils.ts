@@ -7,6 +7,11 @@ export interface CalendarEventParams {
   uid?: string;
 }
 
+// requestedDate/startTime are the agreed wall-clock time (e.g. "20:00" means
+// 8pm for both parties) — NOT UTC. Date.UTC(...) here is only a convenient
+// container for time arithmetic (adding durationMinutes); the resulting
+// Date's UTC getters are read back via formatFloatingDatetime to recover the
+// original wall-clock digits, never as an actual UTC instant.
 function parseEventTimes(requestedDate: string, startTime: string, durationMinutes: number) {
   const [y, m, d] = requestedDate.split('-').map(Number);
   const [h, min] = startTime.split(':').map(Number);
@@ -15,8 +20,16 @@ function parseEventTimes(requestedDate: string, startTime: string, durationMinut
   return { start, end };
 }
 
+// Genuinely UTC (used only for ICS DTSTAMP, the real "now").
 function formatUTCDatetime(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+// "YYYYMMDDTHHMMSS" (no Z) — floating local time for the event's actual
+// start/end, so calendar clients show the time as typed instead of
+// re-converting it through the viewer's own timezone.
+function formatFloatingDatetime(date: Date): string {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, '');
 }
 
 function icsEscape(str: string): string {
@@ -44,7 +57,7 @@ export function buildGoogleCalendarUrl({
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: title,
-    dates: `${formatUTCDatetime(start)}/${formatUTCDatetime(end)}`,
+    dates: `${formatFloatingDatetime(start)}/${formatFloatingDatetime(end)}`,
     details: description ?? 'Sesión privada reservada a través de HackChain.',
     location: 'HackChain — Online (hackchain.app)',
   });
@@ -74,8 +87,8 @@ export function downloadICS({
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `DTSTART:${formatUTCDatetime(start)}`,
-    `DTEND:${formatUTCDatetime(end)}`,
+    `DTSTART:${formatFloatingDatetime(start)}`,
+    `DTEND:${formatFloatingDatetime(end)}`,
     `DTSTAMP:${formatUTCDatetime(now)}`,
     `UID:${uid ?? `hackchain-class-${Date.now()}@hackchain.app`}`,
     `SUMMARY:${icsEscape(title)}`,

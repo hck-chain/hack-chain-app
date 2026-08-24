@@ -1105,7 +1105,10 @@
       "join": "Join the class",
       "edit": "Edit link",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "saved": "Link saved",
+      "error": "Couldn't save the link",
+      "errorHint": "Check that the link is valid and try again."
     }
   },
   "calendar": {

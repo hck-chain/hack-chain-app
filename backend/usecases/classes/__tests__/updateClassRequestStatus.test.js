@@ -154,6 +154,54 @@ describe("updateClassRequestStatus", () => {
     expect(result.code).toBe("INVALID_MEETING_URL");
   });
 
+  // Bug fix: educators commonly paste a link copied from a calendar invite
+  // body without the "https://" prefix — this used to be silently rejected
+  // (and the frontend swallowed the error, so it looked like Save did nothing).
+  test("accepts and normalizes a scheme-less meeting link", async () => {
+    const req = await createRequest();
+    const result = await updateClassRequestStatus({
+      models, requestId: req.id, issuerWallet: ISSUER, status: "confirmed",
+      meetingUrl: "meet.google.com/abc-defg-hij",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.data.meeting_url).toBe("https://meet.google.com/abc-defg-hij");
+    const updated = await models.ClassRequest.findByPk(req.id);
+    expect(updated.meeting_url).toBe("https://meet.google.com/abc-defg-hij");
+  });
+
+  test("trims whitespace before normalizing a scheme-less meeting link", async () => {
+    const req = await createRequest();
+    const result = await updateClassRequestStatus({
+      models, requestId: req.id, issuerWallet: ISSUER, status: "confirmed",
+      meetingUrl: "  zoom.us/j/123456789  ",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.data.meeting_url).toBe("https://zoom.us/j/123456789");
+  });
+
+  // SECURITY: normalization must never rescue a dangerous scheme — only a
+  // fully scheme-less input gets "https://" prepended. A URL that already
+  // has SOME scheme (even a bad one) is validated as-is and rejected.
+  test("still rejects a javascript: URL even with the normalization path active", async () => {
+    const req = await createRequest();
+    const result = await updateClassRequestStatus({
+      models, requestId: req.id, issuerWallet: ISSUER, status: "confirmed",
+      meetingUrl: "javascript:alert(document.cookie)",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("INVALID_MEETING_URL");
+  });
+
+  test("does not persist a meeting link when normalization still fails validation", async () => {
+    const req = await createRequest();
+    await updateClassRequestStatus({
+      models, requestId: req.id, issuerWallet: ISSUER, status: "confirmed",
+      meetingUrl: "not a url",
+    });
+    const updated = await models.ClassRequest.findByPk(req.id);
+    expect(updated.meeting_url).toBeNull();
+  });
+
   test("cancels a class with a reason", async () => {
     const req = await createRequest();
     const result = await updateClassRequestStatus({

@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,
 } from '@/components/ui/dialog';
 import { useEducatorClassRequests, useUpdateClassRequestStatus, useConfirmPayment, type EducatorClassRequest, type PaymentStage } from '@/hooks/useEducatorClassRequests';
+import { useToast } from '@/hooks/use-toast';
 import { buildGoogleCalendarUrl, downloadICS } from '@/utils/calendarUtils';
 import { isSafeHref } from '@/utils/safeLink';
 import { resolveIpfs } from '@/lib/ipfs';
@@ -228,6 +229,7 @@ const DEPOSIT_CONFIRMED_OR_LATER: EducatorClassRequest['payment_status'][] = [
 function MeetingLinkSection({ request, extraAction }: { request: EducatorClassRequest; extraAction?: ReactNode }) {
   const { t } = useTranslation();
   const { mutate: updateStatus, isPending } = useUpdateClassRequestStatus();
+  const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [meetingUrl, setMeetingUrl] = useState(request.meeting_url ?? '');
 
@@ -275,8 +277,22 @@ function MeetingLinkSection({ request, extraAction }: { request: EducatorClassRe
         <button
           disabled={isPending}
           onClick={() => {
-            updateStatus({ id: request.id, status: 'confirmed', meetingUrl: meetingUrl.trim() || undefined });
-            setEditing(false);
+            updateStatus(
+              { id: request.id, status: 'confirmed', meetingUrl: meetingUrl.trim() || undefined },
+              {
+                onSuccess: () => {
+                  setEditing(false);
+                  toast({ title: t('educatorClassRequests.meeting.saved', 'Link guardado') });
+                },
+                onError: () => {
+                  toast({
+                    title: t('educatorClassRequests.meeting.error', 'No se pudo guardar el link'),
+                    description: t('educatorClassRequests.meeting.errorHint', 'Revisa que el link sea válido e inténtalo de nuevo.'),
+                    variant: 'destructive',
+                  });
+                },
+              }
+            );
           }}
           className="text-[12px] font-medium text-emerald-400 hover:text-emerald-300 min-h-[36px] px-2.5 rounded-lg hover:bg-emerald-500/[0.07] disabled:opacity-40 transition-colors duration-150"
         >

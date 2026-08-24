@@ -1,6 +1,11 @@
 /**
  * Utilities for Google Calendar URL generation and ICS file creation.
- * Treats all datetimes as UTC — the event description informs attendees.
+ *
+ * requestedDate/startTime are the agreed wall-clock time (e.g. "20:00" means
+ * 8pm for both parties) — NOT UTC. DTSTART/DTEND/the Google `dates` param are
+ * emitted as "floating" local time (no trailing Z), so calendar clients show
+ * the time as typed instead of re-converting it through the viewer's own
+ * timezone, which used to shift it by the viewer's UTC offset.
  */
 
 function icsEscape(str) {
@@ -12,11 +17,20 @@ function icsEscape(str) {
     .replace(/\r/g, '');
 }
 
-// "YYYYMMDDTHHMMSSZ" — used in both Google Calendar URLs and ICS datetimes
+// "YYYYMMDDTHHMMSSZ" — genuinely UTC (used only for DTSTAMP, the real "now").
 function formatUTCDatetime(date) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
+// "YYYYMMDDTHHMMSS" (no Z) — floating local time, used for the event's actual
+// start/end so calendar clients don't reinterpret it as UTC.
+function formatFloatingDatetime(date) {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, '');
+}
+
+// Date.UTC(...) here is only a convenient container for time arithmetic
+// (adding durationMinutes) — the resulting Date's UTC getters are read back
+// via formatFloatingDatetime to recover the original wall-clock digits.
 function parseEventTimes(requestedDate, startTime, durationMinutes) {
   const [y, m, d] = requestedDate.split('-').map(Number);
   const [h, min] = startTime.split(':').map(Number);
@@ -34,7 +48,7 @@ function buildGoogleCalendarUrl({ title, requestedDate, startTime, durationMinut
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: title,
-    dates: `${formatUTCDatetime(start)}/${formatUTCDatetime(end)}`,
+    dates: `${formatFloatingDatetime(start)}/${formatFloatingDatetime(end)}`,
     details: description || 'Sesión privada reservada a través de HackChain.',
     location: 'HackChain — Online (hackchain.app)',
   });
@@ -57,8 +71,8 @@ function buildICS({ uid, title, requestedDate, startTime, durationMinutes, descr
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `DTSTART:${formatUTCDatetime(start)}`,
-    `DTEND:${formatUTCDatetime(end)}`,
+    `DTSTART:${formatFloatingDatetime(start)}`,
+    `DTEND:${formatFloatingDatetime(end)}`,
     `DTSTAMP:${formatUTCDatetime(now)}`,
     `UID:${uid || `hackchain-class-${Date.now()}@hackchain.app`}`,
     `SUMMARY:${icsEscape(title)}`,

@@ -1105,7 +1105,10 @@
       "join": "Unirse a la clase",
       "edit": "Editar link",
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "saved": "Link guardado",
+      "error": "No se pudo guardar el link",
+      "errorHint": "Revisa que el link sea válido e inténtalo de nuevo."
     }
   },
   "calendar": {

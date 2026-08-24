@@ -1,5 +1,6 @@
 const cron = require("node-cron");
 const { notifyTalentClassRequestUpdate } = require("../services/emailService");
+const { localWallClockToUtcMs } = require("../utils/localWallClockTime");
 
 const LOG = "[classExpiryWorker]";
 const EXPIRY_REASON = "Sistema: solicitud vencida — el educador no respondió a tiempo.";
@@ -35,11 +36,11 @@ async function expirePendingRequestsOnce(models) {
 
   // Keep only classes whose start time has already passed (JS filter avoids
   // SQL string manipulation on time fields stored as "HH:MM").
+  // requested_date/start_time are the agreed local wall-clock time, not UTC —
+  // localWallClockToUtcMs converts it to a real, comparable instant instead
+  // of misreading it as UTC.
   const expired = candidates.filter((r) => {
-    const [h, m] = r.start_time.split(":").map(Number);
-    const classTs = new Date(
-      `${r.requested_date}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00Z`
-    ).getTime();
+    const classTs = localWallClockToUtcMs(r.requested_date, r.start_time);
     return classTs < now.getTime();
   });
 
