@@ -5,8 +5,7 @@
 const request = require('supertest');
 const express = require('express');
 
-// Mocks
-jest.mock('../models', () => {
+jest.mock('../../models', () => {
   const Student = { findAll: jest.fn(), findOne: jest.fn() };
   const User = {};
   const Certificate = { count: jest.fn(), findAll: jest.fn() };
@@ -14,7 +13,7 @@ jest.mock('../models', () => {
   return { Student, User, Certificate, Issuer };
 });
 
-jest.mock('../middleware/auth', () => {
+jest.mock('../../middleware/auth', () => {
   let mockAuth = { wallet: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd', role: 'student' };
   return {
     authenticate: (req, res, next) => { req.auth = mockAuth; next(); },
@@ -22,15 +21,15 @@ jest.mock('../middleware/auth', () => {
   };
 });
 
-jest.mock('../services/studentService', () => ({
+jest.mock('../../services/studentService', () => ({
   validateDeletionMessage: jest.fn(),
   deleteStudentAccount: jest.fn()
 }));
 
-const { Student, Certificate } = require('../models');
-const auth = require('../middleware/auth');
-const studentService = require('../services/studentService');
-const studentsRouter = require('../routes/students');
+const { Student, Certificate } = require('../../models');
+const auth = require('../../middleware/auth');
+const studentService = require('../../services/studentService');
+const studentsRouter = require('../students');
 
 let app;
 
@@ -91,7 +90,6 @@ describe('students routes', () => {
   });
 
   test('GET /api/students/:wallet_address/educators returns 403 when accessing another student', async () => {
-    // set auth wallet to something else
     auth.__setMockAuth({ wallet: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', role: 'student' });
     const valid = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
 
@@ -101,7 +99,6 @@ describe('students routes', () => {
 
   test('GET /api/students/:wallet_address/educators returns grouped educators', async () => {
     const wallet = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-    // ensure auth matches
     auth.__setMockAuth({ wallet, role: 'student' });
 
     Certificate.findAll.mockResolvedValueOnce([
@@ -145,7 +142,6 @@ describe('students routes', () => {
 
     const res = await request(app).get(`/api/students/${wallet}/educators`).expect(200);
     expect(Array.isArray(res.body.educators)).toBe(true);
-    // two different issuers -> two educators
     expect(res.body.educators.length).toBe(2);
     const ed1 = res.body.educators.find(e => e.wallet_address === '0xiss1');
     const ed2 = res.body.educators.find(e => e.wallet_address === '0xiss2');
@@ -155,7 +151,6 @@ describe('students routes', () => {
 
   test('PUT /api/students/:wallet_address returns 403 when modifying another student', async () => {
     const wallet = '0xabc0000000000000000000000000000000000000';
-    // auth wallet different
     auth.__setMockAuth({ wallet: '0xother0000000000000000000000000000000000', role: 'student' });
 
     const res = await request(app).put(`/api/students/${wallet}`).send({ field_of_study: 'CS' }).expect(403);
