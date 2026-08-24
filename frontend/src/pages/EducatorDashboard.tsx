@@ -105,11 +105,11 @@ function getEducatorBellKind(r: EducatorClassRequest): EducatorBellKind | null {
 }
 
 const EDUCATOR_BELL_STYLE: Record<EducatorBellKind, { icon: typeof User; iconClass: string; bgClass: string; borderClass: string }> = {
-  new_request:        { icon: User,          iconClass: 'text-amber-400',   bgClass: 'bg-amber-500/10',   borderClass: 'border-amber-500/20' },
-  deposit_submitted:  { icon: CreditCard,     iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20' },
-  final_submitted:    { icon: CreditCard,     iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20' },
-  cancelled:          { icon: XCircle,        iconClass: 'text-slate-400',  bgClass: 'bg-slate-500/10',   borderClass: 'border-slate-500/20' },
-  disputed:           { icon: AlertTriangle,  iconClass: 'text-red-400',    bgClass: 'bg-red-500/10',     borderClass: 'border-red-500/20' },
+  new_request: { icon: User, iconClass: 'text-amber-400', bgClass: 'bg-amber-500/10', borderClass: 'border-amber-500/20' },
+  deposit_submitted: { icon: CreditCard, iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20' },
+  final_submitted: { icon: CreditCard, iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20' },
+  cancelled: { icon: XCircle, iconClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20' },
+  disputed: { icon: AlertTriangle, iconClass: 'text-red-400', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20' },
 };
 
 // Bell icon + badge + panel, all in one — badge clears the moment the bell
@@ -152,11 +152,11 @@ function EducatorNotificationBell() {
 
   const kindLabel = (kind: EducatorBellKind): string => {
     switch (kind) {
-      case 'new_request':       return t('educatorClassRequests.notifNewRequest', 'Nueva solicitud de clase');
+      case 'new_request': return t('educatorClassRequests.notifNewRequest', 'Nueva solicitud de clase');
       case 'deposit_submitted': return t('educatorClassRequests.notifDepositSubmitted', 'Subió el comprobante del depósito');
-      case 'final_submitted':   return t('educatorClassRequests.notifFinalSubmitted', 'Subió el comprobante del pago final');
-      case 'cancelled':         return t('educatorClassRequests.notifCancelled', 'La clase se canceló');
-      case 'disputed':          return t('educatorClassRequests.notifDisputed', 'Disputa de pago abierta');
+      case 'final_submitted': return t('educatorClassRequests.notifFinalSubmitted', 'Subió el comprobante del pago final');
+      case 'cancelled': return t('educatorClassRequests.notifCancelled', 'La clase se canceló');
+      case 'disputed': return t('educatorClassRequests.notifDisputed', 'Disputa de pago abierta');
     }
   };
 
@@ -309,11 +309,11 @@ const EducatorDashboard = () => {
 
   // Pre-fill form from class request context (navigated from EducatorClassRequests)
   useEffect(() => {
-    const rid  = searchParams.get('classRequestId');
-    const sw   = searchParams.get('studentWallet');
-    const sn   = searchParams.get('studentName');
-    const cn   = searchParams.get('className');
-    const cd   = searchParams.get('classDate');
+    const rid = searchParams.get('classRequestId');
+    const sw = searchParams.get('studentWallet');
+    const sn = searchParams.get('studentName');
+    const cn = searchParams.get('className');
+    const cd = searchParams.get('classDate');
     if (rid) setClassRequestId(parseInt(rid, 10));
     if (sw || sn || cn || cd) {
       setForm(prev => ({
@@ -323,7 +323,7 @@ const EducatorDashboard = () => {
         ...(cn ? { certificateTitle: cn } : {}),
         ...(cd ? { issueDate: cd } : {}),
         ...(rid ? { certificateType: t('educatorDashboard.personalizedClassType', 'Personalized Class') }
-                : {}),
+          : {}),
       }));
     }
   }, [searchParams]);
@@ -362,7 +362,7 @@ const EducatorDashboard = () => {
               setBannerVisible(true);
             }
           })
-          .catch(() => {}); // non-blocking — dashboard still loads if status fails
+          .catch(() => { }); // non-blocking — dashboard still loads if status fails
 
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
@@ -524,7 +524,7 @@ const EducatorDashboard = () => {
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
 
-      const uploadResult = await api.upload<{ cid: string }>('/api/upload/image', formData);
+      const uploadResult = await api.upload<{ cid: string }>('/api/upload/certificate', formData);
       const realImageCID = uploadResult.cid;
       console.log("Image successfully pinned:", realImageCID);
 
@@ -927,7 +927,7 @@ const EducatorDashboard = () => {
                             </div>
                           </div>
                         )}
-                        
+
                         <Link to="/educator/class-requests" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
                           <img src="/icons/maletinNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -1028,13 +1028,13 @@ const EducatorDashboard = () => {
                       {t('educatorDashboard.formTitle')}
                     </p>
                     <p className="font-body text-sm text-white/40">{t('educatorDashboard.formSubtitle')}</p>
-                      {isClassRequestCertificate && (
-                        <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                          <p className="text-xs text-amber-200">
-                            {t('educatorDashboard.classRequestCertificateNotice')}
-                          </p>
-                        </div>
-                      )}
+                    {isClassRequestCertificate && (
+                      <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                        <p className="text-xs text-amber-200">
+                          {t('educatorDashboard.classRequestCertificateNotice')}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <form className="relative z-10 space-y-5">
