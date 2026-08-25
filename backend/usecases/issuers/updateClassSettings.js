@@ -42,7 +42,7 @@ async function updateClassSettings({
   models,
   wallet,
   hourlyRateUsd,
-  acceptUsdc,
+  acceptUsdt,
   durations,
   availability,
   googleCalendarUrl,
@@ -60,10 +60,10 @@ async function updateClassSettings({
     }
   }
 
-  if (acceptUsdc !== undefined && typeof acceptUsdc !== "boolean") {
+  if (acceptUsdt !== undefined && typeof acceptUsdt !== "boolean") {
     return {
-      ok: false, code: "INVALID_ACCEPT_USDC", httpStatus: 400,
-      message: "accept_usdc must be a boolean",
+      ok: false, code: "INVALID_ACCEPT_USDT", httpStatus: 400,
+      message: "accept_usdt must be a boolean",
     };
   }
 
@@ -108,16 +108,30 @@ async function updateClassSettings({
     }
   }
 
-  const issuer = await models.Issuer.findOne({ where: { wallet_address: wallet.toLowerCase() } });
+  const issuer = await models.Issuer.findOne({
+    where: { wallet_address: wallet.toLowerCase() },
+    include: [{ model: models.User, attributes: ["educator_approval_status"] }],
+  });
   if (!issuer) {
     return { ok: false, code: "ISSUER_NOT_FOUND", httpStatus: 404, message: "Issuer not found" };
+  }
+
+  // SECURITY: class_settings is what makes an educator bookable by students
+  // (requestClass.js relies on it). An educator pending or rejected by admin
+  // review must not be able to configure it — otherwise approval is only
+  // cosmetic once they fill in a rate/availability.
+  if (issuer.User?.educator_approval_status !== "approved") {
+    return {
+      ok: false, code: "EDUCATOR_NOT_APPROVED", httpStatus: 403,
+      message: "Only approved educators can configure class settings",
+    };
   }
 
   const current = issuer.class_settings ?? {};
   const updated = {
     ...current,
     ...(hourlyRateUsd !== undefined && { hourly_rate_usd: hourlyRateUsd ?? null }),
-    ...(acceptUsdc !== undefined && { accept_usdc: acceptUsdc }),
+    ...(acceptUsdt !== undefined && { accept_usdt: acceptUsdt }),
     ...(durations !== undefined && { durations }),
     ...(availability !== undefined && { availability }),
     ...(googleCalendarUrl !== undefined && { google_calendar_url: googleCalendarUrl?.trim() || null }),

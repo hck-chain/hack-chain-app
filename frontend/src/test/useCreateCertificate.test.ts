@@ -165,7 +165,7 @@ describe('web3Service timeout handling', () => {
 describe('No duplicate certificates — guard + DB write integration', () => {
   it('only writes to DB once when two mint calls race', async () => {
     const dbWrite = vi.fn(async () => {});
-    let pendingRef = { current: false };
+    const pendingRef = { current: false };
 
     async function createCertificate(): Promise<boolean> {
       if (pendingRef.current) return false;

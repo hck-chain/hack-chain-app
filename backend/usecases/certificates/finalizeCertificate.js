@@ -38,13 +38,19 @@ async function finalizeCertificate({
     };
   }
 
-  await certificate.update({
+  const updateData = {
     certificate_hash: certificateHash,
     blockchain_tx_hash: blockchainTxHash,
     token_id: tokenId,
     issue_date: issueDate,
     status: "issued",
-  });
+  };
+  // Talent has 24h to confirm the class was completed correctly (or flag an
+  // issue) before certificateConfirmationWorker auto-confirms it.
+  if (certificate.class_request_id) {
+    updateData.confirmation_deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  }
+  await certificate.update(updateData);
 
   // Auto-complete the class request this certificate was issued for.
   if (certificate.class_request_id) {

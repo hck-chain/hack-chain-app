@@ -15,7 +15,6 @@ async function requestClass({
   requestedDate,
   startTime,
   durationMinutes,
-  hourlyRateUsd,
   studentMessage,
   issuerClassId,
   requestedTimestampUtc,
@@ -66,9 +65,21 @@ async function requestClass({
 
   const issuer = await models.Issuer.findOne({
     where: { wallet_address: issuerWalletAddress.toLowerCase() },
+    include: [{ model: models.User, attributes: ["educator_approval_status"] }],
   });
 
-  if (!issuer || !issuer.class_settings) {
+  if (!issuer) {
+    return { ok: false, code: "EDUCATOR_NOT_FOUND", httpStatus: 404 };
+  }
+
+  // SECURITY: an educator pending or rejected by admin review must not be able
+  // to receive paid class requests — only certificate minting was gated
+  // before this fix (see precheckCertificate.js), leaving this as a bypass.
+  if (issuer.User?.educator_approval_status !== "approved") {
+    return { ok: false, code: "EDUCATOR_NOT_APPROVED", httpStatus: 403 };
+  }
+
+  if (!issuer.class_settings) {
     return { ok: false, code: "EDUCATOR_NOT_FOUND", httpStatus: 404 };
   }
 
@@ -96,13 +107,20 @@ async function requestClass({
     resolvedClassName = issuerClass.name;
   }
 
+  // SECURITY: the price is the basis for how much USDT the student is later
+  // required to pay (submitPaymentProof.js / usdtPaymentService.js) — it must
+  // come from the educator's own configured rate, never from client input,
+  // or a student could set an arbitrary low price and pay a fraction of what
+  // they owe while still reaching payment_status: "paid".
+  const trustedHourlyRateUsd = issuer.class_settings?.hourly_rate_usd ?? null;
+
   const record = await models.ClassRequest.create({
     student_wallet_address: studentWallet.toLowerCase(),
     issuer_wallet_address: issuerWalletAddress.toLowerCase(),
     requested_date: requestedDate,
     start_time: startTime,
     duration_minutes: Number(durationMinutes),
-    hourly_rate_usd: hourlyRateUsd != null ? Number(hourlyRateUsd) : null,
+    hourly_rate_usd: trustedHourlyRateUsd,
     student_message: sanitizedMessage,
     issuer_class_id: resolvedClassId,
     class_name: resolvedClassName,

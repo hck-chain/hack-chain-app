@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell, User } from 'lucide-react';
+import { LogOut, ChevronDown, Mail, Briefcase, Wallet, FileText, Trash2, UserPen, Copy, Check, Users, BadgeCheck, Bell, User, CreditCard, XCircle, AlertTriangle } from 'lucide-react';
 import { usePendingClassRequestsCount } from '@/hooks/usePendingClassRequestsCount';
 import { useEducatorClassRequests, type EducatorClassRequest } from '@/hooks/useEducatorClassRequests';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,85 +86,173 @@ interface Talent {
   };
 }
 
-function NotificationBellPanel() {
+type EducatorBellKind = 'new_request' | 'deposit_submitted' | 'final_submitted' | 'cancelled' | 'disputed';
+
+interface EducatorBellItem {
+  kind: EducatorBellKind;
+  req: EducatorClassRequest;
+}
+
+// One explicit kind per flow moment that needs the educator's attention —
+// derived from the request's current status/payment_status snapshot.
+function getEducatorBellKind(r: EducatorClassRequest): EducatorBellKind | null {
+  if (r.status === 'cancelled') return 'cancelled';
+  if (r.status === 'pending') return 'new_request';
+  if (r.payment_status === 'deposit_disputed' || r.payment_status === 'final_disputed') return 'disputed';
+  if (r.payment_status === 'deposit_submitted') return 'deposit_submitted';
+  if (r.payment_status === 'final_submitted') return 'final_submitted';
+  return null;
+}
+
+const EDUCATOR_BELL_STYLE: Record<EducatorBellKind, { icon: typeof User; iconClass: string; bgClass: string; borderClass: string }> = {
+  new_request: { icon: User, iconClass: 'text-amber-400', bgClass: 'bg-amber-500/10', borderClass: 'border-amber-500/20' },
+  deposit_submitted: { icon: CreditCard, iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20' },
+  final_submitted: { icon: CreditCard, iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20' },
+  cancelled: { icon: XCircle, iconClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20' },
+  disputed: { icon: AlertTriangle, iconClass: 'text-red-400', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20' },
+};
+
+// Bell icon + badge + panel, all in one — badge clears the moment the bell
+// is opened (Facebook/Instagram-style "seen it"), tracked in localStorage
+// the same way TalentNotificationBell does. Items newer than the last-opened
+// timestamp get a subtle highlight while the panel is open.
+function EducatorNotificationBell() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { data, isPending } = useEducatorClassRequests();
-  const pending = (data ?? []).filter((r: EducatorClassRequest) => r.status === 'pending').slice(0, 5);
   const locale = i18n.language.startsWith('es') ? 'es-MX' : 'en-US';
 
+  const [lastOpenedTs, setLastOpenedTs] = useState<number>(() => {
+    const stored = localStorage.getItem('educatorBellLastOpened');
+    return stored ? new Date(stored).getTime() : 0;
+  });
+  const [panelOpenedAt, setPanelOpenedAt] = useState<number>(lastOpenedTs);
+
+  const all = data ?? [];
+  const allItems: EducatorBellItem[] = all
+    .map((req): EducatorBellItem | null => {
+      const kind = getEducatorBellKind(req);
+      return kind ? { kind, req } : null;
+    })
+    .filter((item): item is EducatorBellItem => item !== null)
+    .sort((a, b) => new Date(b.req.updated_at).getTime() - new Date(a.req.updated_at).getTime());
+
+  const items = allItems.slice(0, 6);
+  const unreadCount = allItems.filter(
+    (i) => new Date(i.req.updated_at).getTime() > lastOpenedTs
+  ).length;
+
+  function handleOpenChange(open: boolean) {
+    if (!open) return;
+    setPanelOpenedAt(lastOpenedTs);
+    const now = Date.now();
+    localStorage.setItem('educatorBellLastOpened', new Date(now).toISOString());
+    setLastOpenedTs(now);
+  }
+
+  const kindLabel = (kind: EducatorBellKind): string => {
+    switch (kind) {
+      case 'new_request': return t('educatorClassRequests.notifNewRequest', 'Nueva solicitud de clase');
+      case 'deposit_submitted': return t('educatorClassRequests.notifDepositSubmitted', 'Subió el comprobante del depósito');
+      case 'final_submitted': return t('educatorClassRequests.notifFinalSubmitted', 'Subió el comprobante del pago final');
+      case 'cancelled': return t('educatorClassRequests.notifCancelled', 'La clase se canceló');
+      case 'disputed': return t('educatorClassRequests.notifDisputed', 'Disputa de pago abierta');
+    }
+  };
+
   return (
-    <div>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <span className="text-sm font-semibold text-white">{t('educatorClassRequests.notifTitle')}</span>
-        {pending.length > 0 && (
-          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 tabular-nums">
-            {pending.length}
-          </span>
-        )}
-      </div>
-
-      {isPending ? (
-        <div className="py-5 px-4 space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex gap-3 animate-pulse">
-              <div className="h-7 w-7 rounded-full bg-white/[0.06] shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-2.5 w-24 bg-white/[0.05] rounded-full" />
-                <div className="h-2 w-16 bg-white/[0.04] rounded-full" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : pending.length === 0 ? (
-        <div className="py-8 flex flex-col items-center gap-2">
-          <Bell className="h-7 w-7 text-slate-700" />
-          <p className="text-xs text-slate-500">{t('educatorClassRequests.noPending')}</p>
-        </div>
-      ) : (
-        <div>
-          {pending.map((req: EducatorClassRequest) => (
-            <button
-              key={req.id}
-              onClick={() => navigate('/educator/class-requests')}
-              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/[0.04] border-b border-white/[0.04] last:border-b-0 transition-colors text-left"
-            >
-              <div className="h-7 w-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                <User className="h-3.5 w-3.5 text-amber-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white truncate">
-                  {req.student_name || req.student_wallet.slice(0, 8) + '…'}
-                </p>
-                {req.class_name && (
-                  <p className="text-[11px] text-slate-500 truncate mt-px">{req.class_name}</p>
-                )}
-                <p className="text-[11px] text-slate-600 mt-0.5">
-                  {new Date(req.requested_date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · {req.start_time}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="px-4 py-3 border-t border-white/[0.06]">
-        <Link
-          to="/educator/class-requests"
-          className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+    <Popover onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          className="relative flex items-center justify-center text-slate-300 hover:text-white transition-colors min-h-[36px] w-9 rounded-lg"
+          aria-label={`${t('educatorClassRequests.title')}${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
         >
-          {t('educatorClassRequests.viewAll')} →
-        </Link>
-      </div>
-    </div>
+          <Bell className="h-[18px] w-[18px] shrink-0" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums leading-[16px] text-center">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-80 p-0 bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden"
+        align="end"
+        sideOffset={8}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+          <span className="text-sm font-semibold text-white">{t('educatorClassRequests.notifTitle')}</span>
+          {unreadCount > 0 && (
+            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 tabular-nums">
+              {unreadCount}
+            </span>
+          )}
+        </div>
+
+        {isPending ? (
+          <div className="py-5 px-4 space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex gap-3 animate-pulse">
+                <div className="h-7 w-7 rounded-full bg-white/[0.06] shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-2.5 w-24 bg-white/[0.05] rounded-full" />
+                  <div className="h-2 w-16 bg-white/[0.04] rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-8 flex flex-col items-center gap-2">
+            <Bell className="h-7 w-7 text-slate-700" />
+            <p className="text-xs text-slate-500">{t('educatorClassRequests.noPending')}</p>
+          </div>
+        ) : (
+          <div>
+            {items.map((item) => {
+              const style = EDUCATOR_BELL_STYLE[item.kind];
+              const Icon = style.icon;
+              const isNew = new Date(item.req.updated_at).getTime() > panelOpenedAt;
+              return (
+                <button
+                  key={`${item.kind}-${item.req.id}`}
+                  onClick={() => navigate(`/educator/class-requests?requestId=${item.req.id}`)}
+                  className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-white/[0.04] border-b border-white/[0.04] last:border-b-0 transition-colors text-left ${isNew ? 'bg-white/[0.02]' : ''}`}
+                >
+                  <div className={`h-7 w-7 rounded-full ${style.bgClass} border ${style.borderClass} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <Icon className={`h-3.5 w-3.5 ${style.iconClass}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">
+                      {item.req.student_name || item.req.student_wallet.slice(0, 8) + '…'}
+                    </p>
+                    <p className={`text-[11px] truncate mt-px ${style.iconClass}`}>
+                      {kindLabel(item.kind)}
+                    </p>
+                    {item.req.class_name && (
+                      <p className="text-[11px] text-slate-500 truncate mt-px">{item.req.class_name}</p>
+                    )}
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      {new Date(item.req.requested_date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · {item.req.start_time}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="px-4 py-3 border-t border-white/[0.06]">
+          <Link
+            to="/educator/class-requests"
+            className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+          >
+            {t('educatorClassRequests.viewAll')} →
+          </Link>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const CERTIFICATE_SUBTITLES = {
-  personalized: "Clase Personalizada",
-} as const;
 
 const EducatorDashboard = () => {
   const navigate = useNavigate();
@@ -189,6 +277,8 @@ const EducatorDashboard = () => {
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [logoPreview, setLogoPreview] = useState('');
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [userData, setUserData] = useState<any>(null);
   const [approvalStatus, setApprovalStatus] = useState<{ status: string; reason?: string } | null>(null);
   const [reapplying, setReapplying] = useState(false);
@@ -219,11 +309,11 @@ const EducatorDashboard = () => {
 
   // Pre-fill form from class request context (navigated from EducatorClassRequests)
   useEffect(() => {
-    const rid  = searchParams.get('classRequestId');
-    const sw   = searchParams.get('studentWallet');
-    const sn   = searchParams.get('studentName');
-    const cn   = searchParams.get('className');
-    const cd   = searchParams.get('classDate');
+    const rid = searchParams.get('classRequestId');
+    const sw = searchParams.get('studentWallet');
+    const sn = searchParams.get('studentName');
+    const cn = searchParams.get('className');
+    const cd = searchParams.get('classDate');
     if (rid) setClassRequestId(parseInt(rid, 10));
     if (sw || sn || cn || cd) {
       setForm(prev => ({
@@ -232,8 +322,8 @@ const EducatorDashboard = () => {
         ...(sn ? { talentName: sn } : {}),
         ...(cn ? { certificateTitle: cn } : {}),
         ...(cd ? { issueDate: cd } : {}),
-        ...(rid ? {certificateType: CERTIFICATE_SUBTITLES.personalized}
-                : {}),
+        ...(rid ? { certificateType: t('educatorDashboard.personalizedClassType', 'Personalized Class') }
+          : {}),
       }));
     }
   }, [searchParams]);
@@ -272,7 +362,7 @@ const EducatorDashboard = () => {
               setBannerVisible(true);
             }
           })
-          .catch(() => {}); // non-blocking — dashboard still loads if status fails
+          .catch(() => { }); // non-blocking — dashboard still loads if status fails
 
         const certCount = await getCertificatesByEducator(profile.wallet_address);
         setCertificatesIssued(certCount);
@@ -353,6 +443,7 @@ const EducatorDashboard = () => {
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.name === 'logo' && e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setLogoFileName(file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
@@ -433,7 +524,7 @@ const EducatorDashboard = () => {
       const formData = new FormData();
       formData.append("file", imageBlob, `cert-${form.talentName.replace(/\s+/g, '_')}.png`);
 
-      const uploadResult = await api.upload<{ cid: string }>('/api/upload/image', formData);
+      const uploadResult = await api.upload<{ cid: string }>('/api/upload/certificate', formData);
       const realImageCID = uploadResult.cid;
       console.log("Image successfully pinned:", realImageCID);
 
@@ -734,28 +825,7 @@ const EducatorDashboard = () => {
                   <LanguageToggle />
 
                   {/* Notification bell — class requests popup */}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        className="relative flex items-center justify-center text-slate-300 hover:text-white transition-colors min-h-[36px] w-9 rounded-lg"
-                        aria-label={`${t('educatorClassRequests.title')}${pendingRequestsCount > 0 ? ` (${pendingRequestsCount})` : ''}`}
-                      >
-                        <Bell className="h-[18px] w-[18px] shrink-0" />
-                        {pendingRequestsCount > 0 && (
-                          <span className="absolute top-1 right-0.5 min-w-[16px] h-[16px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums leading-[16px] text-center">
-                            {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
-                          </span>
-                        )}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-80 p-0 bg-slate-900/95 backdrop-blur-2xl border-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden"
-                      align="end"
-                      sideOffset={8}
-                    >
-                      <NotificationBellPanel />
-                    </PopoverContent>
-                  </Popover>
+                  <EducatorNotificationBell />
                 </div>
 
                 {/* Profile button — flush right on mobile */}
@@ -857,7 +927,7 @@ const EducatorDashboard = () => {
                             </div>
                           </div>
                         )}
-                        
+
                         <Link to="/educator/class-requests" className="flex items-start gap-3 p-3 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/20 transition-colors">
                           <img src="/icons/maletinNeon.avif" className="h-5 w-5 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -958,14 +1028,13 @@ const EducatorDashboard = () => {
                       {t('educatorDashboard.formTitle')}
                     </p>
                     <p className="font-body text-sm text-white/40">{t('educatorDashboard.formSubtitle')}</p>
-                      {isClassRequestCertificate && (
-                        <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                          <p className="text-xs text-amber-200">
-                            Este certificado proviene de una clase completada. Algunos campos fueron
-                            completados automáticamente y no pueden modificarse.
-                          </p>
-                        </div>
-                      )}
+                    {isClassRequestCertificate && (
+                      <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                        <p className="text-xs text-amber-200">
+                          {t('educatorDashboard.classRequestCertificateNotice')}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <form className="relative z-10 space-y-5">
@@ -1051,19 +1120,47 @@ const EducatorDashboard = () => {
                         />
                       </div>
 
-                      <div className="group/input">
-                        <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
-                          {t('educatorDashboard.fieldLogo')}
-                        </Label>
-                        <Input
-                          id="logo"
-                          name="logo"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleChange}
-                          className="bg-black/20 border-white/10 file:bg-white/10 file:text-white file:border-0 file:rounded-lg file:px-4 file:mr-4 hover:file:bg-white/20 text-slate-400 cursor-pointer rounded-xl pt-2 pb-2 h-auto transition-all"
-                        />
-                      </div>
+                      {/* Skip asking for a logo when the educator already has one saved
+                          on their profile — CertificateCard already falls back to it
+                          via previewLogo below, this field would just be redundant. */}
+                      {certificateLogo ? (
+                        <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                          <img src={certificateLogo} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                          <p className="text-xs text-slate-400">
+                            {t('educatorDashboard.usingProfileLogo', "Using your profile's logo. Change it from your profile settings.")}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="group/input">
+                          <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block group-focus-within/input:text-purple-400 transition-colors">
+                            {t('educatorDashboard.fieldLogo')}
+                          </Label>
+                          {/* Native file inputs render their button/placeholder text in the
+                              browser's own locale, not ours — no CSS can translate that.
+                              Hide it and drive a fully-translated custom trigger instead. */}
+                          <input
+                            ref={logoInputRef}
+                            id="logo"
+                            name="logo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleChange}
+                            className="sr-only"
+                          />
+                          <div className="flex items-center gap-3 bg-black/20 border border-white/10 rounded-xl h-11 pl-2 pr-3">
+                            <button
+                              type="button"
+                              onClick={() => logoInputRef.current?.click()}
+                              className="shrink-0 bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              {t('educatorDashboard.chooseFile', 'Choose file')}
+                            </button>
+                            <span className="text-sm text-slate-500 truncate">
+                              {logoFileName || t('educatorDashboard.noFileChosen', 'No file chosen')}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">

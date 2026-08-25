@@ -8,6 +8,7 @@ vi.mock('@/config/walletConfig', () => ({
     appKit: {
         getAddress: vi.fn(),
         open: vi.fn(),
+        disconnect: vi.fn().mockResolvedValue(undefined),
         subscribeAccount: vi.fn(),
         subscribeEvents: vi.fn(),
     },
@@ -84,8 +85,18 @@ describe('useUserRegistration', () => {
         }));
     });
 
-    it('registers student without reopening modal when wallet is already connected', async () => {
+    it('always reopens the modal during registration, even with an existing wallet session', async () => {
+        // getConnectedWallet is called with forceNew=true during registration
+        // (see web3Service.ts) so a stale AppKit session doesn't silently
+        // register under the wrong wallet — it must always re-prompt.
         simulateAlreadyConnected();
+        vi.mocked(appKit.disconnect).mockResolvedValue(undefined);
+        vi.mocked(appKit.open).mockResolvedValue(undefined);
+        vi.mocked(appKit.subscribeAccount).mockImplementation((cb: any) => {
+            setTimeout(() => cb({ address: MOCK_WALLET }), 0);
+            return vi.fn();
+        });
+        vi.mocked(appKit.subscribeEvents).mockReturnValue(vi.fn());
         vi.mocked(api.postPublic).mockResolvedValue({
             message: 'User created',
             user: { id: 1, email: 'test@test.com', role: 'student', wallet_address: MOCK_WALLET },
@@ -97,7 +108,8 @@ describe('useUserRegistration', () => {
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-        expect(appKit.open).not.toHaveBeenCalled();
+        expect(appKit.disconnect).toHaveBeenCalled();
+        expect(appKit.open).toHaveBeenCalled();
         expect(api.postPublic).toHaveBeenCalledWith('/api/users/register', expect.objectContaining({
             wallet_address: MOCK_WALLET,
             role: 'student',
@@ -119,14 +131,12 @@ describe('useUserRegistration', () => {
 });
 
 describe('useEducatorRegistration', () => {
-    it('registers educator, authorizes on-chain, and sends correct role', async () => {
+    it('registers educator and sends correct role', async () => {
         simulateWalletConnect();
-        vi.mocked(api.postPublic)
-            .mockResolvedValueOnce({}) // authorize call
-            .mockResolvedValueOnce({  // register call
-                message: 'Educator created',
-                user: { id: 2, email: 'edu@test.com', role: 'issuer', wallet_address: MOCK_WALLET },
-            });
+        vi.mocked(api.postPublic).mockResolvedValueOnce({
+            message: 'Educator created',
+            user: { id: 2, email: 'edu@test.com', role: 'issuer', wallet_address: MOCK_WALLET },
+        });
 
         const { result } = renderHook(() => useEducatorRegistration(), { wrapper: createWrapper() });
 
@@ -134,7 +144,6 @@ describe('useEducatorRegistration', () => {
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-        expect(api.postPublic).toHaveBeenCalledWith('/api/issuers/authorize', { issuer: MOCK_WALLET });
         expect(api.postPublic).toHaveBeenCalledWith('/api/users/register', expect.objectContaining({
             wallet_address: MOCK_WALLET,
             role: 'issuer',

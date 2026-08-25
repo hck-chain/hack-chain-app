@@ -19,6 +19,7 @@ import {
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { useTranslation } from 'react-i18next';
+import { useEducatorApprovalStatus } from '@/hooks/useEducatorApprovalStatus';
 import type { ClassSettings, DayKey, WeeklyAvailability } from '@/types/dashboard';
 
 // ---------------------------------------------------------------------------
@@ -287,7 +288,10 @@ function ClassCatalogSection({ t, prefersReduced }: { t: (k: string) => string; 
       setNewDescription('');
       setNewTopics([]);
       setShowForm(false);
-    } catch (_) {}
+    } catch (_) {
+      // useCreateIssuerClass already surfaces the error via toast (onError) — this
+      // catch only stops the rejection from propagating as unhandled.
+    }
   }
 
   return (
@@ -488,14 +492,28 @@ const EditEducatorClasses = () => {
   const { data: settings, isPending: isLoading } = useMyClassSettings();
   const updateSettings = useUpdateClassSettings();
 
+  // Defense in depth: the entry button is already hidden for a pending/rejected
+  // educator (EditEducatorProfile.tsx), but this page is still directly
+  // reachable by URL — bounce back rather than let them hit 403s silently.
+  const { data: approvalStatus, isPending: isLoadingApproval } = useEducatorApprovalStatus();
+  useEffect(() => {
+    if (!isLoadingApproval && approvalStatus && approvalStatus.status !== 'approved') {
+      toast({
+        title: t('editClasses.notApprovedRedirectTitle'),
+        description: t('editClasses.notApprovedRedirectDesc'),
+      });
+      navigate('/educator/profile/edit');
+    }
+  }, [isLoadingApproval, approvalStatus, navigate, toast, t]);
+
   const [hourlyRate, setHourlyRate] = useState<string>('');
-  const [acceptUsdc, setAcceptUsdc] = useState(false);
+  const [acceptUsdt, setAcceptUsdt] = useState(false);
   const [durations, setDurations] = useState<number[]>([30, 60]);
   const [availability, setAvailability] = useState<WeeklyAvailability>(DEFAULT_AVAILABILITY);
   useEffect(() => {
     if (!settings) return;
     setHourlyRate(settings.hourly_rate_usd != null ? String(settings.hourly_rate_usd) : '');
-    setAcceptUsdc(settings.accept_usdc ?? false);
+    setAcceptUsdt(settings.accept_usdt ?? false);
     setDurations(settings.durations?.length ? settings.durations : [30, 60]);
     setAvailability({ ...DEFAULT_AVAILABILITY, ...(settings.availability ?? {}) });
   }, [settings]);
@@ -545,7 +563,7 @@ const EditEducatorClasses = () => {
 
     const payload: Partial<ClassSettings> = {
       hourly_rate_usd: hourlyRate.trim() ? parsedRate : null,
-      accept_usdc: acceptUsdc,
+      accept_usdt: acceptUsdt,
       durations,
       availability,
     };
@@ -692,13 +710,13 @@ const EditEducatorClasses = () => {
               >
                 <div>
                   <p className="text-sm font-medium" style={{ color: P.textPrimary }}>
-                    {t('editClasses.acceptUsdc')}
+                    {t('editClasses.acceptUsdt')}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: P.textMuted }}>
-                    {t('editClasses.acceptUsdcHint')}
+                    {t('editClasses.acceptUsdtHint')}
                   </p>
                 </div>
-                <Toggle checked={acceptUsdc} onChange={setAcceptUsdc} disabled={isSaving} />
+                <Toggle checked={acceptUsdt} onChange={setAcceptUsdt} disabled={isSaving} />
               </div>
             </div>
           </SectionCard>

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { HelmetProvider } from 'react-helmet-async';
 import AdminRoute from "@/components/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
@@ -54,6 +55,7 @@ const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminStatsPage = lazy(() => import("./pages/admin/AdminStatsPage"));
 const AdminEducatorsPage = lazy(() => import("./pages/admin/AdminEducatorsPage"));
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminPaymentDisputesPage = lazy(() => import("./pages/admin/AdminPaymentDisputesPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
 
 const queryClient = new QueryClient();
@@ -71,6 +73,7 @@ const App = () => {
   useModalScrollLock();
   return (
   <QueryClientProvider client={queryClient}>
+    <HelmetProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -157,6 +160,7 @@ const App = () => {
                   <Route index element={<AdminStatsPage />} />
                   <Route path="educators" element={<AdminEducatorsPage />} />
                   <Route path="payments"  element={<AdminPaymentsPage />} />
+                  <Route path="payment-disputes" element={<AdminPaymentDisputesPage />} />
                   <Route path="treasury"  element={<AdminTreasuryPage />} />
                 </Route>
 
@@ -198,6 +202,7 @@ const App = () => {
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </HelmetProvider>
   </QueryClientProvider>
   );
 };

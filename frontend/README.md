@@ -58,6 +58,9 @@ Create `frontend/.env`:
 VITE_API_URL=http://localhost:3001          # Backend base URL
 VITE_REOWN_PROJECT_ID=...                   # Reown AppKit project ID (wallet connection)
 VITE_CONTRACT_ADDRESS=0x...                 # HackCertificate contract address on Polygon
+VITE_USDT_CONTRACT_ADDRESS=0x...            # USDT (ERC20) contract address on Polygon — verify
+                                             # against PolygonScan directly, never from an AI-summarized
+                                             # source. Used for class-payment wallet transfers.
 VITE_CHAIN_ID=137                           # 137 = Polygon mainnet, 80002 = Polygon Amoy testnet
 VITE_QR_API_URL=...                         # Base URL of the QR code provider used to generate profile QR codes
 ```

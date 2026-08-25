@@ -27,6 +27,8 @@ backend/
 ├── controllers/       (inline in routes) — translate HTTP to domain, call one use case
 ├── usecases/          All business logic — pure functions, no Express, no direct DB imports
 │   ├── classes/
+│   ├── classPayments/       Manual deposit/final payment workflow for class requests
+│   ├── certificateConfirmation/  Talent confirmation/flag of an issued certificate
 │   └── referrals/
 ├── services/          External integrations: emailService, redis, ipfsCertificateUploader,
 │                      paymentService, issuerDiscoveryService, calendarService
@@ -82,6 +84,11 @@ POLYGON_RPC_URL=https://...               # Polygon RPC endpoint
 PRIVATE_KEY=0x...                          # Backend wallet private key (for contract interactions)
 CONTRACT_ADDRESS=0x...                     # HackCertificate contract address
 HACK_TOKEN_ADDRESS=0x...                  # HackToken (ERC20) contract address
+USDT_CONTRACT_ADDRESS=0x...               # USDT (ERC20) contract address on Polygon — verify against
+                                            # PolygonScan directly before setting, never copy from an
+                                            # AI-summarized source. Used to verify class-payment wallet
+                                            # transfers on-chain (usdtPaymentService.js).
+USDT_DECIMALS=6                            # USDT decimals — 6 everywhere it's deployed, kept configurable
 
 # Email
 RESEND_API_KEY=re_...
@@ -111,6 +118,20 @@ node backend/scripts/migrate-class-requests-add-payment.js
 
 # Add cancellation_reason column to class_requests
 node backend/scripts/migrate-class-requests-add-cancellation-reason.js
+
+# Add manual payment-workflow columns to class_requests/certificates and
+# create the class_payment_disputes table
+node backend/scripts/migrate-class-requests-payment-workflow.js
+
+# Add deposit_tx_hash/final_tx_hash columns to class_requests (USDT wallet payments)
+node backend/scripts/migrate-class-requests-usdt-wallet-payment.js
+
+# One-off: rename class_settings.accept_usdc -> accept_usdt on existing issuers
+node backend/scripts/migrate-issuer-accept-usdt-rename.js
+
+# Add meeting_url column to class_requests (educator sets a Meet/Zoom/Teams
+# link when confirming a class)
+node backend/scripts/migrate-class-requests-meeting-url.js
 ```
 
 Always use `DATABASE_URL_UNPOOLED` (direct connection) when running migrations. PgBouncer in transaction mode rejects DDL statements.

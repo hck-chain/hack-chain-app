@@ -33,7 +33,7 @@ describe("requestClass", () => {
 
     const nonce = () => crypto.randomBytes(16).toString("hex");
     await User.create({ wallet_address: STUDENT, role: "student", name: "Ana", nonce: nonce() });
-    await User.create({ wallet_address: ISSUER,  role: "issuer",  name: "Prof", nonce: nonce() });
+    await User.create({ wallet_address: ISSUER,  role: "issuer",  name: "Prof", nonce: nonce(), educator_approval_status: "approved" });
     await Issuer.create({ wallet_address: ISSUER, organization_name: "HackAcademy", class_settings: { hourly_rate_usd: 50 } });
 
     const cls = await IssuerClass.create({ issuer_wallet_address: ISSUER, name: "Pentest 101", topics: [], is_active: true });
@@ -113,11 +113,65 @@ describe("requestClass", () => {
 
   test("returns EDUCATOR_NOT_FOUND when educator has no class_settings", async () => {
     const wallet = "0x" + "dd".repeat(20);
-    await models.User.create({ wallet_address: wallet, role: "issuer", name: "NoSettings", nonce: crypto.randomBytes(16).toString("hex") });
+    await models.User.create({ wallet_address: wallet, role: "issuer", name: "NoSettings", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "approved" });
     await models.Issuer.create({ wallet_address: wallet, organization_name: "X", class_settings: null });
     const result = await requestClass({ ...base(), issuerWalletAddress: wallet });
     expect(result.ok).toBe(false);
     expect(result.code).toBe("EDUCATOR_NOT_FOUND");
+  });
+
+  // SECURITY: only certificate minting (precheckCertificate.js) checked admin
+  // approval before this fix — a pending/rejected educator could still receive
+  // paid class requests. These three cases lock in the fix.
+  describe("educator approval gate", () => {
+    const makeUnapprovedIssuer = async (wallet, status) => {
+      await models.User.create({
+        wallet_address: wallet,
+        role: "issuer",
+        name: "Unapproved",
+        nonce: crypto.randomBytes(16).toString("hex"),
+        educator_approval_status: status,
+      });
+      await models.Issuer.create({
+        wallet_address: wallet,
+        organization_name: "PendingAcademy",
+        class_settings: { hourly_rate_usd: 50 },
+      });
+    };
+
+    test("returns EDUCATOR_NOT_APPROVED when status is pending_approval", async () => {
+      const wallet = "0x" + "11".repeat(20);
+      await makeUnapprovedIssuer(wallet, "pending_approval");
+      const result = await requestClass({ ...base(), issuerWalletAddress: wallet });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("EDUCATOR_NOT_APPROVED");
+      expect(result.httpStatus).toBe(403);
+    });
+
+    test("returns EDUCATOR_NOT_APPROVED when status is rejected", async () => {
+      const wallet = "0x" + "22".repeat(20);
+      await makeUnapprovedIssuer(wallet, "rejected");
+      const result = await requestClass({ ...base(), issuerWalletAddress: wallet });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("EDUCATOR_NOT_APPROVED");
+    });
+
+    test("returns EDUCATOR_NOT_APPROVED when status is null (never reviewed)", async () => {
+      const wallet = "0x" + "33".repeat(20);
+      await makeUnapprovedIssuer(wallet, null);
+      const result = await requestClass({ ...base(), issuerWalletAddress: wallet });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("EDUCATOR_NOT_APPROVED");
+    });
+
+    test("does not create a ClassRequest row when the educator is not approved", async () => {
+      const wallet = "0x" + "44".repeat(20);
+      await makeUnapprovedIssuer(wallet, "pending_approval");
+      const before = await models.ClassRequest.count();
+      await requestClass({ ...base(), issuerWalletAddress: wallet });
+      const after = await models.ClassRequest.count();
+      expect(after).toBe(before);
+    });
   });
 
   test("creates the request and returns id + status on valid input", async () => {
@@ -125,6 +179,26 @@ describe("requestClass", () => {
     expect(result.ok).toBe(true);
     expect(result.data.id).toBeDefined();
     expect(result.data.status).toBe("pending");
+  });
+
+  test("stores hourly_rate_usd from the educator's own class_settings, not the caller", async () => {
+    const result = await requestClass(base());
+    expect(result.ok).toBe(true);
+    const saved = await models.ClassRequest.findByPk(result.data.id);
+    expect(Number(saved.hourly_rate_usd)).toBe(50);
+  });
+
+  // SECURITY: hourly_rate_usd is the basis for the on-chain USDT amount the
+  // student is later required to pay (submitPaymentProof.js) — it must never
+  // be settable by the client, or a student could pay a fraction of the
+  // real price. requestClass no longer even accepts a hourlyRateUsd param;
+  // this asserts that even if a caller (or a future regression) passes one
+  // through, it's silently ignored in favor of the trusted server value.
+  test("ignores a client-supplied hourlyRateUsd entirely", async () => {
+    const result = await requestClass({ ...base(), hourlyRateUsd: 0.01 });
+    expect(result.ok).toBe(true);
+    const saved = await models.ClassRequest.findByPk(result.data.id);
+    expect(Number(saved.hourly_rate_usd)).toBe(50);
   });
 
   test("stores class_name snapshot when issuer_class_id is valid", async () => {

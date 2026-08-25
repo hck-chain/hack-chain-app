@@ -1,5 +1,6 @@
 const cron = require("node-cron");
 const { notifyClassReminder } = require("../services/emailService");
+const { localWallClockToUtcMs } = require("../utils/localWallClockTime");
 
 const LOG = "[classReminderWorker]";
 
@@ -31,12 +32,11 @@ async function sendRemindersOnce(models) {
     attributes: ['id', 'student_wallet_address', 'issuer_wallet_address', 'requested_date', 'start_time', 'duration_minutes', 'class_name'],
   });
 
-  // Filter to exact 23–25h window using JS (times assumed UTC-consistent)
+  // Filter to exact 23–25h window using JS. requested_date/start_time are the
+  // agreed local wall-clock time, not UTC — localWallClockToUtcMs converts it
+  // to a real, comparable instant instead of misreading it as UTC.
   const toRemind = candidates.filter(r => {
-    const [h, m] = r.start_time.split(':').map(Number);
-    const classTs = new Date(
-      `${r.requested_date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`
-    ).getTime();
+    const classTs = localWallClockToUtcMs(r.requested_date, r.start_time);
     return classTs >= windowStart.getTime() && classTs <= windowEnd.getTime();
   });
 

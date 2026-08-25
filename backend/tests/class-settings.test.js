@@ -78,7 +78,7 @@ describe("Class settings endpoints", () => {
 
     await sequelize.sync({ force: true });
 
-    await User.create({ wallet_address: ISSUER_WALLET, role: "issuer", name: "Prof", nonce: crypto.randomBytes(16).toString("hex") });
+    await User.create({ wallet_address: ISSUER_WALLET, role: "issuer", name: "Prof", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "approved" });
     await Issuer.create({ wallet_address: ISSUER_WALLET, organization_name: "HackAcademy" });
 
     await User.create({ wallet_address: STUDENT_WALLET, role: "student", name: "Stu", nonce: crypto.randomBytes(16).toString("hex") });
@@ -119,13 +119,13 @@ describe("Class settings endpoints", () => {
   // ---------------------------------------------------------------------------
 
   describe("PATCH /me/classes — valid payloads", () => {
-    test("saves hourly_rate_usd, accept_usdc, and durations", async () => {
+    test("saves hourly_rate_usd, accept_usdt, and durations", async () => {
       const res = await request(issuerApp)
         .patch("/api/issuers/me/classes")
-        .send({ hourly_rate_usd: 80, accept_usdc: true, durations: [30, 60] })
+        .send({ hourly_rate_usd: 80, accept_usdt: true, durations: [30, 60] })
         .expect(200);
 
-      expect(res.body.class_settings).toMatchObject({ hourly_rate_usd: 80, accept_usdc: true });
+      expect(res.body.class_settings).toMatchObject({ hourly_rate_usd: 80, accept_usdt: true });
       expect(res.body.class_settings.durations).toEqual(expect.arrayContaining([30, 60]));
     });
 
@@ -165,11 +165,11 @@ describe("Class settings endpoints", () => {
       await request(issuerApp).patch("/api/issuers/me/classes").send({ hourly_rate_usd: 50 });
       const res = await request(issuerApp)
         .patch("/api/issuers/me/classes")
-        .send({ accept_usdc: false })
+        .send({ accept_usdt: false })
         .expect(200);
 
       expect(res.body.class_settings.hourly_rate_usd).toBe(50);
-      expect(res.body.class_settings.accept_usdc).toBe(false);
+      expect(res.body.class_settings.accept_usdt).toBe(false);
     });
   });
 

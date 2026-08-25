@@ -26,6 +26,9 @@ const { createPolygonProvider } = require("../harjoot/adapters/polygonProvider")
 const { createNftMintAdapter } = require("../harjoot/adapters/nftMintAdapter");
 const { reserveCertificate } = require("../usecases/certificates/reserveCertificate");
 const { finalizeCertificate } = require("../usecases/certificates/finalizeCertificate");
+const { confirmCertificate } = require("../usecases/certificateConfirmation/confirmCertificate");
+const { flagCertificateIssue } = require("../usecases/certificateConfirmation/flagCertificateIssue");
+const { getAdminEmails } = require("../services/adminService");
 
 // PDF certificates are larger than profile images. 10 MB matches a typical
 // printer-resolution single-page PDF with embedded fonts and one image.
@@ -497,6 +500,85 @@ router.post("/:id/finalize", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Error finalizing certificate:", error);
     res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// GET /api/certificates/pending-confirmation — talent's issued certificates
+// still waiting on their step-12 confirmation (or flag).
+router.get("/pending-confirmation", authenticate, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only talents can access this endpoint" });
+  }
+
+  try {
+    const certificates = await Certificate.findAll({
+      where: {
+        student_wallet_address: req.auth.wallet.toLowerCase(),
+        status: "issued",
+        class_request_id: { [db.Sequelize.Op.not]: null },
+      },
+      attributes: ["id", "title", "confirmation_deadline"],
+      order: [["created_at", "DESC"]],
+    });
+    return res.json({ certificates });
+  } catch (err) {
+    console.error("GET /certificates/pending-confirmation error:", err);
+    return res.status(500).json({ error: "Failed to fetch pending confirmations" });
+  }
+});
+
+// PATCH /api/certificates/:id/confirm — talent confirms the class was
+// completed correctly (step 12 of the class-payment workflow).
+router.patch("/:id/confirm", authenticate, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only talents can confirm a certificate" });
+  }
+
+  try {
+    const result = await confirmCertificate({
+      models: db,
+      certificateId: req.params.id,
+      studentWallet: req.auth.wallet,
+    });
+
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.code });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("PATCH /certificates/:id/confirm error:", err);
+    return res.status(500).json({ error: "Failed to confirm certificate" });
+  }
+});
+
+// PATCH /api/certificates/:id/flag — talent reports a problem with the
+// certificate; HackChain contacts both parties.
+router.patch("/:id/flag", authenticate, async (req, res) => {
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ error: "Only talents can flag a certificate" });
+  }
+
+  try {
+    const result = await flagCertificateIssue({
+      models: db,
+      certificateId: req.params.id,
+      studentWallet: req.auth.wallet,
+      reason: req.body.reason,
+    });
+
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.code });
+
+    getAdminEmails(db.User)
+      .then((adminEmails) => emailService.notifyCertificateFlagged({
+        to: adminEmails,
+        certificateTitle: null,
+        studentName: null,
+        reason: req.body.reason || null,
+      }))
+      .catch((err) => console.error("[email] certificate-flagged: error:", err));
+
+    return res.json(result.data);
+  } catch (err) {
+    console.error("PATCH /certificates/:id/flag error:", err);
+    return res.status(500).json({ error: "Failed to flag certificate" });
   }
 });
 

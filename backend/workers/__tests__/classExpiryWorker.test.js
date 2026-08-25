@@ -19,16 +19,21 @@ const { expirePendingRequestsOnce } = require("../classExpiryWorker");
 // Helpers
 // ---------------------------------------------------------------------------
 
+const PLATFORM_TIME_ZONE = "America/Mexico_City";
+
 function pastDate(offsetHours = -2) {
   return new Date(Date.now() + offsetHours * 60 * 60 * 1000);
 }
 
+// requested_date/start_time are stored as the agreed LOCAL wall-clock time
+// (see localWallClockTime.js) — build fixtures from the platform's timezone,
+// not raw UTC getters, or the worker's real-instant math won't match offsetHours.
 function isoDate(d) {
-  return d.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: PLATFORM_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 
 function isoTime(d) {
-  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  return new Intl.DateTimeFormat("en-GB", { timeZone: PLATFORM_TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
 }
 
 function makeRequest({

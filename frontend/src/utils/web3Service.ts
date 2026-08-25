@@ -758,7 +758,58 @@ const CONTRACT_ABI = [
     }
 ]
 
+// USDT (ERC20) on Polygon — read from env, not hardcoded like CONTRACT_ADDRESS
+// above. This value moves real money on every call; if it's ever wrong it
+// must be a one-line env fix, not a code deploy.
+const USDT_CONTRACT_ADDRESS = import.meta.env.VITE_USDT_CONTRACT_ADDRESS;
+const USDT_ABI = [
+    'function transfer(address to, uint256 amount) returns (bool)',
+    'function decimals() view returns (uint8)',
+];
+
 export const web3Service = {
+    /**
+     * Sends `amountUsdt` USDT from the connected wallet directly to
+     * `toWallet` (the educator) — the wallet-pay path for the class-payment
+     * workflow's deposit/final stages. Same signer/confirmation pattern as
+     * mintCertificateOnChain: AppKit's tx.wait() isn't reliable, so
+     * confirmation is polled through a public RPC instead.
+     */
+    payClassStageWithUsdt: async (toWallet: string, amountUsdt: number): Promise<{ txHash: string }> => {
+        const walletProvider = appKit.getWalletProvider();
+        if (!walletProvider) throw new Error('Wallet not connected');
+        if (!USDT_CONTRACT_ADDRESS) throw new Error('USDT contract address not configured');
+
+        try {
+            const provider = new ethers.providers.Web3Provider(walletProvider as ethers.providers.ExternalProvider);
+            const signer = provider.getSigner();
+            const contract = new ethers.Contract(USDT_CONTRACT_ADDRESS, USDT_ABI, signer);
+
+            const decimals = await contract.decimals();
+            const amountBaseUnits = ethers.utils.parseUnits(amountUsdt.toFixed(decimals), decimals);
+
+            const tx = await contract.transfer(toWallet, amountBaseUnits);
+
+            // Same reasoning as mintCertificateOnChain: poll a dedicated public
+            // RPC instead of tx.wait(), which AppKit doesn't reliably deliver.
+            // Mirrors the chainId check in EducatorProfile.tsx's explorerUrl().
+            const isAmoyTestnet = import.meta.env.VITE_CHAIN_ID === '80002';
+            const publicRpcUrl = isAmoyTestnet
+                ? 'https://polygon-amoy-bor-rpc.publicnode.com'
+                : 'https://polygon-bor-rpc.publicnode.com';
+            const publicProvider = new ethers.providers.JsonRpcProvider(publicRpcUrl);
+            const receipt = await publicProvider.waitForTransaction(tx.hash, 1, 120_000);
+            if (!receipt) throw new Error('Transaction confirmation timed out after 2 minutes');
+            if (receipt.status === 0) throw new Error(`Transaction reverted on-chain (tx: ${tx.hash})`);
+
+            return { txHash: tx.hash };
+        } catch (err: unknown) {
+            const reason = (err as { reason?: string; message?: string })?.reason;
+            const message = reason || (err instanceof Error ? err.message : null) || 'Unknown blockchain error';
+            throw new Error(message);
+        }
+    },
+
     mintCertificateOnChain: async (
         talentWallet: string,
         talentName: string,

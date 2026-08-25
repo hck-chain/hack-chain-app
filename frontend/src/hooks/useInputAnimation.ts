@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-// @ts-ignore
+// @ts-expect-error
 import anime from 'animejs/lib/anime.es.js';
 
 interface UseInputAnimationOptions {

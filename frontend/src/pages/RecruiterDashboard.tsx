@@ -194,8 +194,8 @@ const RecruiterDashboard = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                            <div className="space-y-2">
+                                                <div className="flex items-start gap-3 py-3 border-b border-white/10 last:border-b-0">
                                                     <Briefcase className="h-4 w-4 text-slate-400 mt-0.5" />
                                                     <div>
                                                         <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.totalCandidates')}</p>
@@ -203,7 +203,7 @@ const RecruiterDashboard = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                                                <div className="flex items-start gap-3 py-3 border-b border-white/10 last:border-b-0">
                                                     <Wallet className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.walletLabel')}</p>
@@ -230,7 +230,7 @@ const RecruiterDashboard = () => {
                                                 </div>
                                                 
                                                 {isAdmin && (
-                                                    <Link to="/admin" className="flex items-start gap-3 p-3 rounded-xl bg-blue-500/5 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-colors">
+                                                    <Link to="/admin" className="flex items-center gap-3 rounded-xl border border-white/10 px-3 py-3 transition-colors hover:bg-blue-500/10">
                                                         <img src="/icons/escudoNeon.avif" className="h-5 w-6 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] mt-0.5 flex-shrink-0" />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-xs uppercase text-slate-500 font-semibold font-body">{t('recruiterDashboard.admin')}</p>

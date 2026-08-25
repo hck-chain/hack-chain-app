@@ -62,7 +62,11 @@ module.exports = (sequelize, DataTypes) => {
     harjoot_qr_url:           { type: DataTypes.STRING, allowNull: true },
     payment_id:               { type: DataTypes.INTEGER, allowNull: true },
     status:                   { type: DataTypes.STRING, allowNull: true, defaultValue: 'issued' },
-    class_request_id:         { type: DataTypes.INTEGER, allowNull: true }
+    class_request_id:         { type: DataTypes.INTEGER, allowNull: true },
+
+    // ---- Talent confirmation window (step 11-12 of the class-payment workflow) ----
+    confirmation_deadline:    { type: DataTypes.DATE, allowNull: true },
+    flag_reason:              { type: DataTypes.TEXT, allowNull: true }
   }, {
     tableName: 'certificates',
     underscored: true,
