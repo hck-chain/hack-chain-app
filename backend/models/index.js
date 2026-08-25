@@ -91,6 +91,10 @@ db.IssuerClass = require("./issuerClasses")(sequelize, DataTypes);
 db.ClassRequest = require("./classRequests")(sequelize, DataTypes);
 db.ClassPaymentDispute = require("./classPaymentDisputes")(sequelize, DataTypes);
 
+// Job board (recruiter → talent). See scripts/migrate-vacancies.js.
+db.Vacancy = require("./vacancies")(sequelize, DataTypes);
+db.VacancyApplication = require("./vacancyApplications")(sequelize, DataTypes);
+
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
