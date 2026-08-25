@@ -277,6 +277,10 @@ let server;
     // prices fresh (daily refresh, immediate fetch on boot).
     require("./workers/exchangeRateWorker").scheduleExchangeRateRefresh();
 
+    // Vacancy expiry worker — closes vacancies once closing_date passes and
+    // marks their unanswered applications as cerrada_sin_respuesta.
+    require("./workers/vacancyExpiryWorker").scheduleVacancyExpiry();
+
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);
