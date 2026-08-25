@@ -598,35 +598,41 @@ async function notifyAdminNewEducator({ to, name, email, wallet, organization}) 
       recipientEmail: Array.isArray(to) ? to.join(", ") : to,
       body: `
         <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">
-          Se recibió una nueva solicitud de registro.
-        </p>
+  Se recibió una nueva solicitud de registro.
+</p>
 
-        <p style="margin:0 0 24px;">
-          Revisa la información del solicitante y aprueba o rechaza la solicitud desde el panel de administración.
-        </p>
+<p style="margin:0 0 24px;">
+  Revisa la información del solicitante y aprueba o rechaza la solicitud desde el panel de administración.
+</p>
 
-        <div style=" margin:28px 0; background:#F7EEFC; border-left:4px solid #680099; border-radius:10px; padding:20px 24px ">
-          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:26px;">
-            <tr>
-              <td style="color:#777777;width:130px;">Nombre</td>
-              <td style="font-weight:600;color:#222222;"> ${name || "—"} </td>
-            </tr>
-            <tr>
-              <td style="color:#777777;">Organización</td>
-              <td>${organization || "—"}</td>
-            </tr>
-            <tr>
-              <td style="color:#777777;">Correo</td>
-              <td>${email || "—"}</td>
-            </tr>
-            <tr>
-              <td style="color:#777777;">Wallet</td>
-              <td style="font-family:monospace;font-size:13px;">
-                ${wallet}
-              </td>
-            </tr>
-          </table>
-        </div>
+<div style="margin:28px 0;background:#F7EEFC;border-left:4px solid #680099;border-radius:10px;padding:20px 24px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+    <tr>
+      <td style="padding:0 0 16px;">
+        <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Nombre</p>
+        <p style="margin:0;font-weight:600;color:#222222;">${name || "—"}</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 0 16px;">
+        <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Organización</p>
+        <p style="margin:0;color:#222222;">${organization || "—"}</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 0 16px;">
+        <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Correo</p>
+        <p style="margin:0;color:#222222;word-break:break-all;">${email || "—"}</p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Wallet</p>
+        <p style="margin:0;font-family:monospace;font-size:12.5px;line-height:20px;color:#222222;word-break:break-all;">${wallet}</p>
+      </td>
+    </tr>
+  </table>
+</div>
       `,
       ctaUrl: adminUrl,
       ctaLabel: "Ir al Panel de Admin",
