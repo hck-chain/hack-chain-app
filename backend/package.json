@@ -13,7 +13,8 @@
     "migrate:student-profile": "node scripts/migrate-student-profile.js",
     "migrate:certificate-pending-state": "node scripts/migrate-certificate-pending-state.js",
     "migrate:harjoot-phase1": "node scripts/migrate-harjoot-phase1.js",
-    "migrate:referrals-phase1": "node scripts/migrate-referrals-phase1.js"
+    "migrate:referrals-phase1": "node scripts/migrate-referrals-phase1.js",
+    "migrate:vacancies": "node scripts/migrate-vacancies.js"
   },
   "keywords": [],
   "author": "",

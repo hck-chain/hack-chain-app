@@ -17,6 +17,20 @@ module.exports = (sequelize, DataTypes) => {
     company_name: {
       type: DataTypes.STRING(255),
       allowNull: true
+    },
+    // Public-profile columns (§3.3 of the vacancies PDF) — added by
+    // scripts/migrate-vacancies.js. Nullable: existing recruiters backfill on their own.
+    slug: {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    country: {
+      type: DataTypes.STRING(100),
+      allowNull: true
     }
   }, {
     tableName: 'recruiters',
