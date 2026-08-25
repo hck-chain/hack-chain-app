@@ -11,9 +11,6 @@ describe("getPublicStudentProfile", () => {
   let sequelize, models;
 
   beforeAll(async () => {
-    // Single-connection pool so PRAGMA foreign_keys = OFF survives across every
-    // query — Student.wallet_address isn't unique, which SQLite (unlike Postgres)
-    // requires for any FK pointing at it. Test-only; Postgres enforces FKs normally.
     sequelize = new SequelizePkg.Sequelize("sqlite::memory:", {
       logging: false,
       pool: { max: 1, min: 1, idle: Infinity, evict: false },
@@ -24,8 +21,6 @@ describe("getPublicStudentProfile", () => {
     const User = require("../../../models/users")(sequelize, DataTypes);
     const Issuer = require("../../../models/issuers")(sequelize, DataTypes);
     const Student = require("../../../models/students")(sequelize, DataTypes);
-    // SQLite requires UNIQUE on any column referenced by a FK; the production
-    // Student model doesn't declare it (Postgres is more permissive).
     Student.rawAttributes.wallet_address.unique = true;
     const Recruiter = require("../../../models/recruiters")(sequelize, DataTypes);
     const Certificate = require("../../../models/certificates")(sequelize, DataTypes);
@@ -47,10 +42,7 @@ describe("getPublicStudentProfile", () => {
     await models.Student.create({
       wallet_address: STUDENT,
       field_of_study: "Ciberseguridad",
-      bio: "Talento en formacion",
-      knowledge_areas: ["Rust", "Penetration Testing"],
-      github_url: "https://github.com/ana",
-      share_count: 4,
+      photo_url: "ipfs://QmStudent",
     });
 
     await models.User.create({ wallet_address: ISSUER, role: "issuer", name: "Prof", nonce: nonce() });
@@ -59,7 +51,6 @@ describe("getPublicStudentProfile", () => {
     const issueDate = "2026-01-01";
     await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "A", certificate_hash: "h1", token_id: "1", issue_date: issueDate });
     await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "B", certificate_hash: "h2", token_id: "2", issue_date: issueDate });
-    // Neither of these counts towards the public total.
     await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "Revocado", certificate_hash: "h3", token_id: "3", issue_date: issueDate, is_revoked: true });
     await models.Certificate.create({ issuer_wallet_address: ISSUER, student_wallet_address: STUDENT, title: "Reservado", status: "pending" });
   });
@@ -70,55 +61,50 @@ describe("getPublicStudentProfile", () => {
     await expect(getPublicStudentProfile({ walletAddress: STUDENT })).rejects.toThrow(TypeError);
   });
 
-  test("returns INVALID_WALLET_ADDRESS for a malformed wallet", async () => {
+  test("returns 400 for a malformed wallet address", async () => {
     const result = await getPublicStudentProfile({ models, walletAddress: "not-a-wallet" });
-    expect(result.code).toBe("INVALID_WALLET_ADDRESS");
+    expect(result.ok).toBe(false);
     expect(result.httpStatus).toBe(400);
   });
 
-  test("returns STUDENT_NOT_FOUND for an unknown wallet", async () => {
+  test("returns 404 for an unknown wallet", async () => {
     const result = await getPublicStudentProfile({ models, walletAddress: "0x" + "ff".repeat(20) });
-    expect(result.code).toBe("STUDENT_NOT_FOUND");
+    expect(result.ok).toBe(false);
     expect(result.httpStatus).toBe(404);
   });
 
-  test("returns the public profile with the certificate count", async () => {
+  test("returns only the privacy-first public fields", async () => {
     const result = await getPublicStudentProfile({ models, walletAddress: STUDENT });
     expect(result.ok).toBe(true);
     expect(result.data.student).toEqual({
-      wallet_address: STUDENT,
-      name: "Ana",
-      lastname: "Perez",
       field_of_study: "Ciberseguridad",
-      photo_url: null,
-      bio: "Talento en formacion",
-      knowledge_areas: ["Rust", "Penetration Testing"],
-      github_url: "https://github.com/ana",
-      linkedin_url: null,
-      twitter_url: null,
-      instagram_url: null,
-      share_count: 4,
+      photo_url: "ipfs://QmStudent",
       total_certificates: 2,
-      joined_at: expect.anything(),
     });
   });
 
   test("total_certificates skips revoked and still-pending certificates", async () => {
     const result = await getPublicStudentProfile({ models, walletAddress: STUDENT });
-    // 4 rows exist for this student: 2 issued, 1 revoked, 1 reserved.
     expect(await models.Certificate.count({ where: { student_wallet_address: STUDENT } })).toBe(4);
     expect(result.data.student.total_certificates).toBe(2);
   });
 
-  test("never exposes the student email at any level", async () => {
+  test("never exposes name, wallet address or email", async () => {
     const result = await getPublicStudentProfile({ models, walletAddress: STUDENT });
-    expect(JSON.stringify(result.data)).not.toContain("ana@example.com");
-    expect(result.data.student).not.toHaveProperty("email");
+    const serialized = JSON.stringify(result.data);
+    expect(serialized).not.toContain("ana@example.com");
+    expect(serialized).not.toContain("Ana");
+    expect(serialized).not.toContain(STUDENT);
+  });
+
+  test("never exposes the educators list — that requires auth (see routes/students.js)", async () => {
+    const result = await getPublicStudentProfile({ models, walletAddress: STUDENT });
+    expect(result.data).not.toHaveProperty("educators");
   });
 
   test("accepts an uppercase wallet and normalizes it", async () => {
     const result = await getPublicStudentProfile({ models, walletAddress: STUDENT.toUpperCase().replace("0X", "0x") });
     expect(result.ok).toBe(true);
-    expect(result.data.student.wallet_address).toBe(STUDENT);
+    expect(result.data.student.field_of_study).toBe("Ciberseguridad");
   });
 });
