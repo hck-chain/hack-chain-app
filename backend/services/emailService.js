@@ -1538,6 +1538,97 @@ async function notifyCertificateAutoConfirmed({ to, studentName, certificateTitl
   });
 }
 
+// Multi-state dictionary for RF-21 (vacancy application status changes),
+// same pattern as getTalentClassStatusVariant. Héctor confirmed (Discord,
+// 2026-08-25) that "vista" IS notified too — "ningún estado se salta".
+function getVacancyApplicationStatusVariant(status) {
+  return {
+    vista: {
+      subject: "Un reclutador vio tu postulación",
+      headline: "Tu postulación fue vista",
+      subheadline: "El reclutador abrió el detalle de tu postulación.",
+      icon: "👀",
+      accentColor: "#680099",
+      ctaLabel: "Ver mis postulaciones",
+      body: `<p style="margin:0;">Todavía no hay una decisión — te avisaremos apenas la haya.</p>`,
+    },
+    contactado: {
+      subject: "¡Un reclutador quiere contactarte!",
+      headline: "¡Te van a contactar!",
+      subheadline: "El reclutador marcó tu postulación como Contactado.",
+      icon: "📨",
+      accentColor: "#059669",
+      ctaLabel: "Ver mis postulaciones",
+      body: `<p style="margin:0;">Revisa tus postulaciones en HackChain para más detalles.</p>`,
+    },
+    descartada: {
+      subject: "Actualización sobre tu postulación",
+      headline: "Postulación descartada",
+      subheadline: "El reclutador decidió no continuar con tu postulación.",
+      icon: "✕",
+      accentColor: "#991B1B",
+      ctaLabel: "Ver otras vacantes",
+      body: `<p style="margin:0;">No te desanimes — sigue explorando la sección Empleos.</p>`,
+    },
+    cerrada_sin_respuesta: {
+      subject: "La vacante a la que postulaste se cerró sin respuesta",
+      headline: "Vacante cerrada",
+      subheadline: "La vacante se cerró antes de recibir una respuesta a tu postulación.",
+      icon: "⏰",
+      accentColor: "#F59E0B",
+      ctaLabel: "Ver otras vacantes",
+      body: `<p style="margin:0;">Puedes seguir explorando otras vacantes abiertas en HackChain.</p>`,
+    },
+  }[status];
+}
+
+/**
+ * Notifies the talent of a status change on one of their vacancy
+ * applications (RF-21: enviada → vista/contactado/descartada/cerrada_sin_respuesta).
+ * Never reveals any recruiter contact info — there is no chat module yet
+ * (see backend/routes/vacancies.js PR notes).
+ */
+async function notifyTalentVacancyApplicationUpdate({ to, studentName, position, company, status }) {
+  if (!to) return;
+  console.log(`[emailService] Notificando actualización de postulación al talento: ${to} — status=${status}`);
+
+  const variant = getVacancyApplicationStatusVariant(status);
+  if (!variant) return;
+
+  const eStudentName = esc(studentName);
+  const ePosition = esc(position);
+  const eCompany = esc(company);
+  const greeting = eStudentName ? `Hola, ${eStudentName}.` : "Hola.";
+  const dashboardUrl = `${FRONTEND_URL}/dashboard/talent/applications`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: variant.subject,
+    text: `${greeting}\n\n${variant.subheadline}\n\nVacante: ${position || ""} — ${company || ""}\n\nVer mis postulaciones: ${dashboardUrl}\n\n— Equipo HackChain`,
+    html: renderEducatorEmail({
+      title: variant.subject,
+      headline: variant.headline,
+      subheadline: variant.subheadline,
+      icon: variant.icon,
+      recipientEmail: to,
+      accentColor: variant.accentColor,
+      body: `
+        <p style="margin:0 0 22px;font-size:19px;font-weight:600;color:#222222;">${greeting}</p>
+        ${variant.body}
+        <div style="margin:28px 0;background:#F7EEFC;border-left:4px solid ${variant.accentColor};border-radius:10px;padding:20px 24px">
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:28px;">
+            <tr><td style="color:#777;width:120px;">Puesto</td><td style="font-weight:700;">${ePosition}</td></tr>
+            <tr><td style="color:#777;">Empresa</td><td>${eCompany}</td></tr>
+          </table>
+        </div>
+      `,
+      ctaUrl: dashboardUrl,
+      ctaLabel: variant.ctaLabel,
+    }),
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   notifyEducatorApproved,
@@ -1560,4 +1651,5 @@ module.exports = {
   notifyPaymentDisputeResolved,
   notifyCertificateFlagged,
   notifyCertificateAutoConfirmed,
+  notifyTalentVacancyApplicationUpdate,
 };

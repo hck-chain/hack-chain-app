@@ -839,6 +839,9 @@
     "savedTitle": "Clases guardadas",
     "savedDesc": "Tu configuración de clases ha sido actualizada.",
     "errorTitle": "Error",
+    "approvalRequiredError": "Tu cuenta aún no ha sido aprobada por un administrador.",
+    "notApprovedRedirectTitle": "Cuenta en revisión",
+    "notApprovedRedirectDesc": "Podrás configurar tus clases en cuanto un administrador apruebe tu cuenta.",
     "savedChangesNote": "Los cambios se reflejan en tu perfil público de inmediato.",
     "pricingSection": "Precio",
     "pricingHint": "Define tu tarifa por hora. El precio por sesión se calcula automáticamente según la duración.",
@@ -1102,7 +1105,10 @@
       "join": "Unirse a la clase",
       "edit": "Editar link",
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "saved": "Link guardado",
+      "error": "No se pudo guardar el link",
+      "errorHint": "Revisa que el link sea válido e inténtalo de nuevo."
     }
   },
   "calendar": {

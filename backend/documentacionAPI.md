@@ -749,6 +749,35 @@ Envía una transacción a la blockchain para autorizar a una wallet como emisor 
 
 ---
 
+### PATCH `/api/issuers/me/classes`
+
+Updates the authenticated educator's `class_settings` (rate, accepted payment methods, durations, weekly availability, Google Calendar link). Partial merge — only the fields present in the body are updated.
+
+**Authentication:** Required — Bearer token or session cookie; `issuer` role only, and `educator_approval_status` must be `"approved"`.
+
+**Body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `hourly_rate_usd` | `number` | ❌ | `0`–`9999` |
+| `accept_usdt` | `boolean` | ❌ | |
+| `durations` | `number[]` | ❌ | Unique values from `[30, 45, 60]` |
+| `availability` | `object` | ❌ | Keyed by weekday; whitelist-only keys |
+| `google_calendar_url` | `string` | ❌ | Must start with `https://calendar.google.com/`, or empty string to clear it |
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `200` | Returns the updated `class_settings` |
+| `400` | Invalid value for any field above |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+| `404` | Issuer not found |
+
+**Note:** the approval check was added as a fix — a pending/rejected educator could previously configure bookable class settings before an admin ever reviewed them, making the approval step purely cosmetic. See `usecases/issuers/updateClassSettings.js`.
+
+---
+
 ### PATCH `/api/issuers/me/certificate-logo`
 
 Actualiza el logo de certificados del emisor autenticado (URI `ipfs://` únicamente). Separado del
@@ -1005,6 +1034,59 @@ usuario (MVP). Limitado a 60 solicitudes por minuto por IP.
 - El endpoint `GET /:wallet_address` es público y devuelve solo campos públicos del emisor (sin email ni lista de certificados); los certificados se resumen en `certificates_issued` y `talents_formed`, e incluye `share_count`.
 - `POST /authorize` delega la lógica de blockchain al servicio `authorizeIssuer`.
 - Si un emisor no tiene certificados registrados, `GET /:wallet/certificates-count` retorna `{ "total": 0 }` sin error.
+
+## Issuer Classes Endpoints (issuerClasses.js)
+
+Manages an educator's class catalog (e.g. "Pentest 101") — separate from `class_settings` (rate/availability), which lives on the Issuer profile. An `IssuerClass` row is what `issuer_class_id` in `POST /api/class-requests` points to.
+
+### POST `/api/issuer-classes`
+
+**Authentication:** Required — `issuer` role, and `educator_approval_status` must be `"approved"`.
+
+**Body:** `name` (string, 5–80 chars, required), `description` (string, optional), `topics` (string[], max 10, optional)
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `201` | Class created |
+| `400` | `NAME_REQUIRED`, or `MAX_CLASSES_REACHED` (20 classes per educator) |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+
+### PATCH `/api/issuer-classes/:id`
+
+Partial update. Same authentication and approval requirement as `POST`.
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `200` | Class updated |
+| `400` | `NAME_CANNOT_BE_EMPTY` |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+| `404` | `CLASS_NOT_FOUND` — the class does not exist or belongs to another educator |
+
+### DELETE `/api/issuer-classes/:id`
+
+**Authentication:** Required — `issuer` role, and `educator_approval_status` must be `"approved"`. Deliberately consistent with `POST`/`PATCH` — nothing about the class catalog operates until an educator is approved, including deleting their own entries.
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `204` | Class deleted |
+| `403` | Caller is not an `issuer`, or the educator is not `"approved"` yet (`EDUCATOR_NOT_APPROVED`) |
+| `404` | `CLASS_NOT_FOUND` |
+
+**Note:** the `EDUCATOR_NOT_APPROVED` case on all three write endpoints (`POST`/`PATCH`/`DELETE`) was added as a fix — a pending/rejected educator could previously build out (and, before this endpoint was also gated, tear down) a full class catalog before an admin ever reviewed them. See `usecases/classes/createIssuerClass.js`, `updateIssuerClass.js`, and `deleteIssuerClass.js`.
+
+---
+
+### GET `/api/issuer-classes/by-wallet/:wallet` and `GET /api/issuer-classes/mine`
+
+Public (by-wallet, active classes only) and own-classes (authenticated `issuer`, all classes) read endpoints. Read-only — not gated on approval status.
+
+---
 
 ## OpenSea Endpoints (opensea.js)
 
@@ -2150,6 +2232,37 @@ Genera y almacena un nuevo nonce criptográfico para la wallet del usuario. Util
 
 ## Class Requests — Status & Meeting Link
 
+### POST `/api/class-requests`
+
+Student sends a class request to an educator. `hourly_rate_usd` is never taken from the request body — it is derived server-side from the educator's own `class_settings`, so a student cannot under-pay by spoofing the rate.
+
+**Headers:** `Authorization: Bearer <access_token>` (only `student`)
+
+**Body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `issuer_wallet_address` | `string` | ✅ | Target educator's wallet |
+| `requested_date` | `string` | ✅ | `YYYY-MM-DD` |
+| `start_time` | `string` | ✅ | `HH:MM` |
+| `duration_minutes` | `number` | ✅ | One of `30`, `45`, `60`, `90`, `120` |
+| `student_message` | `string` | ❌ | Truncated to 500 chars |
+| `issuer_class_id` | `number` | ❌ | Must belong to the target educator and be active |
+| `requested_timestamp_utc` | `string` | ❌ | ISO timestamp, preferred over `requested_date`+`start_time` for timezone safety |
+
+**Responses**
+
+| Code | Description |
+|---|---|
+| `201` | `{ id, status: "pending", class_name }` |
+| `400` | Missing/invalid fields, invalid duration, invalid time format, invalid or past date, insufficient lead time (< 24h), or `issuer_class_id` not found for that educator |
+| `403` | Caller is not a `student`, or the target educator's `educator_approval_status` is not `"approved"` (`EDUCATOR_NOT_APPROVED`) |
+| `404` | Target educator has no `class_settings` configured (`EDUCATOR_NOT_FOUND`) |
+
+**Note:** the `EDUCATOR_NOT_APPROVED` case was added as a fix — a pending/rejected educator could previously receive and get paid for class requests despite never having been approved by an admin. See `usecases/classes/requestClass.js`.
+
+---
+
 ### PATCH `/api/class-requests/:id/status`
 
 El educador cambia el estado de una solicitud que le pertenece. Al confirmar (`status: "confirmed"`),
@@ -2452,3 +2565,371 @@ autenticación.
 - `exchangeRateWorker` refresca el tipo de cambio USD/MXN una vez al día (`node-cron`, 06:00) más
   un fetch inmediato al arrancar el server, contra `open.er-api.com` (gratis, sin API key). El
   valor vive solo en memoria — si el proceso se reinicia, se vuelve a pedir en el próximo boot.
+
+---
+
+## Vacancies Endpoints (vacancies.js)
+
+Bolsa de trabajo: el Reclutador publica vacantes, el Talento las encuentra y se postula
+compartiendo los certificados que elija. No es una red social — sin likes, comentarios ni
+seguidores; el orden siempre es cronológico.
+
+**Regla de seguridad transversal:** el número de postulantes de una vacante (`applications_count`,
+`unreviewed_count`) **nunca** aparece en `GET /api/vacancies`, `GET /api/vacancies/:slug` ni en
+ningún endpoint que use el Talento. Solo aparece en `GET /api/vacancies/mine` y
+`GET /api/vacancies/:id/applications`, ambos exclusivos del reclutador dueño.
+
+### POST `/api/vacancies`
+
+Publica una vacante nueva. Solo cuentas con rol `recruiter`.
+
+**Autenticación:** requerida.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `position` | `string` | ✅ | Puesto (5–80 caracteres) |
+| `company` | `string` | ✅ | Empresa (2–80 caracteres) |
+| `area` | `string` | ✅ | Una de: `frontend`, `backend`, `fullstack`, `mobile`, `data`, `devops`, `cloud`, `ciberseguridad`, `blockchain`, `qa`, `diseno`, `producto`, `soporte` |
+| `modality` | `string` | ✅ | `remoto` / `presencial` / `hibrido` |
+| `country`, `city` | `string` | Si `modality` no es `remoto` | Ubicación |
+| `salary_min`, `salary_max` | `number` | ✅ | `salary_max >= salary_min`. Sin salario no hay publicación |
+| `salary_currency` | `string` | ✅ | `USDC` / `HACK` / `USD` o cualquier código ISO 4217 (moneda local) |
+| `salary_period` | `string` | ✅ | `mes` / `hora` / `proyecto` |
+| `description` | `string` | ✅ | 50–2000 caracteres |
+| `requirements` | `string[]` | ✅ | 1 a 10 líneas de texto libre |
+| `closing_date` | `string` (`YYYY-MM-DD`) | ❌ | 7 a 90 días desde hoy. Default: 30 días |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Vacante creada |
+| `400` | Campo inválido o faltante (`SALARY_REQUIRED`, `INVALID_SALARY_RANGE`, `INVALID_CURRENCY`, `INVALID_AREA`, `INVALID_MODALITY`, `LOCATION_REQUIRED`, `INVALID_REQUIREMENTS`, `INVALID_CLOSING_DATE`, etc.) |
+| `403` | `Only recruiters can create vacancies` |
+| `409` | `VACANCY_LIMIT_REACHED` — ya tiene 5 vacantes abiertas |
+| `500` | Error al crear la vacante |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "vacancy": {
+    "id": "b3f1...-uuid",
+    "slug": "ingeniero-de-software-acme-corp",
+    "position": "Ingeniero de Software",
+    "company": "Acme Corp",
+    "area": "backend",
+    "modality": "remoto",
+    "country": null,
+    "city": null,
+    "salary_min": "1000.00",
+    "salary_max": "2000.00",
+    "salary_currency": "USD",
+    "salary_period": "mes",
+    "description": "...",
+    "requirements": ["Node.js", "PostgreSQL"],
+    "closing_date": "2026-09-24",
+    "status": "abierta",
+    "published_at": "2026-08-25T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+### GET `/api/vacancies`
+
+Listado público de vacantes abiertas, orden cronológico descendente. **No requiere autenticación.**
+Nunca incluye el número de postulantes.
+
+**Query params** (todos opcionales)
+
+| Parámetro | Descripción |
+|---|---|
+| `area` | Filtra por área (mismo enum que `POST`) |
+| `modalidad` | Filtra por modalidad (`remoto`/`presencial`/`hibrido`) |
+| `q` | Busca en `position` y `company` |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "vacancies": [
+    {
+      "id": "b3f1...-uuid",
+      "slug": "ingeniero-de-software-acme-corp",
+      "position": "Ingeniero de Software",
+      "company": "Acme Corp",
+      "area": "backend",
+      "modality": "remoto",
+      "salary_min": "1000.00",
+      "salary_max": "2000.00",
+      "salary_currency": "USD",
+      "salary_period": "mes",
+      "closing_date": "2026-09-24",
+      "days_to_close": 30,
+      "published_at": "2026-08-25T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/vacancies/mine`
+
+Vacantes propias del reclutador autenticado (abiertas y cerradas), cada una con su conteo de
+postulaciones. **Único lugar, junto con `GET /:id/applications`, donde se expone ese número.**
+
+**Autenticación:** requerida. Solo cuentas con rol `recruiter`.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de vacantes propias |
+| `403` | `Only recruiters can access this endpoint` |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "vacancies": [
+    {
+      "id": "b3f1...-uuid",
+      "slug": "ingeniero-de-software-acme-corp",
+      "position": "Ingeniero de Software",
+      "status": "abierta",
+      "applications_count": 4,
+      "unreviewed_count": 1
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/vacancies/:slug`
+
+Detalle público de una vacante, accesible sin sesión. Si está cerrada, se devuelve igual (modo
+lectura — el front decide no mostrar el botón de postularse según `status`). Nunca incluye el
+número de postulantes.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Detalle de la vacante |
+| `404` | `Vacancy not found` |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "vacancy": {
+    "id": "b3f1...-uuid",
+    "slug": "ingeniero-de-software-acme-corp",
+    "position": "Ingeniero de Software",
+    "company": "Acme Corp",
+    "area": "backend",
+    "modality": "remoto",
+    "country": null,
+    "city": null,
+    "salary_min": "1000.00",
+    "salary_max": "2000.00",
+    "salary_currency": "USD",
+    "salary_period": "mes",
+    "description": "...",
+    "requirements": ["Node.js", "PostgreSQL"],
+    "closing_date": "2026-09-24",
+    "status": "abierta",
+    "published_at": "2026-08-25T12:00:00.000Z",
+    "closed_at": null,
+    "recruiter_wallet_address": "0x..."
+  },
+  "unverified_company_notice": "HackChain no comprueba la identidad de las empresas. Nunca envíes dinero ni datos bancarios para postularte."
+}
+```
+
+> `unverified_company_notice` trae el texto exacto que debe mostrarse junto a la vacante y al
+> perfil del reclutador.
+
+---
+
+### PUT `/api/vacancies/:id`
+
+Edita una vacante propia mientras esté abierta.
+
+**Autenticación:** requerida. Solo el reclutador dueño.
+
+**Body** (todos opcionales — actualización parcial; mismas reglas de `POST`)
+
+Incluye `salary_min`/`salary_max`/`salary_currency`/`salary_period`, pero **solo se aceptan si
+la vacante todavía no tiene postulaciones.**
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Vacante actualizada |
+| `400` | Campo inválido |
+| `403` | `Only recruiters can edit vacancies` |
+| `404` | `Vacancy not found` (incluye el caso de otro reclutador intentando editarla) |
+| `409` | `VACANCY_NOT_EDITABLE` (ya está cerrada) o `SALARY_LOCKED` (ya tiene postulaciones) |
+
+---
+
+### POST `/api/vacancies/:id/close`
+
+Cierra una vacante propia manualmente. Una vez cerrada, **no se reabre**. Marca automáticamente
+como `cerrada_sin_respuesta` cualquier postulación que seguía en `enviada`/`vista`, y notifica a
+esos talentos por email.
+
+**Autenticación:** requerida. Solo el reclutador dueño.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | `{ "vacancy": { "id", "slug", "status": "cerrada", "closed_at" } }` |
+| `403` | `Only recruiters can close vacancies` |
+| `404` | `Vacancy not found` |
+| `409` | `Vacancy is already closed` |
+
+---
+
+### POST `/api/vacancies/:id/applications`
+
+El Talento se postula a una vacante. Solo cuentas con rol `student`, con sesión iniciada.
+
+**Autenticación:** requerida.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `shared_certificates` | `string[]` | ❌ | `token_id` de certificados propios a compartir. Puede omitirse o venir vacío |
+| `message` | `string` | ❌ | Mensaje hasta 500 caracteres. Sin adjuntar archivos |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Postulación creada |
+| `400` | `MESSAGE_TOO_LONG`, `INVALID_SHARED_CERTIFICATES` (certificado ajeno, revocado o no emitido) |
+| `403` | `Only talent accounts can apply to vacancies` |
+| `404` | `Vacancy not found` |
+| `409` | `VACANCY_CLOSED` o `ALREADY_APPLIED` (una sola postulación por vacante) |
+
+---
+
+### GET `/api/vacancies/applications/mine`
+
+Postulaciones propias del talento autenticado, con el estado actual de cada una.
+
+**Autenticación:** requerida. Solo cuentas con rol `student`.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de postulaciones propias |
+| `403` | `Only talent accounts can access this endpoint` |
+
+---
+
+### GET `/api/vacancies/applications/:id`
+
+Detalle de una postulación para el reclutador dueño de la vacante. Al abrirla por primera vez,
+pasa automáticamente a estado `vista` y se notifica al talento.
+
+**Autenticación:** requerida. Solo el reclutador dueño de la vacante de esa postulación.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Detalle de la postulación (certificados compartidos, mensaje, estado) |
+| `403` | `Only recruiters can access this endpoint` |
+| `404` | `Application not found` |
+
+---
+
+### PUT `/api/vacancies/applications/:id`
+
+El reclutador dueño marca la postulación como `contactado` o `descartada`. Cada cambio queda con
+autor y fecha (`status_changed_by`, `status_changed_at`).
+
+> **Nota (pendiente de producto):** "Contactado" hoy solo cambia el estado — no existe todavía un
+> módulo de chat en la plataforma, así que no se revela ningún dato de contacto del reclutador al
+> talento. Queda registrado como punto abierto para una siguiente iteración.
+
+**Autenticación:** requerida. Solo el reclutador dueño.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `status` | `string` | ✅ | `contactado` o `descartada` |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Postulación actualizada |
+| `400` | `INVALID_STATUS` |
+| `403` | `Only recruiters can update application status` |
+| `404` | `Application not found` |
+| `409` | `APPLICATION_CLOSED` (la vacante ya la cerró como `cerrada_sin_respuesta`) |
+
+---
+
+### GET `/api/vacancies/:id/applications`
+
+Postulantes de una vacante propia, ordenados por fecha de postulación (más reciente primero).
+Incluye los certificados compartidos por cada talento con su enlace de comprobación en cadena.
+**Único lugar, junto con `GET /mine`, donde se expone el número de postulantes.**
+
+**Autenticación:** requerida. Solo el reclutador dueño.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de postulantes |
+| `403` | `Only recruiters can view applicants` |
+| `404` | `Vacancy not found` |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "vacancy": { "id": "b3f1...-uuid", "slug": "ingeniero-de-software-acme-corp", "position": "Ingeniero de Software" },
+  "applications": [
+    {
+      "id": "a91c...-uuid",
+      "student_wallet_address": "0x...",
+      "student_name": "Ana Pérez",
+      "shared_certificates": [
+        { "token_id": "12", "title": "Pentesting 101", "issue_date": "2026-01-01", "chain_verification_url": "https://opensea.io/assets/matic/0x.../12" }
+      ],
+      "message": "Me interesa mucho la posición",
+      "status": "enviada",
+      "submitted_at": "2026-08-25T12:00:00.000Z",
+      "viewed_at": null
+    }
+  ]
+}
+```
+
+### Notas generales
+
+- Los 4 estados de una postulación (`enviada` → `vista` → `contactado`/`descartada`, o
+  `cerrada_sin_respuesta` al cerrarse la vacante) notifican por email al talento en cada cambio.
+- `vacancyExpiryWorker` corre cada hora (`node-cron`, minuto `:15`) y cierra automáticamente las
+  vacantes cuyo `closing_date` ya pasó, reutilizando la misma lógica que el cierre manual.
+- El campo `area` es el único `ENUM` real de Postgres del backend (el resto del repo usa
+  `STRING` + `validate.isIn` para evitar `ALTER TYPE`); sumar un área nueva sí requiere una
+  migración con `ALTER TYPE`.

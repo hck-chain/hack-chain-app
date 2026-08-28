@@ -839,6 +839,9 @@
     "savedTitle": "Classes saved",
     "savedDesc": "Your class settings have been updated.",
     "errorTitle": "Error",
+    "approvalRequiredError": "Your account hasn't been approved by an admin yet.",
+    "notApprovedRedirectTitle": "Account under review",
+    "notApprovedRedirectDesc": "You'll be able to set up classes once an admin approves your account.",
     "savedChangesNote": "Changes are reflected on your public profile immediately.",
     "pricingSection": "Pricing",
     "pricingHint": "Set your hourly rate. Per-session price is calculated automatically based on duration.",
@@ -1102,7 +1105,10 @@
       "join": "Join the class",
       "edit": "Edit link",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "saved": "Link saved",
+      "error": "Couldn't save the link",
+      "errorHint": "Check that the link is valid and try again."
     }
   },
   "calendar": {

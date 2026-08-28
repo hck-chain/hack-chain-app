@@ -64,8 +64,8 @@ describe("IssuerClasses endpoints", () => {
     await sequelize.sync({ force: true });
 
     const nonce = () => crypto.randomBytes(16).toString("hex");
-    await User.create({ wallet_address: ISSUER_WALLET,  role: "issuer",   name: "Prof A", nonce: nonce() });
-    await User.create({ wallet_address: ISSUER2_WALLET, role: "issuer",   name: "Prof B", nonce: nonce() });
+    await User.create({ wallet_address: ISSUER_WALLET,  role: "issuer",   name: "Prof A", nonce: nonce(), educator_approval_status: "approved" });
+    await User.create({ wallet_address: ISSUER2_WALLET, role: "issuer",   name: "Prof B", nonce: nonce(), educator_approval_status: "approved" });
     await User.create({ wallet_address: STUDENT_WALLET, role: "student",  name: "Stu",    nonce: nonce() });
     await Issuer.create({ wallet_address: ISSUER_WALLET,  organization_name: "Academy A" });
     await Issuer.create({ wallet_address: ISSUER2_WALLET, organization_name: "Academy B" });
@@ -193,7 +193,7 @@ describe("IssuerClasses endpoints", () => {
 
     test("returns 400 when the educator already has 20 classes", async () => {
       const wallet = "0x" + "ff".repeat(20);
-      await User.create({ wallet_address: wallet, role: "issuer", name: "Full", nonce: crypto.randomBytes(16).toString("hex") });
+      await User.create({ wallet_address: wallet, role: "issuer", name: "Full", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "approved" });
       await Issuer.create({ wallet_address: wallet, organization_name: "Full Academy" });
       for (let i = 0; i < 20; i++) {
         await IssuerClass.create({ issuer_wallet_address: wallet, name: `Class ${i}`, topics: [] });
@@ -202,6 +202,22 @@ describe("IssuerClasses endpoints", () => {
       const res = await request(fullApp).post("/api/issuer-classes").send({ name: "One Too Many" });
       expect(res.status).toBe(400);
       expect(res.body.error).toBe("MAX_CLASSES_REACHED");
+    });
+
+    // SECURITY: an educator not yet approved by an admin must not be able to
+    // create class catalog entries over HTTP, end to end.
+    test("returns 403 when the educator is not approved", async () => {
+      const wallet = "0x" + "66".repeat(20);
+      await User.create({ wallet_address: wallet, role: "issuer", name: "Pending", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+      await Issuer.create({ wallet_address: wallet, organization_name: "PendingAcademy" });
+      const pendingApp = buildApp(models, { role: "issuer", wallet });
+
+      const res = await request(pendingApp).post("/api/issuer-classes").send({ name: "Sneaky Class" });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe("EDUCATOR_NOT_APPROVED");
+
+      const count = await IssuerClass.count({ where: { issuer_wallet_address: wallet } });
+      expect(count).toBe(0);
     });
   });
 
@@ -254,6 +270,23 @@ describe("IssuerClasses endpoints", () => {
       expect(res.status).toBe(200);
       expect(res.body.name).toBe("Updated Name");
     });
+
+    // SECURITY: an educator not yet approved by an admin must not be able to
+    // edit their class catalog over HTTP, end to end.
+    test("returns 403 when the educator is not approved", async () => {
+      const wallet = "0x" + "77".repeat(20);
+      await User.create({ wallet_address: wallet, role: "issuer", name: "Pending", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+      await Issuer.create({ wallet_address: wallet, organization_name: "PendingAcademy" });
+      const pendingCls = await IssuerClass.create({ issuer_wallet_address: wallet, name: "Pending Class", topics: [] });
+      const pendingApp = buildApp(models, { role: "issuer", wallet });
+
+      const res = await request(pendingApp).patch(`/api/issuer-classes/${pendingCls.id}`).send({ name: "Changed" });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe("EDUCATOR_NOT_APPROVED");
+
+      const record = await IssuerClass.findByPk(pendingCls.id);
+      expect(record.name).toBe("Pending Class");
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -292,6 +325,24 @@ describe("IssuerClasses endpoints", () => {
     test("returns 404 for a class that does not exist", async () => {
       const res = await request(issuerApp).delete("/api/issuer-classes/999999");
       expect(res.status).toBe(404);
+    });
+
+    // SECURITY: an educator not yet approved by an admin must not be able to
+    // delete their class catalog over HTTP either — kept consistent with
+    // POST/PATCH rather than exempted.
+    test("returns 403 when the educator is not approved", async () => {
+      const wallet = "0x" + "99".repeat(20);
+      await User.create({ wallet_address: wallet, role: "issuer", name: "Pending", nonce: crypto.randomBytes(16).toString("hex"), educator_approval_status: "pending_approval" });
+      await Issuer.create({ wallet_address: wallet, organization_name: "PendingAcademy" });
+      const pendingCls = await IssuerClass.create({ issuer_wallet_address: wallet, name: "Pending Class", topics: [] });
+      const pendingApp = buildApp(models, { role: "issuer", wallet });
+
+      const res = await request(pendingApp).delete(`/api/issuer-classes/${pendingCls.id}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe("EDUCATOR_NOT_APPROVED");
+
+      const stillThere = await IssuerClass.findByPk(pendingCls.id);
+      expect(stillThere).not.toBeNull();
     });
   });
 });

@@ -19,6 +19,7 @@ import {
 import { P } from '@/components/profile/palette';
 import { GrainOverlay } from '@/components/profile/GrainOverlay';
 import { useTranslation } from 'react-i18next';
+import { useEducatorApprovalStatus } from '@/hooks/useEducatorApprovalStatus';
 import type { ClassSettings, DayKey, WeeklyAvailability } from '@/types/dashboard';
 
 // ---------------------------------------------------------------------------
@@ -287,7 +288,10 @@ function ClassCatalogSection({ t, prefersReduced }: { t: (k: string) => string; 
       setNewDescription('');
       setNewTopics([]);
       setShowForm(false);
-    } catch (_) {}
+    } catch (_) {
+      // useCreateIssuerClass already surfaces the error via toast (onError) — this
+      // catch only stops the rejection from propagating as unhandled.
+    }
   }
 
   return (
@@ -487,6 +491,20 @@ const EditEducatorClasses = () => {
 
   const { data: settings, isPending: isLoading } = useMyClassSettings();
   const updateSettings = useUpdateClassSettings();
+
+  // Defense in depth: the entry button is already hidden for a pending/rejected
+  // educator (EditEducatorProfile.tsx), but this page is still directly
+  // reachable by URL — bounce back rather than let them hit 403s silently.
+  const { data: approvalStatus, isPending: isLoadingApproval } = useEducatorApprovalStatus();
+  useEffect(() => {
+    if (!isLoadingApproval && approvalStatus && approvalStatus.status !== 'approved') {
+      toast({
+        title: t('editClasses.notApprovedRedirectTitle'),
+        description: t('editClasses.notApprovedRedirectDesc'),
+      });
+      navigate('/educator/profile/edit');
+    }
+  }, [isLoadingApproval, approvalStatus, navigate, toast, t]);
 
   const [hourlyRate, setHourlyRate] = useState<string>('');
   const [acceptUsdt, setAcceptUsdt] = useState(false);

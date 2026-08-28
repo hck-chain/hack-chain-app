@@ -80,8 +80,8 @@ describe("ClassRequests endpoints", () => {
     const nonce = () => crypto.randomBytes(16).toString("hex");
     await User.create({ wallet_address: STUDENT_WALLET,  role: "student",   name: "Ana",   nonce: nonce() });
     await User.create({ wallet_address: STUDENT2_WALLET, role: "student",   name: "Bob",   nonce: nonce() });
-    await User.create({ wallet_address: ISSUER_WALLET,   role: "issuer",    name: "Prof",  nonce: nonce() });
-    await User.create({ wallet_address: ISSUER2_WALLET,  role: "issuer",    name: "Prof2", nonce: nonce() });
+    await User.create({ wallet_address: ISSUER_WALLET,   role: "issuer",    name: "Prof",  nonce: nonce(), educator_approval_status: "approved" });
+    await User.create({ wallet_address: ISSUER2_WALLET,  role: "issuer",    name: "Prof2", nonce: nonce(), educator_approval_status: "approved" });
 
     await Issuer.create({
       wallet_address: ISSUER_WALLET,

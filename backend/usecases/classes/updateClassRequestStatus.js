@@ -4,6 +4,18 @@ const VALID_STATUSES = ["confirmed", "cancelled", "completed"];
 // payment proofs.
 const ALLOWED_MEETING_URL_SCHEMES = ["http:", "https:"];
 
+// Matches any URL scheme prefix (e.g. "https:", "ftp:", "javascript:"). Used
+// only to detect the ABSENCE of a scheme — a bad scheme still falls through
+// to isSafeMeetingUrl's allowlist check untouched.
+const SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+\-.]*:/;
+
+// Educators commonly paste meeting links copied from a calendar invite body
+// (e.g. "meet.google.com/abc-defg-hij") without the "https://" prefix —
+// default to https instead of rejecting a legitimate link outright.
+function normalizeMeetingUrl(url) {
+  return SCHEME_RE.test(url) ? url : `https://${url}`;
+}
+
 function isSafeMeetingUrl(url) {
   try {
     return ALLOWED_MEETING_URL_SCHEMES.includes(new URL(url).protocol);
@@ -30,7 +42,9 @@ async function updateClassRequestStatus({ models, requestId, issuerWallet, statu
     return { ok: false, code: "MEETING_URL_REQUIRES_CONFIRMED", httpStatus: 400 };
   }
 
-  if (meetingUrl && !isSafeMeetingUrl(meetingUrl)) {
+  const normalizedMeetingUrl = meetingUrl ? normalizeMeetingUrl(String(meetingUrl).trim()) : meetingUrl;
+
+  if (normalizedMeetingUrl && !isSafeMeetingUrl(normalizedMeetingUrl)) {
     return { ok: false, code: "INVALID_MEETING_URL", httpStatus: 400 };
   }
 
@@ -56,7 +70,7 @@ async function updateClassRequestStatus({ models, requestId, issuerWallet, statu
     updateData.cancellation_reason = String(cancellationReason).slice(0, 500);
   }
   if (status === "confirmed" && meetingUrl !== undefined) {
-    updateData.meeting_url = meetingUrl || null;
+    updateData.meeting_url = normalizedMeetingUrl || null;
   }
   await record.update(updateData);
 

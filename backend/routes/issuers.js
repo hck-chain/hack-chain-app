@@ -200,7 +200,7 @@ router.patch("/me/classes", authenticate, async (req, res) => {
 
   try {
     const result = await updateClassSettings({
-      models: { Issuer },
+      models: { Issuer, User },
       wallet: req.auth.wallet,
       hourlyRateUsd: req.body.hourly_rate_usd,
       acceptUsdt: req.body.accept_usdt,

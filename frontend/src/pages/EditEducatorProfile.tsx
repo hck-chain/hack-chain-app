@@ -19,6 +19,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { KnowledgeAreasSelector } from '@/components/KnowledgeAreasSelector/KnowledgeAreasSelector';
 import { useMyEducatorProfile } from '@/hooks/useMyEducatorProfile';
+import { useEducatorApprovalStatus } from '@/hooks/useEducatorApprovalStatus';
 import { 
   useUpdateEducatorProfile, 
   useUpdateEducatorPhoto, 
@@ -232,6 +233,8 @@ const EditEducatorProfile = () => {
   const certificateLogoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: profile, isPending: isLoadingProfile } = useMyEducatorProfile();
+  const { data: approvalStatus } = useEducatorApprovalStatus();
+  const isApprovedEducator = approvalStatus?.status === 'approved';
   const updateProfile = useUpdateEducatorProfile();
   const updatePhoto = useUpdateEducatorPhoto();
   const deletePhoto = useDeleteEducatorPhoto();
@@ -788,37 +791,41 @@ const EditEducatorProfile = () => {
           </SectionCard>
 
           {/* ── Classes ── */}
-          <section
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
-          >
-            <button
-              type="button"
-              onClick={() => navigate('/educator/classes/edit')}
-              className="w-full flex items-center justify-between gap-4 px-6 py-5 transition-colors group"
-              style={{ color: P.textPrimary }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = P.cardHover)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          {/* Only shown to approved educators — configuring classes before admin
+              review would let a pending/rejected account look bookable. */}
+          {isApprovedEducator && (
+            <section
+              className="rounded-2xl overflow-hidden"
+              style={{ backgroundColor: P.card, border: `1px solid ${P.border}` }}
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: P.accentSoft, border: `1px solid ${P.accentBorder}` }}
-                >
-                  <BookOpen className="h-4 w-4" style={{ color: P.accent }} />
+              <button
+                type="button"
+                onClick={() => navigate('/educator/classes/edit')}
+                className="w-full flex items-center justify-between gap-4 px-6 py-5 transition-colors group"
+                style={{ color: P.textPrimary }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = P.cardHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: P.accentSoft, border: `1px solid ${P.accentBorder}` }}
+                  >
+                    <BookOpen className="h-4 w-4" style={{ color: P.accent }} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium" style={{ color: P.textPrimary }}>
+                      {t('editProfile.classesTitle')}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: P.textMuted }}>
+                      {t('editProfile.classesDesc')}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium" style={{ color: P.textPrimary }}>
-                    {t('editProfile.classesTitle')}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: P.textMuted }}>
-                    {t('editProfile.classesDesc')}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: P.textMuted }} />
-            </button>
-          </section>
+                <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: P.textMuted }} />
+              </button>
+            </section>
+          )}
 
           {/* ── Account info ── */}
           <SectionCard label={t('editProfile.accountSection')}>
