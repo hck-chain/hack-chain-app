@@ -781,6 +781,17 @@ const TalentDashboard = () => {
                       </div>
 
                       <div className="pt-3 border-t border-purple-500/20 space-y-2">
+                      <Button
+                        onClick={() => navigate(`/talent/${talent.wallet_address}`)}
+                        variant="outline"
+                        className="w-full border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30"
+                      >
+                        <img
+                          src="/icons/talentsPlattform.avif"
+                          className="h-4 w-4 mr-2 object-contain drop-shadow-md"
+                        />
+                        View profile
+                      </Button>
                         <Button
                         onClick={() => navigate("/talent/profile/edit")}
                         variant="outline"

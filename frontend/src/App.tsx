@@ -183,7 +183,7 @@ const App = () => {
                 <Route path="/talent/profile/edit" element={
                   <ProtectedRoute roles={['student']}>
                     <EditTalentProfile />
-                  </ProtectedRoute>
+                  </ProtectedRoute> 
                 } />
                 <Route path="/talent/:wallet" element={<TalentProfile />} />
 

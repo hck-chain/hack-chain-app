@@ -33,9 +33,10 @@ interface MyTalentProfileResponse {
   instagram_url: string | null;
 }
 
-export function useMyTalentProfile() {
+export function useMyTalentProfile(enabled: boolean = true) {
   return useQuery<MyTalentProfile>({
     queryKey: ['my-talent-profile'],
+    enabled,
     queryFn: async () => {
       const data = await api.get<MyTalentProfileResponse>('/api/students/me');
       return {

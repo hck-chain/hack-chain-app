@@ -15,6 +15,19 @@ async function updateProfile(payload: UpdateTalentProfilePayload) {
   return api.patch('/api/students/me', payload);
 }
 
+async function updatePhoto(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const result = await api.upload<{ cid: string }>('/api/upload/image', formData);
+  const photoUrl = `ipfs://${result.cid}`;
+  await api.patch('/api/students/me/photo', { photo_url: photoUrl });
+  return photoUrl;
+}
+
+async function deletePhoto() {
+  await api.patch('/api/students/me/photo', { photo_url: null });
+}
+
 export function useUpdateTalentProfile() {
   const queryClient = useQueryClient();
 
@@ -25,6 +38,34 @@ export function useUpdateTalentProfile() {
     },
     onError: (error: Error) => {
       console.error('Talent profile update failed:', error.message);
+    },
+  });
+}
+
+export function useUpdateTalentPhoto() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updatePhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-talent-profile'] });
+    },
+    onError: (error: Error) => {
+      console.error('Photo update failed:', error.message);
+    },
+  });
+}
+
+export function useDeleteTalentPhoto() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deletePhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-talent-profile'] });
+    },
+    onError: (error: Error) => {
+      console.error('Photo deletion failed:', error.message);
     },
   });
 }
