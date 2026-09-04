@@ -1,7 +1,4 @@
 import type { Phase } from "@/types/presale";
-
-import type { Phase } from "@/types/presale";
-
 // Bandera manual: mientras sea `true`, la preventa se muestra como
 // "Próximamente" sin revelar fechas, sin importar lo que digan PHASES.
 // Cambiar a `false` el día que se quiera activar realmente al público.

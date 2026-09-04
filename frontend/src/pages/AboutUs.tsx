@@ -29,11 +29,60 @@ const AboutUs = () => {
       linkedinUrl: 'www.linkedin.com/in/héctor-raciel-ledesma-vázquez-a67136311'
     },
     {
-      name: 'Giana',
+      name: 'Giana Cantarini',
       role: t('team.roles.cmo'),
       imageUrl: '/images/team/Giana Cantarini.png',
       linkedinUrl: 'https://www.linkedin.com/in/giana-cantarini/'
+    },
+    {
+      name: 'Luis Soto',
+      role: t('FullStack Developer'),
+      imageUrl: '/images/team/Luis Soto.png',
+      linkedinUrl: 'https://www.linkedin.com/in/luis-alberto-soto-zarate-89a143326/'
+    },
+    {
+      name: 'Carlos Diaz',
+      role: t('FullStack Developer'),
+      imageUrl: '/images/team/Carlos Diaz.png',
+      linkedinUrl: 'https://www.linkedin.com/in/cgds1/'
+    },
+    {
+      name: 'Fernando Anastasia',
+      role: t('FullStack Developer'),
+      imageUrl: '/images/team/Fernando Anastasia.png',
+      linkedinUrl: 'https://www.linkedin.com/in/fernandoanastasia1/'
+    },
+    {
+      name: 'Angel Peguero',
+      role: t('DevOps Engineer'),
+      imageUrl: '/images/team/Angel Peguero.png',
+      linkedinUrl: 'https://www.linkedin.com/in/angel-peguero/'
+    },
+    {
+      name: 'Julián Ruiz',
+      role: t('Blockchain Engineer'),
+      imageUrl: '/images/team/Julian Ruiz.png',
+      linkedinUrl: 'https://www.linkedin.com/in/julian-ruiz-v/'
+    },
+    {
+      name: 'Victor Reyes',
+      role: t('Blockchain Developer'),
+      imageUrl: '/images/team/Victor Reyes.png',
+      linkedinUrl: 'https://www.linkedin.com/in/v%C3%ADctor-reyes-cazorla-75361b10b/'
+    },
+    {
+      name: 'Alido de Leon',
+      role: t('Cyber Threat Hunter'),
+      imageUrl: '/images/team/Alido de Leon.png',
+      linkedinUrl: 'https://www.linkedin.com/in/alido-de-leon-8b0a9233b/'
+    },
+    {
+      name: 'Pol Ribera',
+      role: t('Blockchain Developer'),
+      imageUrl: '/images/team/Pol Ribera.png',
+      linkedinUrl: 'https://www.linkedin.com/in/pol-ribera-moreno-084a46344/'
     }
+    
   ];
 
   return (
