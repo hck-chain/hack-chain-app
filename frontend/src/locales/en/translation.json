@@ -448,10 +448,10 @@
     "b1Desc": "Blockchain-verified credentials",
     "b2Title": "Manage Talents",
     "b2Desc": "Centralized dashboard",
-    "already": "Already have an educator account?",
+    "already": "Already have an account?",
     "signIn": "Sign In Instead",
     "formTitle": "Create Educator Account",
-    "formDesc": "Register your institution to start issuing verified certificates"
+    "formDesc": "Enter your information to start issuing verified certificates"
   },
   "registerRecruiter": {
     "back": "Back to Register",
@@ -468,7 +468,7 @@
     "b1Desc": "Find ideal candidates in seconds",
     "b2Title": "Verified Skills",
     "b2Desc": "Blockchain-authenticated",
-    "already": "Already have a recruiter account?",
+    "already": "Already have an account?",
     "signIn": "Sign In Instead",
     "formTitle": "Create Recruiter Account",
     "formDesc": "Enter your information to start finding top talent"
@@ -486,28 +486,28 @@
     "create": "Create Account"
   },
   "educatorForm": {
-    "success": "Institution registered successfully!",
-    "registerAnother": "Register Another Institution",
-    "nameLabel": "Institution Name",
-    "namePlaceholder": "Enter institution name",
+    "success": "Educator registered successfully!",
+    "registerAnother": "Register Another User",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter your name",
     "websiteLabel": "Website",
     "websitePlaceholder": "https://www.example.edu",
     "emailLabel": "Official Email",
-    "emailPlaceholder": "admin@institution.edu",
-    "creating": "Registering Institution...",
-    "create": "Register Institution"
+    "emailPlaceholder": "Enter your email address",
+    "creating": "Creating Account...",
+    "create": "Create Account"
   },
   "recruiterForm": {
     "success": "Company registered successfully!",
-    "registerAnother": "Register Another Company",
+    "registerAnother": "Register Another User",
     "nameLabel": "Company Name",
     "namePlaceholder": "Enter company name",
     "industryLabel": "Industry",
     "industryPlaceholder": "e.g. Technology, Finance, Healthcare",
     "emailLabel": "Work Email",
     "emailPlaceholder": "name@company.com",
-    "creating": "Registering Company...",
-    "create": "Register Company"
+    "creating": "Creating Account...",
+    "create": "Create Account"
   },
   "faq": {
     "title": "Frequently Asked",
@@ -715,8 +715,8 @@
   },
   "verifyEmail": {
     "stepLabel": "Final activation step",
-    "title": "Verify your account",
-    "description": "To start issuing certificates on HackChain, you need to confirm your email address.",
+    "title": "Verify your email address",
+    "description": "To complete your registration, you need to confirm your email address.",
     "validFor": "The link is valid for",
     "validHours": "24 hours",
     "sendBtn": "Send verification email",

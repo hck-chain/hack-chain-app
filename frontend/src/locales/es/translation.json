@@ -448,10 +448,10 @@
     "b1Desc": "Credenciales por blockchain",
     "b2Title": "Gestionar Talentos",
     "b2Desc": "Panel centralizado",
-    "already": "¿Ya tienes una cuenta de educador?",
+    "already": "¿Ya tienes una cuenta?",
     "signIn": "Iniciar Sesión",
     "formTitle": "Crear Cuenta de Educador",
-    "formDesc": "Registra tu institución para emitir certificados"
+    "formDesc": "Ingresa tu información  para emitir certificados"
   },
   "registerRecruiter": {
     "back": "Volver a Registro",
@@ -468,7 +468,7 @@
     "b1Desc": "Candidatos en segundos",
     "b2Title": "Habilidades Verificadas",
     "b2Desc": "Autenticadas por blockchain",
-    "already": "¿Ya tienes una cuenta de reclutador?",
+    "already": "¿Ya tienes una cuenta",
     "signIn": "Iniciar Sesión",
     "formTitle": "Crear Cuenta de Reclutador",
     "formDesc": "Ingresa tu información para buscar talento"
@@ -488,14 +488,14 @@
   "educatorForm": {
     "success": "¡Institución registrada exitosamente!",
     "registerAnother": "Registrar Otra Institución",
-    "nameLabel": "Nombre de la Institución",
-    "namePlaceholder": "Ingresa el nombre de la institución",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Ingresa tu nombre",
     "websiteLabel": "Sitio Web",
     "websitePlaceholder": "https://www.ejemplo.edu",
-    "emailLabel": "Correo Oficial",
-    "emailPlaceholder": "admin@institucion.edu",
+    "emailLabel": "Correo Electrónico",
+    "emailPlaceholder": "Ingresa tu correo electrónico",
     "creating": "Registrando Institución...",
-    "create": "Registrar Institución"
+    "create": "Crear Cuenta"
   },
   "recruiterForm": {
     "success": "¡Empresa registrada exitosamente!",
@@ -507,7 +507,7 @@
     "emailLabel": "Correo del Trabajo",
     "emailPlaceholder": "nombre@empresa.com",
     "creating": "Registrando Empresa...",
-    "create": "Registrar Empresa"
+    "create": "Crear Cuenta"
   },
   "faq": {
     "title": "Preguntas",
@@ -715,13 +715,13 @@
   },
   "verifyEmail": {
     "stepLabel": "Paso final de activación",
-    "title": "Verifica tu cuenta",
-    "description": "Para empezar a emitir certificados en HackChain, necesitas confirmar tu dirección de email.",
+    "title": "Verifica tu correo electrónico",
+    "description": "Para finalizar tu registro necesitas confirmar tu correo electrónico.",
     "validFor": "El enlace es válido por",
     "validHours": "24 horas",
-    "sendBtn": "Enviar email de verificación",
+    "sendBtn": "Enviar correo de verificación",
     "sending": "Enviando...",
-    "sent": "Email enviado. Revisa tu bandeja de entrada.",
+    "sent": "Correo enviado. Revisa tu bandeja de entrada.",
     "useOtherAccount": "Usar otra cuenta",
     "verifyingTitle": "Activando cuenta",
     "verifyingDesc": "Validando tu identidad en la red...",

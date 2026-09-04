@@ -198,6 +198,18 @@ const TokenHack = () => {
               {t('token.heroTagline')}
             </motion.p>
 
+                        <div className="mb-16">
+              <a href="/presale">
+                <Button
+                  size="lg"
+                  className="font-title text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/20 px-10 py-6 rounded-xl group"
+                >
+                  Join the Presale
+                  <PiArrowRightBold className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </a>
+            </div>
+
             {/* Stats — 3 columnas abiertas, sin bordes */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
