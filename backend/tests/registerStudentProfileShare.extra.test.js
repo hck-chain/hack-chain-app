@@ -15,7 +15,7 @@ describe('registerStudentProfileShare usecase - additional cases', () => {
   });
 
   it('increments share_count when student exists', async () => {
-    const student = { share_count: 2, increment: jest.fn(function(field) { this.share_count += 1; return Promise.resolve(); }), reload: jest.fn().mockResolvedValue(), }; 
+    const student = { share_count: 2, increment: jest.fn(function(field) { this.share_count += 1; return Promise.resolve(); }), reload: jest.fn().mockResolvedValue(), };
     const studentModel = { findOne: jest.fn().mockResolvedValue(student) };
 
     const res = await registerStudentProfileShare({ models: { Student: studentModel }, walletAddress: '0x0000000000000000000000000000000000000003' });
