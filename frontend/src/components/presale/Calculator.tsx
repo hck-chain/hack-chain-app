@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import type { Phase } from "@/types/presale";
 import { formatNumber } from "@/utils/presale";
 
@@ -15,8 +16,10 @@ export default function Calculator({ activePhase }: CalculatorProps) {
 
   if (!activePhase) {
     return (
-      <section className="border-b border-zinc-800 py-10">
-        <p className="text-sm text-zinc-500">La calculadora vuelve a estar disponible en la próxima fase.</p>
+      <section className="border-b border-white/10 py-12">
+        <p className="font-body text-sm text-white/40">
+          La calculadora vuelve a estar disponible en la próxima fase.
+        </p>
       </section>
     );
   }
@@ -45,68 +48,77 @@ export default function Calculator({ activePhase }: CalculatorProps) {
   }
 
   return (
-    <section className="border-b border-zinc-800 py-10">
-      <p className="font-mono text-xs uppercase tracking-wide text-zinc-500">Paso 1</p>
-      <h2 className="mt-2 text-xl font-semibold text-zinc-50">
-        Calculá cuánto vas a recibir — Fase {activePhase.label}
-      </h2>
+    <section className="border-b border-white/10 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-60px' }}
+        transition={{ duration: 0.6 }}
+      >
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/25 font-bold">
+          Paso 1
+        </span>
+        <h2 className="mt-3 font-title text-2xl sm:text-3xl font-black text-white mb-6">
+          Calculá cuánto vas a recibir — <span className="gradient-text">Fase {activePhase.label}</span>
+        </h2>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Tengo esta cantidad de USDT
-          </span>
-          <input
-            type="number"
-            min="0"
-            inputMode="decimal"
-            value={usdtInput}
-            onChange={(e) => {
-              setMode("usdtToHack");
-              setUsdtInput(e.target.value);
-            }}
-            placeholder="0.00"
-            className="mt-1.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none"
-          />
-        </label>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="block">
+            <span className="font-body text-xs uppercase tracking-[0.15em] text-white/25 font-semibold">
+              Tengo esta cantidad de USDT
+            </span>
+            <input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={usdtInput}
+              onChange={(e) => {
+                setMode("usdtToHack");
+                setUsdtInput(e.target.value);
+              }}
+              placeholder="0.00"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-sm text-white placeholder:text-white/20 focus:border-purple-500/60 focus:outline-none transition-colors"
+            />
+          </label>
 
-        <label className="block">
-          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Quiero comprar esta cantidad de HACK
-          </span>
-          <input
-            type="number"
-            min="0"
-            inputMode="decimal"
-            value={hackInput}
-            onChange={(e) => {
-              setMode("hackToUsdt");
-              setHackInput(e.target.value);
-            }}
-            placeholder="0"
-            className="mt-1.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none"
-          />
-        </label>
-      </div>
+          <label className="block">
+            <span className="font-body text-xs uppercase tracking-[0.15em] text-white/25 font-semibold">
+              Quiero comprar esta cantidad de HACK
+            </span>
+            <input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={hackInput}
+              onChange={(e) => {
+                setMode("hackToUsdt");
+                setHackInput(e.target.value);
+              }}
+              placeholder="0"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-sm text-white placeholder:text-white/20 focus:border-purple-500/60 focus:outline-none transition-colors"
+            />
+          </label>
+        </div>
 
-      <div className="mt-4 rounded-md border border-zinc-800 bg-zinc-900/60 px-4 py-3">
-        {error ? (
-          <p className="text-sm text-red-400">{error}</p>
-        ) : mode === "usdtToHack" && derivedHack ? (
-          <p className="font-mono text-sm text-zinc-200">
-            Recibirías <span className="text-amber-300">{formatNumber(Math.floor(derivedHack))} HACK</span>
+        <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4">
+          {error ? (
+            <p className="font-body text-sm text-red-400 font-medium">{error}</p>
+          ) : mode === "usdtToHack" && derivedHack ? (
+            <p className="font-mono text-sm text-white/70">
+              Recibirías <span className="text-amber-300 font-bold">{formatNumber(Math.floor(derivedHack))} HACK</span>
+            </p>
+          ) : mode === "hackToUsdt" && derivedUsdt ? (
+            <p className="font-mono text-sm text-white/70">
+              Necesitás <span className="text-amber-300 font-bold">${derivedUsdt.toFixed(2)} USDT</span>
+            </p>
+          ) : (
+            <p className="font-body text-sm text-white/30">Ingresá un monto para calcular.</p>
+          )}
+          <p className="mt-2 font-body text-xs text-white/25">
+            Mínimo {min} USDT por compra · máximo {formatNumber(max)} HACK en esta fase.
           </p>
-        ) : mode === "hackToUsdt" && derivedUsdt ? (
-          <p className="font-mono text-sm text-zinc-200">
-            Necesitás <span className="text-amber-300">${derivedUsdt.toFixed(2)} USDT</span>
-          </p>
-        ) : (
-          <p className="text-sm text-zinc-500">Ingresá un monto para calcular.</p>
-        )}
-        <p className="mt-1 text-xs text-zinc-500">
-          Mínimo {min} USDT por compra · máximo {formatNumber(max)} HACK en esta fase.
-        </p>
-      </div>
+        </div>
+      </motion.div>
     </section>
   );
 }

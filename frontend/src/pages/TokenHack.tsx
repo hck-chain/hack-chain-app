@@ -8,7 +8,6 @@ import TokenDistributionChart from '@/components/TokenDistributionChart';
 import { Button } from '@/components/ui/button';
 import { FileText, ArrowRight } from 'lucide-react';
 import { AnimeParticles } from '@/components/animations/AnimeComponents';
-import HackTokenCoin from '@/components/animations/HackTokenCoin';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -170,10 +169,19 @@ const TokenHack = () => {
               transition={{ duration: 1, delay: 0.1, type: 'spring', stiffness: 100, damping: 18 }}
               className="flex justify-center mb-16"
             >
-              <div className="relative w-80 h-80 sm:w-96 sm:h-96">
-                <div className="absolute inset-0 rounded-full bg-violet-600/10 blur-3xl scale-[1.5] pointer-events-none" />
-                <HackTokenCoin />
-              </div>
+<div className="relative w-80 h-80 sm:w-96 sm:h-96">
+  <div className="absolute inset-0 rounded-full bg-violet-600/10 blur-3xl scale-[1.5] pointer-events-none" />
+  <video
+    autoPlay
+    loop
+    muted
+    playsInline
+    className="w-full h-full object-contain relative z-10 scale-[2.8]"
+  >
+    <source src="/videos/tokenAnimation.mov" type="video/mp4; codecs=hvc1" />
+    <source src="/videos/tokenAnimation.webm" type="video/webm" />
+  </video>
+</div>
             </motion.div>
 
             {/* $HACK — signature ticker */}
