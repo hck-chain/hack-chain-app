@@ -7,6 +7,7 @@ const { Student, User, Certificate, Issuer } = require("../models");
 const { authenticate } = require("../middleware/auth");
 const { validateDeletionMessage, deleteStudentAccount } = require("../services/studentService");
 const { getPublicStudentProfile } = require("../usecases/students/getPublicStudentProfile");
+const { getStudentProfileForRecruiter } = require("../usecases/students/getStudentProfileForRecruiter");
 const { getOwnStudentProfile } = require("../usecases/students/getOwnStudentProfile");
 const { updateOwnStudentProfile } = require("../usecases/students/updateOwnStudentProfile");
 const { updateStudentPhoto } = require("../usecases/students/updateStudentPhoto");
@@ -236,6 +237,37 @@ router.patch("/me/photo", authenticate, async (req, res) => {
   } catch (err) {
     console.error("Failed to update student photo:", err);
     res.status(500).json({ error: "Failed to update photo" });
+  }
+});
+
+// GET /api/students/:wallet_address/recruiter-view — authenticated recruiter view (includes name)
+router.get("/:wallet_address/recruiter-view", authenticate, async (req, res) => {
+  if (req.auth.role !== "recruiter") {
+    return res.status(403).json({ error: "Only recruiter accounts can access this endpoint" });
+  }
+  try {
+    const result = await getStudentProfileForRecruiter({
+      models: { Student, User, Certificate },
+      walletAddress: req.params.wallet_address,
+    });
+    if (!result.ok) return res.status(result.httpStatus || 500).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch student" });
+  }
+});
+
+// GET /api/students/:wallet_address — public profile (privacy-focused)
+router.get("/:wallet_address", async (req, res) => {
+  try {
+    const wallet = req.params.wallet_address;
+    const result = await getPublicStudentProfile({ models: { Student, User, Certificate, Issuer }, walletAddress: wallet });
+    if (!result.ok) return res.status(result.httpStatus || 500).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch student" });
   }
 });
 

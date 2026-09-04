@@ -41,12 +41,12 @@ const TalentDetailDashboard = () => {
 
             try {
                 // Talent info
-                const data = await api.get<{ student: any }>(`/api/students/${wallet_address}`);
+const data = await api.get<{ student: any }>(`/api/students/${wallet_address}/recruiter-view`);
                 if (!data.student) throw new Error("Talent not found");
 
                 setTalent({
                     wallet_address: data.student.wallet_address,
-                    name: data.student.user.name + ' ' + (data.student.user.lastname || ''),
+                    name: data.student.name || 'Sin nombre',
                     field_of_study: data.student.field_of_study || 'N/A',
                     total_certificates: data.student.total_certificates || 0,
                     created_at: data.student.created_at,
@@ -76,12 +76,12 @@ const TalentDetailDashboard = () => {
         navigate('/dashboard/recruiter');
     };
 
-    const resolveImage = (url?: string) => {
-        if (!url) return '';
-        return url.startsWith('ipfs://')
-            ? url.replace('ipfs://', 'https://ipfs.io/ipfs/')
-            : url;
-    };
+const resolveImage = (url?: string) => {
+    if (!url) return '';
+    return url.startsWith('ipfs://')
+        ? url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+        : url;
+};
 
     const viewOnOpenSea = (cert: Certificate) => {
         const url = `https://opensea.io/assets/polygon/${cert.contract}/${cert.identifier}`;
@@ -205,7 +205,7 @@ const TalentDetailDashboard = () => {
                     </header>
 
                     {/* Certificates Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
                         {certificates.map(cert => (
                             <motion.div
                                 key={`${cert.contract}-${cert.identifier}`}
@@ -214,13 +214,15 @@ const TalentDetailDashboard = () => {
                                 transition={{ duration: 0.4 }}
                                 className="bg-slate-900/20 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden shadow-md hover:scale-[1.02] transition-transform"
                             >
-                                <div className="w-full bg-black flex items-center justify-center">
-                                    <img
-                                        src={resolveImage(cert.original_image_url || cert.display_image_url || cert.image_url)}
-                                        alt={`Certificate ${cert.identifier}`}
-                                        className="w-full h-auto object-contain"
-                                    />
-                                </div>
+                           <div className="w-full bg-black flex items-center justify-center p-3">
+    <div className="w-full rounded-lg border border-white/15 shadow-[0_0_20px_rgba(0,0,0,0.4)] overflow-hidden">
+        <img
+            src={resolveImage(cert.original_image_url || cert.display_image_url || cert.image_url)}
+            alt={`Certificate ${cert.identifier}`}
+            className="w-full h-auto object-contain"
+        />
+    </div>
+</div>
                                 <div className="p-0 flex flex-col items-center gap-3">
                                     <button
                                         onClick={() => viewOnOpenSea(cert)}
