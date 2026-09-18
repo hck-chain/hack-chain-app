@@ -242,6 +242,14 @@ describe("Privy user usecases", () => {
       expect(result.httpStatus).toBe(409);
     });
 
+    it("refuses an embedded wallet already linked to another account", async () => {
+      await seed();
+      await seed({ wallet_address: OTHER_WALLET, integrated_wallet_address: EMBEDDED });
+      const result = await bind();
+      expect(result.code).toBe("EMBEDDED_WALLET_ALREADY_LINKED");
+      expect(result.httpStatus).toBe(409);
+    });
+
     it("refuses a DID already linked to another account", async () => {
       await seed();
       await seed({ wallet_address: OTHER_WALLET, privy_did: DID });

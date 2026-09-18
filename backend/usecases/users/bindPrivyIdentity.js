@@ -6,6 +6,8 @@
 // All the backend can do — and all it needs to do — is record the resulting DID.
 // Returns a result object — never throws on business errors.
 
+const { Op } = require("sequelize");
+
 async function bindPrivyIdentity({ models, privyService, wallet, identityToken }) {
   if (!models || !privyService || !wallet) {
     throw new TypeError("bindPrivyIdentity requires { models, privyService, wallet }");
@@ -65,6 +67,25 @@ async function bindPrivyIdentity({ models, privyService, wallet, identityToken }
       httpStatus: 409,
       message: "This Privy identity is already linked to another account",
     };
+  }
+
+  // integrated_wallet_address carries a partial unique index, so without this check a
+  // collision surfaces as a 500 from Postgres instead of a usable error.
+  if (identity.embeddedWallet) {
+    const embeddedTaken = await models.User.findOne({
+      where: {
+        id: { [Op.ne]: user.id },
+        integrated_wallet_address: identity.embeddedWallet,
+      },
+    });
+    if (embeddedTaken) {
+      return {
+        ok: false,
+        code: "EMBEDDED_WALLET_ALREADY_LINKED",
+        httpStatus: 409,
+        message: "This embedded wallet is already linked to another account",
+      };
+    }
   }
 
   // wallet_address is deliberately left untouched: this user's certificates are minted
