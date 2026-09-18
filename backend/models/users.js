@@ -23,6 +23,14 @@ module.exports = (sequelize, DataTypes) => {
     verification_token: { type: DataTypes.STRING(128), allowNull: true },
     verification_token_expires_at: { type: DataTypes.DATE, allowNull: true },
 
+    // ---- Privy identity — see scripts/migrate-privy-identity.js ----
+    // wallet_address above stays the system-wide identity key. integrated_wallet_address is the
+    // Privy embedded wallet that holds certificates; own_wallet_address is the self-custodied
+    // wallet used for $HACK and is never an authentication credential.
+    privy_did:                 { type: DataTypes.STRING(100), allowNull: true, unique: true },
+    integrated_wallet_address: { type: DataTypes.STRING(42), allowNull: true, unique: true },
+    own_wallet_address:        { type: DataTypes.STRING(42), allowNull: true, unique: true },
+
     // ---- Phase 1 (Harjoot integration) — see scripts/migrate-harjoot-phase1.js ----
     harjoot_membership_expires_at: { type: DataTypes.DATE, allowNull: true },
     educator_approval_status:      { type: DataTypes.STRING, allowNull: true },
