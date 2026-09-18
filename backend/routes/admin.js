@@ -516,8 +516,10 @@ router.get(
     if (handleValidation(req, res)) return;
 
     try {
-      const page = req.query.page || 1;
-      const limit = req.query.limit || 50;
+      // express-validator's .toInt() cannot mutate req.query in Express 5 (it is a getter),
+      // so these arrive as strings and have to be coerced here.
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 50;
 
       const where = {};
       if (req.query.migrated === "true") where.privy_did = { [db.Sequelize.Op.ne]: null };
