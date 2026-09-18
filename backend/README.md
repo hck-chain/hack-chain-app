@@ -132,6 +132,10 @@ node backend/scripts/migrate-issuer-accept-usdt-rename.js
 # Add meeting_url column to class_requests (educator sets a Meet/Zoom/Teams
 # link when confirming a class)
 node backend/scripts/migrate-class-requests-meeting-url.js
+
+# Add privy_did, integrated_wallet_address and own_wallet_address to users
+# (Privy identity layer — wallet_address is left untouched)
+node backend/scripts/migrate-privy-identity.js
 ```
 
 Always use `DATABASE_URL_UNPOOLED` (direct connection) when running migrations. PgBouncer in transaction mode rejects DDL statements.
