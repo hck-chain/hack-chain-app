@@ -1,0 +1,6 @@
+{
+  "name": "contracts",
+  "private": true,
+  "version": "1.0.0",
+  "description": "HackChain smart contracts (Solidity/Foundry) — not an npm package, this file exists only so npm/bun workspace resolution recognizes this directory."
+}
