@@ -1,21 +1,22 @@
 const SequelizePkg = require("sequelize");
 const crypto = require("crypto");
-const { linkOwnWallet } = require("../linkOwnWallet");
+const { ethers } = require("ethers");
+const { linkOwnWallet, buildLinkWalletMessage } = require("../linkOwnWallet");
 const { unlinkOwnWallet } = require("../unlinkOwnWallet");
 const { bindPrivyIdentity } = require("../bindPrivyIdentity");
 
-jest.setTimeout(15000);
+jest.setTimeout(20000);
 
 const SESSION_WALLET = "0x" + "11".repeat(20);
-const OWN_WALLET = "0x" + "22".repeat(20);
 const OTHER_WALLET = "0x" + "33".repeat(20);
 const EMBEDDED = "0x" + "44".repeat(20);
 const DID = "did:privy:abc123";
 
-const signedMessage = (nonce = "n1") => `Link wallet\nTimestamp: ${new Date().toISOString()}\nNonce: ${nonce}`;
+// Real signatures on purpose: a mocked verifier that accepts anything is exactly what
+// hid the missing account binding in the first version of this usecase.
+const recoverSigner = (message, signature) => ethers.verifyMessage(message, signature);
 
-// Stands in for services/issuerService.validateDeletionMessage.
-const acceptSignature = jest.fn().mockReturnValue({ ok: true });
+const randomNonce = () => crypto.randomBytes(12).toString("hex");
 
 function makeRedis() {
   const seen = new Set();
@@ -31,7 +32,7 @@ function makeRedis() {
 }
 
 describe("Privy user usecases", () => {
-  let sequelize, models;
+  let sequelize, models, ownSigner;
 
   beforeAll(async () => {
     sequelize = new SequelizePkg.Sequelize("sqlite::memory:", {
@@ -58,8 +59,7 @@ describe("Privy user usecases", () => {
 
   beforeEach(async () => {
     await sequelize.sync({ force: true });
-    acceptSignature.mockClear();
-    acceptSignature.mockReturnValue({ ok: true });
+    ownSigner = ethers.Wallet.createRandom();
   });
 
   afterAll(async () => {
@@ -77,15 +77,26 @@ describe("Privy user usecases", () => {
     });
   }
 
-  function link(overrides = {}) {
+  async function signed({
+    signer = ownSigner,
+    ownWallet = ownSigner.address,
+    account = SESSION_WALLET,
+    timestamp = new Date().toISOString(),
+    nonce = randomNonce(),
+    message,
+  } = {}) {
+    const text = message ?? buildLinkWalletMessage({ ownWallet, account, timestamp, nonce });
+    return { message: text, signature: await signer.signMessage(text) };
+  }
+
+  function link(payload, overrides = {}) {
     return linkOwnWallet({
       models: { User: models.User, sequelize },
-      validateSignedMessage: acceptSignature,
+      recoverSigner,
       redis: makeRedis(),
       wallet: SESSION_WALLET,
-      ownWalletAddress: OWN_WALLET,
-      message: signedMessage(),
-      signature: "0xsig",
+      ownWalletAddress: ownSigner.address,
+      ...payload,
       ...overrides,
     });
   }
@@ -95,87 +106,156 @@ describe("Privy user usecases", () => {
       await expect(linkOwnWallet({ wallet: SESSION_WALLET })).rejects.toThrow(TypeError);
     });
 
+    it("links the wallet when the message is bound to this account", async () => {
+      const user = await seed();
+      const result = await link(await signed());
+
+      expect(result.ok).toBe(true);
+      expect(result.data.own_wallet_address).toBe(ownSigner.address.toLowerCase());
+      await user.reload();
+      expect(user.own_wallet_address).toBe(ownSigner.address.toLowerCase());
+    });
+
+    it("accepts checksummed addresses inside the message", async () => {
+      await seed();
+      const result = await link(await signed({ ownWallet: ethers.getAddress(ownSigner.address) }));
+      expect(result.ok).toBe(true);
+    });
+
+    // The attack from the security review: the victim signs a link message on a phishing
+    // site for the attacker's account; the attacker replays it from their own session.
+    it("rejects a signature bound to a different account (phishing replay)", async () => {
+      await seed(); // the attacker, holding the SESSION_WALLET session
+      const victimAccount = "0x" + "99".repeat(20);
+
+      const result = await link(await signed({ account: victimAccount }));
+
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe("MESSAGE_ACCOUNT_MISMATCH");
+      expect(result.httpStatus).toBe(401);
+      expect(await models.User.count({ where: { own_wallet_address: ownSigner.address.toLowerCase() } })).toBe(0);
+    });
+
+    it("rejects the bare Timestamp/Nonce message a phishing site would ask for", async () => {
+      await seed();
+      const bare = `Timestamp: ${new Date().toISOString()}\nNonce: ${randomNonce()}`;
+      const result = await link(await signed({ message: bare }));
+      expect(result.code).toBe("INVALID_MESSAGE_FORMAT");
+    });
+
+    it("rejects an account-deletion signature reused for linking", async () => {
+      await seed();
+      const deletion = `Delete my HackChain account\nTimestamp: ${new Date().toISOString()}`;
+      const result = await link(await signed({ message: deletion }));
+      expect(result.code).toBe("INVALID_MESSAGE_FORMAT");
+    });
+
+    it("rejects a message with anything appended to the template", async () => {
+      await seed();
+      const valid = buildLinkWalletMessage({
+        ownWallet: ownSigner.address,
+        account: SESSION_WALLET,
+        timestamp: new Date().toISOString(),
+        nonce: randomNonce(),
+      });
+      const result = await link(await signed({ message: `${valid}\nExtra: 1` }));
+      expect(result.code).toBe("INVALID_MESSAGE_FORMAT");
+    });
+
+    it("rejects a message naming a different wallet than the one being linked", async () => {
+      await seed();
+      const result = await link(await signed({ ownWallet: OTHER_WALLET }));
+      expect(result.code).toBe("MESSAGE_WALLET_MISMATCH");
+    });
+
+    it("rejects a signature produced by a key other than the linked wallet", async () => {
+      await seed();
+      const impostor = ethers.Wallet.createRandom();
+      const result = await link(await signed({ signer: impostor }));
+      expect(result.code).toBe("INVALID_SIGNATURE");
+      expect(result.httpStatus).toBe(401);
+    });
+
+    it("rejects a signature older than 5 minutes", async () => {
+      await seed();
+      const stale = new Date(Date.now() - 6 * 60 * 1000).toISOString();
+      const result = await link(await signed({ timestamp: stale }));
+      expect(result.code).toBe("SIGNATURE_EXPIRED");
+    });
+
+    it("rejects a post-dated message beyond the clock-skew allowance", async () => {
+      await seed();
+      const future = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      const result = await link(await signed({ timestamp: future }));
+      expect(result.code).toBe("SIGNATURE_EXPIRED");
+    });
+
+    it("tolerates a client clock slightly ahead of the server", async () => {
+      await seed();
+      const ahead = new Date(Date.now() + 30 * 1000).toISOString();
+      const result = await link(await signed({ timestamp: ahead }));
+      expect(result.ok).toBe(true);
+    });
+
     it("rejects a malformed address", async () => {
       await seed();
-      const result = await link({ ownWalletAddress: "0x123" });
+      const result = await link(await signed(), { ownWalletAddress: "0x123" });
       expect(result.code).toBe("INVALID_WALLET_ADDRESS");
       expect(result.httpStatus).toBe(400);
     });
 
     it("requires message and signature", async () => {
       await seed();
-      const result = await link({ signature: undefined });
+      const payload = await signed();
+      const result = await link({ ...payload, signature: undefined });
       expect(result.code).toBe("MISSING_SIGNATURE");
     });
 
-    it("rejects an invalid or expired signature", async () => {
+    it("blocks a replayed signature", async () => {
       await seed();
-      acceptSignature.mockReturnValue({ ok: false, error: "Signature expired or invalid timestamp" });
-      const result = await link();
-      expect(result.code).toBe("INVALID_SIGNATURE");
-      expect(result.httpStatus).toBe(401);
-    });
+      const redis = makeRedis();
+      const payload = await signed();
 
-    it("requires a nonce inside the signed message", async () => {
-      await seed();
-      const result = await link({ message: `Link wallet\nTimestamp: ${new Date().toISOString()}` });
-      expect(result.code).toBe("MISSING_NONCE");
-    });
+      const first = await link(payload, { redis });
+      expect(first.ok).toBe(true);
 
-    it("verifies the signature against the wallet being linked, not the session wallet", async () => {
-      await seed();
-      await link();
-      expect(acceptSignature).toHaveBeenCalledWith(expect.any(String), "0xsig", OWN_WALLET);
-    });
-
-    it("links the wallet", async () => {
-      const user = await seed();
-      const result = await link();
-      expect(result.ok).toBe(true);
-      expect(result.data.own_wallet_address).toBe(OWN_WALLET);
-      await user.reload();
-      expect(user.own_wallet_address).toBe(OWN_WALLET);
+      const second = await link(payload, { redis });
+      expect(second.code).toBe("NONCE_ALREADY_USED");
+      expect(second.httpStatus).toBe(409);
     });
 
     it("refuses a wallet already used as another user's own wallet", async () => {
       await seed();
-      await seed({ wallet_address: OTHER_WALLET, own_wallet_address: OWN_WALLET });
-      const result = await link();
+      await seed({ wallet_address: OTHER_WALLET, own_wallet_address: ownSigner.address.toLowerCase() });
+      const result = await link(await signed());
       expect(result.code).toBe("WALLET_ALREADY_LINKED");
       expect(result.httpStatus).toBe(409);
     });
 
     it("refuses a wallet that already identifies another account", async () => {
       await seed();
-      await seed({ wallet_address: OWN_WALLET });
-      const result = await link();
+      await seed({ wallet_address: ownSigner.address.toLowerCase() });
+      const result = await link(await signed());
       expect(result.code).toBe("WALLET_ALREADY_LINKED");
     });
 
     it("lets a pre-Privy user declare their own identity wallet", async () => {
-      const user = await seed();
-      const result = await link({ ownWalletAddress: SESSION_WALLET });
+      const legacy = ethers.Wallet.createRandom();
+      const legacyWallet = legacy.address.toLowerCase();
+      const user = await seed({ wallet_address: legacyWallet });
+
+      const payload = await signed({ signer: legacy, ownWallet: legacy.address, account: legacyWallet });
+      const result = await link(payload, { wallet: legacyWallet, ownWalletAddress: legacy.address });
+
       expect(result.ok).toBe(true);
       await user.reload();
-      expect(user.own_wallet_address).toBe(SESSION_WALLET);
-    });
-
-    it("blocks a replayed signature reusing the same nonce", async () => {
-      await seed();
-      const redis = makeRedis();
-      const message = signedMessage("same-nonce");
-      const first = await link({ redis, message });
-      expect(first.ok).toBe(true);
-
-      const second = await link({ redis, message });
-      expect(second.code).toBe("NONCE_ALREADY_USED");
-      expect(second.httpStatus).toBe(409);
+      expect(user.own_wallet_address).toBe(legacyWallet);
     });
   });
 
   describe("unlinkOwnWallet", () => {
     it("clears the wallet", async () => {
-      const user = await seed({ own_wallet_address: OWN_WALLET });
+      const user = await seed({ own_wallet_address: OTHER_WALLET });
       const result = await unlinkOwnWallet({ models: { User: models.User }, wallet: SESSION_WALLET });
       expect(result.ok).toBe(true);
       await user.reload();

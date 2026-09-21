@@ -5,99 +5,140 @@ const { Op } = require("sequelize");
 // for $HACK — it never grants access, so this endpoint only records it.
 // Returns a result object — never throws on business errors.
 
+const SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000;
+// Tolerates a client clock slightly ahead of the server without accepting post-dated messages.
+const SIGNATURE_MAX_SKEW_MS = 60 * 1000;
 const NONCE_TTL_SECONDS = 5 * 60;
 const EVM_ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 
-function parseNonce(message) {
-  const match = String(message).match(/Nonce: (\S+)/);
-  return match ? match[1] : null;
+// The signed message must match this template exactly. The fixed action text and the
+// account that requests the link are what bind a signature to this operation for this
+// account: without them, a signature phished on any other site — or produced by another
+// HackChain flow that also uses a Timestamp line, like account deletion — could be
+// replayed here to attach the victim's wallet to the attacker's account.
+const LINK_MESSAGE_TEMPLATE =
+  /^Link wallet (0x[a-fA-F0-9]{40}) to HackChain account (0x[a-fA-F0-9]{40})\nTimestamp: (\S+)\nNonce: ([A-Za-z0-9_-]{8,64})$/;
+
+function buildLinkWalletMessage({ ownWallet, account, timestamp, nonce }) {
+  return (
+    `Link wallet ${ownWallet} to HackChain account ${account}\n` +
+    `Timestamp: ${timestamp}\n` +
+    `Nonce: ${nonce}`
+  );
+}
+
+function reject(code, message, httpStatus = 401) {
+  return { ok: false, code, httpStatus, message };
+}
+
+/**
+ * Checks the message against the exact template and returns the parsed parts, or a
+ * rejection. Does not check the signature itself.
+ */
+function parseLinkMessage(message, { ownWallet, account, now }) {
+  const match = LINK_MESSAGE_TEMPLATE.exec(String(message));
+  if (!match) {
+    return { error: reject("INVALID_MESSAGE_FORMAT", "Signed message does not match the expected format", 400) };
+  }
+
+  const [, signedOwnWallet, signedAccount, timestamp, nonce] = match;
+
+  if (signedOwnWallet.toLowerCase() !== ownWallet) {
+    return { error: reject("MESSAGE_WALLET_MISMATCH", "Signed message is for a different wallet") };
+  }
+  if (signedAccount.toLowerCase() !== account) {
+    return { error: reject("MESSAGE_ACCOUNT_MISMATCH", "Signed message is for a different account") };
+  }
+
+  const signedAt = new Date(timestamp).getTime();
+  if (Number.isNaN(signedAt)) {
+    return { error: reject("INVALID_MESSAGE_FORMAT", "Signed message has an invalid timestamp", 400) };
+  }
+  const age = now - signedAt;
+  if (age > SIGNATURE_MAX_AGE_MS || age < -SIGNATURE_MAX_SKEW_MS) {
+    return { error: reject("SIGNATURE_EXPIRED", "Signature expired or has an invalid timestamp") };
+  }
+
+  return { nonce };
 }
 
 /**
  * @param {object} deps
- * @param {object} deps.models                 { User, sequelize }
- * @param {function} deps.validateSignedMessage (message, signature, wallet) => { ok, error }
- * @param {object} deps.redis                  { getRedis } — optional replay guard
- * @param {string} deps.wallet                 authenticated user's wallet (req.auth.wallet)
+ * @param {object} deps.models          { User, sequelize }
+ * @param {function} deps.recoverSigner (message, signature) => address — ethers.verifyMessage
+ * @param {object} deps.redis           { getRedis } — replay guard, best-effort
+ * @param {string} deps.wallet          authenticated user's wallet (req.auth.wallet)
  * @param {string} deps.ownWalletAddress
  * @param {string} deps.message
  * @param {string} deps.signature
+ * @param {Date}   [deps.now]           injectable clock for tests
  */
 async function linkOwnWallet({
   models,
-  validateSignedMessage,
+  recoverSigner,
   redis,
   wallet,
   ownWalletAddress,
   message,
   signature,
+  now = new Date(),
 }) {
-  if (!models || !validateSignedMessage || !wallet) {
-    throw new TypeError("linkOwnWallet requires { models, validateSignedMessage, wallet }");
+  if (!models || !recoverSigner || !wallet) {
+    throw new TypeError("linkOwnWallet requires { models, recoverSigner, wallet }");
   }
 
   const { User, sequelize } = models;
 
   if (!ownWalletAddress || !EVM_ADDRESS.test(ownWalletAddress)) {
-    return {
-      ok: false,
-      code: "INVALID_WALLET_ADDRESS",
-      httpStatus: 400,
-      message: "A valid own_wallet_address is required",
-    };
+    return reject("INVALID_WALLET_ADDRESS", "A valid own_wallet_address is required", 400);
   }
   if (!message || !signature) {
-    return {
-      ok: false,
-      code: "MISSING_SIGNATURE",
-      httpStatus: 400,
-      message: "message and signature are required",
-    };
+    return reject("MISSING_SIGNATURE", "message and signature are required", 400);
   }
 
   const target = ownWalletAddress.toLowerCase();
+  const sessionWallet = wallet.toLowerCase();
+
+  const parsed = parseLinkMessage(message, {
+    ownWallet: target,
+    account: sessionWallet,
+    now: now.getTime(),
+  });
+  if (parsed.error) return parsed.error;
 
   // The signature must come from the wallet being linked, not from the session wallet:
   // that is what proves the user actually controls it.
-  const validation = validateSignedMessage(message, signature, target);
-  if (!validation.ok) {
-    return { ok: false, code: "INVALID_SIGNATURE", httpStatus: 401, message: validation.error };
+  let signer;
+  try {
+    signer = recoverSigner(message, signature);
+  } catch (_) {
+    return reject("INVALID_SIGNATURE", "Invalid signature");
   }
-
-  const nonce = parseNonce(message);
-  if (!nonce) {
-    return {
-      ok: false,
-      code: "MISSING_NONCE",
-      httpStatus: 400,
-      message: "The signed message must include a Nonce line",
-    };
+  if (!signer || signer.toLowerCase() !== target) {
+    return reject("INVALID_SIGNATURE", "Signature does not match the wallet being linked");
   }
 
   // One-time use: a signature captured inside its 5-minute window cannot be replayed.
   // Redis is best-effort here, like everywhere else in this codebase — if it is down the
-  // timestamp window is still enforced by validateSignedMessage.
+  // timestamp window and the account binding above still hold.
   if (redis && typeof redis.getRedis === "function") {
     try {
-      const key = `walletlink:${crypto.createHash("sha256").update(`${target}:${nonce}`).digest("hex")}`;
+      const key = `walletlink:${crypto
+        .createHash("sha256")
+        .update(`${target}:${parsed.nonce}`)
+        .digest("hex")}`;
       const stored = await redis.getRedis().set(key, "1", "EX", NONCE_TTL_SECONDS, "NX");
       if (stored === null) {
-        return {
-          ok: false,
-          code: "NONCE_ALREADY_USED",
-          httpStatus: 409,
-          message: "This signature was already used",
-        };
+        return reject("NONCE_ALREADY_USED", "This signature was already used", 409);
       }
     } catch (_) {
-      // Cache unavailable — proceed on the timestamp window alone.
+      // Cache unavailable — proceed.
     }
   }
 
-  const sessionWallet = wallet.toLowerCase();
   const me = await User.findOne({ where: { wallet_address: sessionWallet } });
   if (!me) {
-    return { ok: false, code: "USER_NOT_FOUND", httpStatus: 404, message: "User not found" };
+    return reject("USER_NOT_FOUND", "User not found", 404);
   }
 
   // A wallet may only back one profile. Postgres cannot express uniqueness across two
@@ -112,12 +153,7 @@ async function linkOwnWallet({
     },
   });
   if (conflict) {
-    return {
-      ok: false,
-      code: "WALLET_ALREADY_LINKED",
-      httpStatus: 409,
-      message: "This wallet is already linked to another account",
-    };
+    return reject("WALLET_ALREADY_LINKED", "This wallet is already linked to another account", 409);
   }
 
   await sequelize.transaction(async (t) => {
@@ -127,4 +163,4 @@ async function linkOwnWallet({
   return { ok: true, data: { own_wallet_address: target } };
 }
 
-module.exports = { linkOwnWallet };
+module.exports = { linkOwnWallet, buildLinkWalletMessage };

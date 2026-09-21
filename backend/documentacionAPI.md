@@ -3058,9 +3058,27 @@ enumeración: el correo viene de claims verificados, así que quien llama demost
 ### POST `/api/users/me/wallet`
 
 Vincula la wallet propia del usuario. Requiere firma **de la wallet que se está vinculando**, no
-de la de sesión: eso es lo que prueba que le pertenece. El mensaje firmado debe incluir una línea
-`Timestamp:` (ventana de 5 minutos) y una línea `Nonce:` de un solo uso, para que una firma vieja
-no sirva después.
+de la de sesión: eso es lo que prueba que le pertenece.
+
+**El mensaje firmado tiene que calzar exactamente con esta plantilla**, sin líneas extra ni
+texto adicional:
+
+```
+Link wallet <own_wallet_address> to HackChain account <wallet_de_la_sesion>
+Timestamp: <fecha ISO 8601>
+Nonce: <8 a 64 caracteres [A-Za-z0-9_-]>
+```
+
+Cada parte cumple una función:
+
+| Parte | Por qué está |
+|---|---|
+| `Link wallet ... to HackChain account ...` | Ata la firma a **esta acción** y a **esta cuenta**. Sin esto, una firma pedida por un sitio de phishing, o producida por otro flujo de HackChain que también usa una línea `Timestamp:` como el borrado de cuenta, se podría reutilizar para colgar la wallet de la víctima en la cuenta del atacante |
+| `Timestamp:` | Ventana de 5 minutos. Se toleran 60 segundos de reloj del cliente adelantado |
+| `Nonce:` | Un solo uso: una firma capturada no se puede repetir dentro de la ventana |
+
+`<wallet_de_la_sesion>` es el `wallet_address` del usuario autenticado. Las direcciones pueden ir
+en minúsculas o con checksum.
 
 Vincular una wallet **nunca abre sesión**: es un dato del perfil, no una llave de acceso.
 
@@ -3075,7 +3093,7 @@ Vincular una wallet **nunca abre sesión**: es un dato del perfil, no una llave 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
 | `own_wallet_address` | `string` | ✅ | Dirección EVM a vincular |
-| `message` | `string` | ✅ | Mensaje firmado, con `Timestamp:` y `Nonce:` |
+| `message` | `string` | ✅ | Mensaje firmado, con la plantilla exacta de arriba |
 | `signature` | `string` | ✅ | Firma del mensaje |
 
 **Respuestas**
@@ -3083,8 +3101,8 @@ Vincular una wallet **nunca abre sesión**: es un dato del perfil, no una llave 
 | Código | Descripción |
 |---|---|
 | `200` | Wallet vinculada |
-| `400` | Dirección inválida, o falta el mensaje, la firma o el nonce |
-| `401` | Firma inválida o fuera de la ventana de 5 minutos |
+| `400` | Dirección inválida, falta el mensaje o la firma, o el mensaje no calza con la plantilla (`INVALID_MESSAGE_FORMAT`) |
+| `401` | El mensaje es para otra cuenta (`MESSAGE_ACCOUNT_MISMATCH`) u otra wallet (`MESSAGE_WALLET_MISMATCH`), la firma no es de la wallet que se vincula, o está fuera de la ventana de 5 minutos |
 | `409` | La wallet ya pertenece a otro perfil, o el nonce ya se usó |
 
 Una misma wallet no puede estar vinculada a dos perfiles. Se comprueba tanto contra

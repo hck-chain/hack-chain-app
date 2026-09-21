@@ -19,7 +19,7 @@ const config = require("../harjoot/config");
 const configReferrals = require("../config/referrals");
 const redis = require("../services/redis");
 const privyService = require("../services/privyService");
-const { validateDeletionMessage } = require("../services/issuerService");
+const { ethers } = require("ethers");
 const { linkOwnWallet } = require("../usecases/users/linkOwnWallet");
 const { unlinkOwnWallet } = require("../usecases/users/unlinkOwnWallet");
 const { bindPrivyIdentity } = require("../usecases/users/bindPrivyIdentity");
@@ -238,7 +238,7 @@ router.post("/me/wallet", authenticate, async (req, res) => {
   try {
     const result = await linkOwnWallet({
       models: { User, sequelize },
-      validateSignedMessage: validateDeletionMessage,
+      recoverSigner: (message, signature) => ethers.verifyMessage(message, signature),
       redis,
       wallet: req.auth.wallet,
       ownWalletAddress: req.body.own_wallet_address,

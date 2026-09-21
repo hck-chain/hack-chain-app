@@ -6,6 +6,8 @@ const bodyParser = require("body-parser");
 const request = require("supertest");
 const SequelizePkg = require("sequelize");
 const crypto = require("crypto");
+const { ethers } = require("ethers");
+const { buildLinkWalletMessage } = require("../usecases/users/linkOwnWallet");
 
 jest.setTimeout(20000);
 
@@ -68,9 +70,6 @@ describe("Privy routes", () => {
         verifyRefreshToken: () => ({}),
         getUserFromToken: async () => null,
       }));
-      jest.doMock("../services/issuerService", () => ({
-        validateDeletionMessage: jest.fn().mockReturnValue({ ok: true }),
-      }));
 
       const usersRoute = require("../routes/users");
       app = express();
@@ -95,13 +94,36 @@ describe("Privy routes", () => {
     await sequelize.close();
   });
 
+  async function signedLink({ account = SESSION_WALLET } = {}) {
+    const signer = ethers.Wallet.createRandom();
+    const message = buildLinkWalletMessage({
+      ownWallet: signer.address,
+      account,
+      timestamp: new Date().toISOString(),
+      nonce: crypto.randomBytes(12).toString("hex"),
+    });
+    return {
+      own_wallet_address: signer.address,
+      message,
+      signature: await signer.signMessage(message),
+    };
+  }
+
   it("matches /me/wallet as its own route, not as a wallet address", async () => {
-    const res = await request(app)
-      .post("/api/users/me/wallet")
-      .send({ own_wallet_address: OWN_WALLET, message: "Nonce: n1", signature: "0xsig" });
+    const body = await signedLink();
+    const res = await request(app).post("/api/users/me/wallet").send(body);
 
     expect(res.status).toBe(200);
-    expect(res.body.own_wallet_address).toBe(OWN_WALLET);
+    expect(res.body.own_wallet_address).toBe(body.own_wallet_address.toLowerCase());
+  });
+
+  it("rejects a link signature bound to another account", async () => {
+    const body = await signedLink({ account: "0x" + "99".repeat(20) });
+    const res = await request(app).post("/api/users/me/wallet").send(body);
+
+    expect(res.status).toBe(401);
+    const user = await models.User.findOne({ where: { wallet_address: SESSION_WALLET } });
+    expect(user.own_wallet_address).toBeNull();
   });
 
   it("requires a session on POST /me/wallet", async () => {
