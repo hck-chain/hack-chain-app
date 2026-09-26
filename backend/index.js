@@ -73,7 +73,7 @@ app.use(helmet({
     directives: {
       defaultSrc:     ["'self'"],
       // unsafe-eval requerido por WalletConnect/AppKit internamente
-      scriptSrc:      ["'self'", "'unsafe-eval'", "https://*.reown.com", "https://*.walletconnect.com"],
+      scriptSrc:      ["'self'", "'unsafe-eval'", "https://*.reown.com", "https://*.walletconnect.com", "https://*.privy.io"],
       styleSrc:       ["'self'", "'unsafe-inline'"],
       imgSrc:         ["'self'", "data:", "blob:", "https://gateway.pinata.cloud", "https://*.reown.com", "https://*.walletconnect.com"],
       fontSrc:        ["'self'", "data:"],
@@ -88,9 +88,13 @@ app.use(helmet({
         "https://polygon-rpc.com",
         "https://rpc.ankr.com",
         "https://www.hackchain.app",
+        // Privy SDK: auth API plus the key-export/embedded-wallet iframes.
+        "https://auth.privy.io",
+        "https://*.privy.io",
+        "wss://*.privy.io",
         ...(process.env.NODE_ENV !== "production" ? ["http://localhost:8080", "http://localhost:3001"] : []),
       ],
-      frameSrc:       ["'self'", "https://*.reown.com", "https://*.walletconnect.com"],
+      frameSrc:       ["'self'", "https://*.reown.com", "https://*.walletconnect.com", "https://auth.privy.io", "https://*.privy.io"],
       workerSrc:      ["'self'", "blob:"],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],

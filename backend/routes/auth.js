@@ -16,6 +16,12 @@ const { Op } = require('sequelize');
 const { cacheSession, deleteSession, getRedis } = require("../services/redis");
 const { RedisStore } = require("rate-limit-redis");
 const { sendVerificationEmail } = require("../services/emailService");
+const buildRateLimitStore = require("../lib/rateLimitStore");
+const db = require("../models");
+const privyService = require("../services/privyService");
+const { authorizeIssuer } = require("../services/authorizeIssuer");
+const { authenticateWithPrivy } = require("../usecases/auth/authenticateWithPrivy");
+const { completeRegistration } = require("../usecases/auth/completeRegistration");
 require("dotenv").config();
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
@@ -371,6 +377,141 @@ router.post("/refresh", async (req, res) => {
     return res.json({ message: "Token refreshed" });
   } catch (err) {
     console.error("refresh error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Privy authentication
+//
+// Privy is only an identity source at the login boundary: once a user is resolved,
+// the session it gets is the same JWT + UserSession + Redis session the wallet login
+// issues, with the same { sub, role, wallet } payload. Nothing downstream changes.
+// POST /login stays available until every existing user has migrated.
+// ---------------------------------------------------------------------------
+
+const REGISTRATION_TOKEN_TTL = "10m";
+const REGISTRATION_TOKEN_PURPOSE = "privy_registration";
+
+const privyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts, slow down" },
+  store: buildRateLimitStore("/api/auth/privy"),
+});
+
+const signRegistrationToken = (did) =>
+  jwt.sign({ did, purpose: REGISTRATION_TOKEN_PURPOSE }, process.env.JWT_SECRET, {
+    expiresIn: REGISTRATION_TOKEN_TTL,
+  });
+
+function verifyRegistrationToken(token) {
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    if (payload.purpose !== REGISTRATION_TOKEN_PURPOSE || !payload.did) return null;
+    return payload.did;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Issues the same session the wallet login issues. Kept local to the Privy endpoints so
+ * the existing login path is not touched by this change.
+ */
+async function issuePrivySession(res, user) {
+  const walletAddress = user.wallet_address.toLowerCase();
+  const payload = { sub: user.id, role: user.role, wallet: walletAddress };
+  const token = signToken(payload);
+
+  await UserSession.destroy({ where: { wallet_address: walletAddress } });
+  await UserSession.create({
+    id: crypto.randomUUID(),
+    wallet_address: walletAddress,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
+
+  const accessTtl = Math.floor((new Date(jwt.decode(token).exp * 1000) - Date.now()) / 1000);
+  await cacheSession(walletAddress, accessTtl);
+
+  setAuthCookies(res, token, signRefreshToken(payload));
+
+  return {
+    id: user.id,
+    email: user.email || null,
+    role: user.role,
+    wallet_address: walletAddress,
+    integrated_wallet_address: user.integrated_wallet_address || null,
+    own_wallet_address: user.own_wallet_address || null,
+  };
+}
+
+router.post("/privy", privyLimiter, async (req, res) => {
+  try {
+    const result = await authenticateWithPrivy({
+      models: { User },
+      privyService,
+      signRegistrationToken,
+      accessToken: req.body.access_token,
+    });
+
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+
+    if (result.data.status === "registration_required") {
+      // 200, not 401: the caller has a valid Privy session, they just have no profile.
+      return res.json({
+        status: "registration_required",
+        registration_token: result.data.registration_token,
+      });
+    }
+
+    const user = await issuePrivySession(res, result.data.user);
+    return res.json({ message: "Authenticated", status: "authenticated", user });
+  } catch (err) {
+    console.error("POST /api/auth/privy error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/complete-registration", privyLimiter, async (req, res) => {
+  try {
+    const did = verifyRegistrationToken(req.body.registration_token);
+    if (!did) {
+      return res.status(401).json({ error: "Invalid or expired registration token" });
+    }
+
+    const result = await completeRegistration({
+      models: db,
+      privyService,
+      authorizeIssuer,
+      did,
+      identityToken: req.body.identity_token,
+      role: req.body.role,
+      fields: {
+        name: req.body.name,
+        lastname: req.body.lastname,
+        organization_name: req.body.organization_name,
+        company_name: req.body.company_name,
+        field_of_study: req.body.field_of_study,
+      },
+    });
+
+    if (!result.ok) {
+      if (result.code === "WALLET_NOT_READY") res.set("Retry-After", "2");
+      return res
+        .status(result.httpStatus)
+        .json({ error: result.message, code: result.code, ...(result.data || {}) });
+    }
+
+    const user = await issuePrivySession(res, result.data.user);
+    return res.status(result.data.alreadyRegistered ? 200 : 201).json({
+      message: "Registration complete",
+      user,
+    });
+  } catch (err) {
+    console.error("POST /api/auth/complete-registration error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

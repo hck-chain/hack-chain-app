@@ -499,4 +499,67 @@ router.patch(
   }
 );
 
+// Privy migration tracking. Read-only aggregate, so it stays inline rather than
+// becoming a usecase. Existing users are few and are migrated one by one, so this
+// is the list used to chase whoever has not linked their identity yet.
+router.get(
+  "/migration-status",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [
+    query("migrated").optional().isIn(["true", "false"]),
+    query("page").optional().isInt({ min: 1 }).toInt(),
+    query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+
+    try {
+      // express-validator's .toInt() cannot mutate req.query in Express 5 (it is a getter),
+      // so these arrive as strings and have to be coerced here.
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 50;
+
+      const where = {};
+      if (req.query.migrated === "true") where.privy_did = { [db.Sequelize.Op.ne]: null };
+      if (req.query.migrated === "false") where.privy_did = null;
+
+      const [migrated, total, rows] = await Promise.all([
+        db.User.count({ where: { privy_did: { [db.Sequelize.Op.ne]: null } } }),
+        db.User.count(),
+        db.User.findAll({
+          where,
+          attributes: [
+            "id", "wallet_address", "integrated_wallet_address", "own_wallet_address",
+            "email", "role", "privy_did", "created_at",
+          ],
+          order: [["created_at", "ASC"]],
+          offset: (page - 1) * limit,
+          limit,
+        }),
+      ]);
+
+      return res.json({
+        summary: { total, migrated, pending: total - migrated },
+        page,
+        limit,
+        users: rows.map((u) => ({
+          id: u.id,
+          wallet_address: u.wallet_address,
+          integrated_wallet_address: u.integrated_wallet_address,
+          own_wallet_address: u.own_wallet_address,
+          email: u.email,
+          role: u.role,
+          migrated: Boolean(u.privy_did),
+          created_at: u.created_at,
+        })),
+      });
+    } catch (err) {
+      console.error("GET /api/admin/migration-status error:", err);
+      return res.status(500).json({ error: "Failed to load migration status" });
+    }
+  }
+);
+
 module.exports = router;

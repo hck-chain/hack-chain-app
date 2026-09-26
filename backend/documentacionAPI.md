@@ -2933,3 +2933,307 @@ Incluye los certificados compartidos por cada talento con su enlace de comprobac
 - El campo `area` es el único `ENUM` real de Postgres del backend (el resto del repo usa
   `STRING` + `validate.isIn` para evitar `ALTER TYPE`); sumar un área nueva sí requiere una
   migración con `ALTER TYPE`.
+
+---
+
+## Privy Endpoints (auth.js, users.js, admin.js)
+
+Privy es la capa de identidad: el usuario entra con Google, Apple o correo y Privy le crea
+automáticamente una wallet embebida, sin exigirle instalar ni conectar nada. La wallet propia
+deja de ser requisito de acceso y queda como dato del perfil, para $HACK.
+
+Privy actúa **solo en la frontera del login**. Una vez resuelto quién es el usuario, la sesión
+que recibe es exactamente la misma de siempre: el JWT `{ sub, role, wallet }` en cookies
+`httpOnly`, su fila en `user_sessions` y su clave en Redis. Nada aguas abajo cambia.
+`POST /api/auth/login` (firma de wallet) sigue disponible hasta que todos los usuarios migren.
+
+**Los dos tokens de Privy.** Ambos se verifican offline contra la clave pública ES256 de la app,
+así que ninguna petición sale hacia Privy en el camino del login y el app secret no hace falta:
+
+| Token | De dónde sale | Para qué lo usa el backend |
+|---|---|---|
+| `access_token` | SDK de Privy en el cliente | Probar que quien llama controla una cuenta de Privy; devuelve el DID |
+| `identity_token` | cookie `privy-id-token` | Obtener el objeto de usuario firmado: correo y wallet embebida |
+
+**Las tres columnas de wallet en `users`.** Conviene no confundirlas:
+
+| Columna | Qué es |
+|---|---|
+| `wallet_address` | Clave técnica de identidad. Inmutable, nunca nula, y clave foránea de todo el sistema. En un usuario nuevo es su wallet embebida; en uno anterior a Privy sigue siendo la suya de siempre |
+| `integrated_wallet_address` | La wallet embebida que crea Privy. Es la que custodia los certificados de los usuarios nuevos |
+| `own_wallet_address` | La wallet propia del usuario, donde viven los $HACK. Nunca sirve para iniciar sesión |
+
+---
+
+### POST `/api/auth/privy`
+
+Resuelve una sesión de Privy a un usuario de HackChain. Si el DID ya tiene perfil, abre sesión.
+Si no lo tiene, **no es un error**: quien llama demostró controlar la cuenta de Privy, solo que
+todavía no se registró, así que responde `200` pidiendo que complete el registro.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `access_token` | `string` | ✅ | Access token de Privy |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Autenticado, o `registration_required` si el DID no tiene perfil |
+| `400` | Falta `access_token` |
+| `401` | Token de Privy inválido o expirado |
+| `403` | La cuenta está deshabilitada |
+
+**Ejemplo de respuesta — usuario existente**
+
+```json
+{
+  "message": "Authenticated",
+  "status": "authenticated",
+  "user": {
+    "id": 12,
+    "email": "talento@hackchain.app",
+    "role": "student",
+    "wallet_address": "0xabc...",
+    "integrated_wallet_address": "0xabc...",
+    "own_wallet_address": null
+  }
+}
+```
+
+**Ejemplo de respuesta — falta registrarse**
+
+```json
+{
+  "status": "registration_required",
+  "registration_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+El `registration_token` es un JWT propio, de 10 minutos, que lleva el DID ya verificado. Existe
+para que `complete-registration` nunca tenga que confiar en un DID mandado en el body.
+
+---
+
+### POST `/api/auth/complete-registration`
+
+Crea el `User` y el perfil del rol, en una transacción. El correo y la dirección de la wallet
+embebida **se leen del `identity_token` firmado por Privy**, nunca del body.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `registration_token` | `string` | ✅ | El que devolvió `POST /api/auth/privy` |
+| `identity_token` | `string` | ✅ | Identity token de Privy |
+| `role` | `string` | ✅ | `student`, `issuer` o `recruiter` |
+| `name` | `string` | Según rol | Requerido para `student` y `recruiter`. Máx 50 |
+| `lastname` | `string` | Según rol | Requerido para `student` y `recruiter`. Máx 50 |
+| `organization_name` | `string` | Según rol | Requerido para `issuer`. Máx 255 |
+| `company_name` | `string` | Según rol | Requerido para `recruiter`. Máx 255 |
+| `field_of_study` | `string` | ❌ | Opcional para `student` |
+
+Reintentar es seguro: si ya existe una fila para ese DID devuelve `200` con el usuario existente
+en vez de fallar por unicidad.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `201` | Registro creado |
+| `200` | Ya estaba registrado (reintento) |
+| `400` | Rol inválido, faltan campos del rol, o la cuenta de Privy no tiene correo |
+| `401` | `registration_token` inválido o expirado, o el `identity_token` es de otro DID |
+| `409` | `ACCOUNT_EXISTS` (el correo ya tiene cuenta) o la wallet ya está registrada |
+| `503` | `WALLET_NOT_READY`: Privy todavía no aprovisionó la wallet embebida. Trae `Retry-After`; reintentar con un `identity_token` fresco |
+
+Con `ACCOUNT_EXISTS` la respuesta incluye `login_method` (`privy` o `wallet`) para poder decirle
+al usuario con qué método entrar, en vez de crearle un perfil duplicado. No es un oráculo de
+enumeración: el correo viene de claims verificados, así que quien llama demostrablemente lo controla.
+
+---
+
+### POST `/api/users/me/wallet`
+
+Vincula la wallet propia del usuario. Requiere firma **de la wallet que se está vinculando**, no
+de la de sesión: eso es lo que prueba que le pertenece.
+
+**El mensaje firmado tiene que calzar exactamente con esta plantilla**, sin líneas extra ni
+texto adicional:
+
+```
+Link wallet <own_wallet_address> to HackChain account <wallet_de_la_sesion>
+Timestamp: <fecha ISO 8601>
+Nonce: <8 a 64 caracteres [A-Za-z0-9_-]>
+```
+
+Cada parte cumple una función:
+
+| Parte | Por qué está |
+|---|---|
+| `Link wallet ... to HackChain account ...` | Ata la firma a **esta acción** y a **esta cuenta**. Sin esto, una firma pedida por un sitio de phishing, o producida por otro flujo de HackChain que también usa una línea `Timestamp:` como el borrado de cuenta, se podría reutilizar para colgar la wallet de la víctima en la cuenta del atacante |
+| `Timestamp:` | Ventana de 5 minutos. Se toleran 60 segundos de reloj del cliente adelantado |
+| `Nonce:` | Un solo uso: una firma capturada no se puede repetir dentro de la ventana |
+
+`<wallet_de_la_sesion>` es el `wallet_address` del usuario autenticado. Las direcciones pueden ir
+en minúsculas o con checksum.
+
+Vincular una wallet **nunca abre sesión**: es un dato del perfil, no una llave de acceso.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <access_token>` |
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `own_wallet_address` | `string` | ✅ | Dirección EVM a vincular |
+| `message` | `string` | ✅ | Mensaje firmado, con la plantilla exacta de arriba |
+| `signature` | `string` | ✅ | Firma del mensaje |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Wallet vinculada |
+| `400` | Dirección inválida, falta el mensaje o la firma, o el mensaje no calza con la plantilla (`INVALID_MESSAGE_FORMAT`) |
+| `401` | El mensaje es para otra cuenta (`MESSAGE_ACCOUNT_MISMATCH`) u otra wallet (`MESSAGE_WALLET_MISMATCH`), la firma no es de la wallet que se vincula, o está fuera de la ventana de 5 minutos |
+| `409` | La wallet ya pertenece a otro perfil, o el nonce ya se usó |
+
+Una misma wallet no puede estar vinculada a dos perfiles. Se comprueba tanto contra
+`own_wallet_address` como contra `wallet_address` de otras cuentas, excluyendo la propia fila:
+un usuario anterior a Privy sí puede declarar como propia la wallet con la que ya entraba.
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{ "own_wallet_address": "0x2222..." }
+```
+
+---
+
+### DELETE `/api/users/me/wallet`
+
+Desvincula la wallet propia. No pide firma: borrar un dato del perfil no puede dejar a nadie
+fuera de su cuenta, y la sesión ya prueba quién es.
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Wallet desvinculada |
+| `409` | No había ninguna wallet vinculada |
+
+---
+
+### POST `/api/users/me/link-privy`
+
+Endpoint de migración para los usuarios que ya existían. El usuario entra una última vez con su
+wallet, como siempre, vincula su correo o su cuenta de Google **desde el cliente** (`linkEmail` /
+`linkGoogle` del SDK de React) y manda el `identity_token` resultante. El backend lo verifica y
+guarda el `privy_did` en su fila. A partir de ahí, entrar por Privy lo lleva a ese mismo perfil,
+con su historial y sus certificados intactos.
+
+> El nombre dice `link-privy` y no `link-email` a propósito: vincular un correo ocurre en el SDK
+> del cliente, no hay API de servidor para hacerlo. Lo único que hace el backend es asociar la
+> identidad de Privy a la cuenta que ya existe.
+
+**`wallet_address` no se toca.** Los certificados de ese usuario están minteados on-chain en esa
+dirección y tienen que seguir siendo válidos y visibles. La wallet embebida se guarda al lado, en
+`integrated_wallet_address`.
+
+**Body**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `identity_token` | `string` | ✅ | Identity token de Privy |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Identidad vinculada (o ya lo estaba, con el mismo DID) |
+| `400` | Falta `identity_token` |
+| `401` | Token de Privy inválido o expirado |
+| `409` | La cuenta ya está atada a otro DID, o ese DID ya pertenece a otra cuenta |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "privy_did": "did:privy:abc123",
+  "integrated_wallet_address": "0x4444...",
+  "alreadyBound": false
+}
+```
+
+---
+
+### GET `/api/admin/migration-status`
+
+Lista quién ya migró y quién falta. Los usuarios anteriores a Privy son pocos y se acompañan uno
+por uno, así que esta es la lista con la que se persigue a quien todavía no vinculó su identidad.
+
+**Headers**
+
+| Header | Valor |
+|---|---|
+| `Authorization` | `Bearer <access_token>` de una wallet en `ADMIN_WALLETS` |
+
+**Query**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `migrated` | `string` | ❌ | `true` o `false` para filtrar |
+| `page` | `number` | ❌ | Default 1 |
+| `limit` | `number` | ❌ | Default 50, máx 100 |
+
+**Respuestas**
+
+| Código | Descripción |
+|---|---|
+| `200` | Listado |
+| `401` | Sin sesión |
+| `403` | La wallet no es de administrador |
+
+**Ejemplo de respuesta exitosa**
+
+```json
+{
+  "summary": { "total": 42, "migrated": 17, "pending": 25 },
+  "page": 1,
+  "limit": 50,
+  "users": [
+    {
+      "id": 3,
+      "wallet_address": "0xabc...",
+      "integrated_wallet_address": null,
+      "own_wallet_address": null,
+      "email": "educador@hackchain.app",
+      "role": "issuer",
+      "migrated": false,
+      "created_at": "2026-05-02T10:12:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### Notas generales
+
+- Las tres columnas nuevas llevan índice único **parcial** (`WHERE ... IS NOT NULL`), porque
+  quedan nulas hasta que el usuario vincula su identidad o conecta una wallet y esos nulos no
+  deben chocar entre sí.
+- Las wallets embebidas son EOA, no smart wallets. Eso mantiene válido `ethers.verifyMessage` en
+  todos los flujos de firma: el login por wallet y la confirmación de borrado de cuenta siguen
+  funcionando sin necesidad de soportar EIP-1271.
+- Eliminar la cuenta no cambió: sigue pidiendo firma de `wallet_address`. Una wallet embebida
+  puede firmar ese mensaje igual que una externa; lo único distinto es que el diálogo lo abre
+  Privy en vez de MetaMask.
+- `PRIVY_USE_MOCK=true` permite levantar el backend y correr los tests sin credenciales reales.
