@@ -17,6 +17,12 @@ const { getAdminEmails } = require("../services/adminService");
 const { attachReferralOnRegister } = require("../usecases/referrals/attachReferralOnRegister");
 const config = require("../harjoot/config");
 const configReferrals = require("../config/referrals");
+const redis = require("../services/redis");
+const privyService = require("../services/privyService");
+const { ethers } = require("ethers");
+const { linkOwnWallet } = require("../usecases/users/linkOwnWallet");
+const { unlinkOwnWallet } = require("../usecases/users/unlinkOwnWallet");
+const { bindPrivyIdentity } = require("../usecases/users/bindPrivyIdentity");
 
 const isValidEthAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
@@ -222,6 +228,60 @@ router.post("/register", registerLimiter, async (req, res) => {
 });
 
 // GET /api/users/:wallet_address
+// ---------------------------------------------------------------------------
+// Own wallet ($HACK) and Privy identity binding.
+//
+// These MUST stay above GET /:wallet_address or Express matches "me" as a wallet.
+// ---------------------------------------------------------------------------
+
+router.post("/me/wallet", authenticate, async (req, res) => {
+  try {
+    const result = await linkOwnWallet({
+      models: { User, sequelize },
+      recoverSigner: (message, signature) => ethers.verifyMessage(message, signature),
+      redis,
+      wallet: req.auth.wallet,
+      ownWalletAddress: req.body.own_wallet_address,
+      message: req.body.message,
+      signature: req.body.signature,
+    });
+
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("POST /api/users/me/wallet error:", err);
+    return res.status(500).json({ error: "Failed to link wallet" });
+  }
+});
+
+router.delete("/me/wallet", authenticate, async (req, res) => {
+  try {
+    const result = await unlinkOwnWallet({ models: { User }, wallet: req.auth.wallet });
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("DELETE /api/users/me/wallet error:", err);
+    return res.status(500).json({ error: "Failed to unlink wallet" });
+  }
+});
+
+router.post("/me/link-privy", authenticate, async (req, res) => {
+  try {
+    const result = await bindPrivyIdentity({
+      models: { User },
+      privyService,
+      wallet: req.auth.wallet,
+      identityToken: req.body.identity_token,
+    });
+
+    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    return res.json(result.data);
+  } catch (err) {
+    console.error("POST /api/users/me/link-privy error:", err);
+    return res.status(500).json({ error: "Failed to link Privy identity" });
+  }
+});
+
 router.get("/:wallet_address", authenticate, async (req, res) => {
   try {
     const { wallet_address } = req.params;
