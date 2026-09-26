@@ -24,6 +24,7 @@
   "dependencies": {
     "@api/opensea": "file:.api/apis/opensea",
     "@neondatabase/serverless": "^1.0.1",
+    "@privy-io/node": "^0.34.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
