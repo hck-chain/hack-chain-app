@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Lock } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Lock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,6 +19,17 @@ import {
 } from "@/types/vacancy";
 import { LABELS } from "./JobPrimitives";
 
+function getDefaultClosingDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 30);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 const empty: VacancyPayload = {
   position: "",
   company: "",
@@ -32,7 +43,7 @@ const empty: VacancyPayload = {
   salary_period: "mes",
   description: "",
   requirements: [],
-  closing_date: "",
+  closing_date: getDefaultClosingDate(),
 };
 
 function createInitialForm(vacancy?: Vacancy): VacancyPayload {
@@ -76,6 +87,9 @@ export function VacancyForm({
     createInitialForm(vacancy).requirements.join("\n"),
   );
 
+  const [closingDateError, setClosingDateError] = useState("");
+  const closingDateRef = useRef<HTMLInputElement>(null);
+
   const hasApplications = (vacancy?.applications_count ?? 0) > 0;
 
   useEffect(() => {
@@ -90,8 +104,38 @@ export function VacancyForm({
       ...current,
       [key]: value,
     }));
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    setClosingDateError("");
+
+    if (form.closing_date) {
+      const [year, month, day] = form.closing_date.split("-").map(Number);
+
+      const closingDate = new Date(year, month - 1, day);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const minClosingDate = new Date(today);
+      minClosingDate.setDate(today.getDate() + 7);
+
+      const maxClosingDate = new Date(today);
+      maxClosingDate.setDate(today.getDate() + 90);
+
+      if (closingDate < minClosingDate || closingDate > maxClosingDate) {
+        setClosingDateError(t("vacancyRecruiter.closingDateRangeError"));
+
+        closingDateRef.current?.scrollIntoView?.({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        closingDateRef.current?.focus();
+        return;
+      }
+    }
 
     const requirements = requirementsText
       .split("\n")
@@ -177,12 +221,34 @@ export function VacancyForm({
           onChange={(value) => set("modality", value)}
         />
 
-        <Field
-          label={t("vacancyRecruiter.fields.closingDate")}
-          type="date"
-          value={form.closing_date ?? ""}
-          onChange={(value) => set("closing_date", value)}
-        />
+        <div>
+          <Field
+            label={t("vacancyRecruiter.fields.closingDate")}
+            type="date"
+            value={form.closing_date ?? ""}
+            error={!!closingDateError}
+            inputRef={closingDateRef}
+            onChange={(value) => {
+              set("closing_date", value);
+              setClosingDateError("");
+            }}
+          />
+
+          {closingDateError && (
+            <div
+              className="
+                mt-2 flex items-start gap-2 rounded-lg
+                border border-red-400/20
+                bg-red-500/5
+                px-3 py-2
+                text-sm text-red-300
+              "
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+              <p>{closingDateError}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -333,6 +399,8 @@ function Field({
   type = "text",
   required = false,
   disabled = false,
+  error = false,
+  inputRef,
 }: {
   label: string;
   value: string;
@@ -340,21 +408,24 @@ function Field({
   type?: string;
   required?: boolean;
   disabled?: boolean;
+  error?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <label className="block text-sm" style={{ color: P.textSecondary }}>
       {label}
 
       <input
+        ref={inputRef}
         required={required}
         disabled={disabled}
         type={type}
         className="mt-2 min-h-11 w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
         style={{
-          borderColor: P.border,
+          borderColor: error ? "#f87171" : P.border,
           backgroundColor: P.surface,
           color: P.textPrimary,
-          outlineColor: P.borderFocus,
+          outlineColor: error ? "#f87171" : P.borderFocus,
         }}
         value={value}
         onChange={(event) => onChange(event.target.value)}

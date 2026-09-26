@@ -1253,6 +1253,7 @@
   "applications": "{{count}} postulaciones",
   "editingVacancy": "Estás editando esta vacante.",
   "salaryLocked": "Esta vacante ya tiene postulaciones. El salario no puede modificarse.",
+  "closingDateRangeError": "La fecha de cierre debe estar entre 7 y 90 días a partir de hoy.",
     "fields": {
     "position": "Puesto",
     "company": "Empresa",
