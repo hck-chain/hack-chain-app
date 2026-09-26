@@ -12,3 +12,6 @@ PRODUCT.md
 /documents
 *:Zone.Identifier
 *:Zone.Identifier
+
+# Database dumps — contain real user data (PII, password hashes), never commit
+*.dump
