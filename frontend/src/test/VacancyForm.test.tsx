@@ -50,6 +50,9 @@ vi.mock("lucide-react", () => ({
   Lock: (props: React.HTMLAttributes<HTMLSpanElement>) => (
     <span data-testid="lock-icon" {...props} />
   ),
+  AlertCircle: (props: React.HTMLAttributes<HTMLSpanElement>) => (
+    <span data-testid="alert-circle-icon" {...props} />
+  ),
 }));
 
 vi.mock("@/components/ui/button", () => ({
@@ -160,6 +163,15 @@ vi.mock("@/components/jobs/JobPrimitives", () => ({
 /* Test data                                                                  */
 /* -------------------------------------------------------------------------- */
 
+const getFutureDate = (daysFromNow: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+
+  return date.toISOString().split("T")[0];
+};
+
+
+
 const vacancy: Vacancy = {
   id: "v1",
   slug: "frontend-engineer",
@@ -173,8 +185,8 @@ const vacancy: Vacancy = {
   salary_max: "2000",
   salary_currency: "USD",
   salary_period: "mes",
-  closing_date: "2026-10-01",
-  days_to_close: 21,
+  closing_date: getFutureDate(30),
+  days_to_close: 30,
   status: "abierta",
   published_at: "2026-09-01",
   description: "Construir interfaces modernas.",
@@ -200,7 +212,16 @@ describe("VacancyForm", () => {
 
     expect(screen.getByLabelText("Puesto")).toHaveValue("");
     expect(screen.getByLabelText("Empresa")).toHaveValue("");
-    expect(screen.getByLabelText("Fecha de cierre")).toHaveValue("");
+    const expectedClosingDate = new Date();
+    expectedClosingDate.setDate(expectedClosingDate.getDate() + 30);
+
+    const year = expectedClosingDate.getFullYear();
+    const month = String(expectedClosingDate.getMonth() + 1).padStart(2, "0");
+    const day = String(expectedClosingDate.getDate()).padStart(2, "0");
+
+    expect(screen.getByLabelText("Fecha de cierre")).toHaveValue(
+      `${year}-${month}-${day}`,
+    );
 
     expect(screen.getByLabelText("Salario mínimo")).toHaveValue(0);
     expect(screen.getByLabelText("Salario máximo")).toHaveValue(0);
@@ -235,7 +256,9 @@ describe("VacancyForm", () => {
 
     expect(screen.getByLabelText("Moneda")).toHaveValue("USD");
 
-    expect(screen.getByLabelText("Fecha de cierre")).toHaveValue("2026-10-01");
+    expect(screen.getByLabelText("Fecha de cierre")).toHaveValue(
+      vacancy.closing_date,
+    );
 
     expect(screen.getByLabelText("Descripción")).toHaveValue(
       "Construir interfaces modernas.",
@@ -302,7 +325,7 @@ describe("VacancyForm", () => {
     await user.type(requirements, "React\n TypeScript \n\n JavaScript");
     fireEvent.change(screen.getByLabelText("Fecha de cierre"), {
       target: {
-        value: "2026-10-15",
+        value: getFutureDate(30),
       },
     });
 
@@ -320,7 +343,7 @@ describe("VacancyForm", () => {
       position: "Frontend Developer",
       company: "HackChain",
       description: "Descripción de prueba",
-      closing_date: "2026-10-15",
+      closing_date: getFutureDate(30),
       requirements: ["React", "TypeScript", "JavaScript"],
     });
   });
@@ -413,7 +436,7 @@ describe("VacancyForm", () => {
       city: "Ciudad de México",
       description: "Construir interfaces modernas.",
       requirements: ["React", "TypeScript"],
-      closing_date: "2026-10-01",
+      closing_date: vacancy.closing_date,
     });
 
     expect(payload).not.toHaveProperty("salary_min");

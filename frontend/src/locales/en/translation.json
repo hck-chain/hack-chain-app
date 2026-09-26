@@ -1255,6 +1255,7 @@
   "applications": "{{count}} applications",
   "editingVacancy": "You are editing this vacancy.",
   "salaryLocked": "This vacancy already has applications. The salary cannot be modified.",
+  "closingDateRangeError": "The closing date must be between 7 and 90 days from today.",
   "fields": {
     "position": "Position",
     "company": "Company",
