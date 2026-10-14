@@ -268,13 +268,16 @@ router.delete("/me/wallet", authenticate, async (req, res) => {
 router.post("/me/link-privy", authenticate, async (req, res) => {
   try {
     const result = await bindPrivyIdentity({
-      models: { User },
+      models: { User, sequelize },
       privyService,
       wallet: req.auth.wallet,
       identityToken: req.body.identity_token,
     });
 
-    if (!result.ok) return res.status(result.httpStatus).json({ error: result.message });
+    // The code lets the client tell the different 409s apart without parsing the message.
+    if (!result.ok) {
+      return res.status(result.httpStatus).json({ error: result.message, code: result.code });
+    }
     return res.json(result.data);
   } catch (err) {
     console.error("POST /api/users/me/link-privy error:", err);
