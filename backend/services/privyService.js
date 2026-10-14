@@ -122,10 +122,13 @@ async function verifyIdentityToken(identityToken) {
   );
   const emailAccount = accounts.find((account) => account.type === "email");
   const googleAccount = accounts.find((account) => account.type === "google_oauth");
+  // Apple's email is optional in Privy and may be a private relay address; a null here
+  // makes complete-registration answer EMAIL_REQUIRED, same as any other method.
+  const appleAccount = accounts.find((account) => account.type === "apple_oauth");
 
   return {
     did: user.id,
-    email: emailAccount?.address || googleAccount?.email || null,
+    email: emailAccount?.address || googleAccount?.email || appleAccount?.email || null,
     embeddedWallet: embedded?.address ? embedded.address.toLowerCase() : null,
   };
 }
