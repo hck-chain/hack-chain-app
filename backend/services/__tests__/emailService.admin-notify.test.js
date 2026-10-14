@@ -127,6 +127,57 @@ describe("notifyAdminEducatorReapply", () => {
 });
 
 // ---------------------------------------------------------------------------
+// The applicant types these fields themselves, so they must reach the admins' mail
+// client as text, never as markup (otherwise an applicant could put a link of their
+// choice inside an email that looks like it comes from the platform).
+// ---------------------------------------------------------------------------
+
+describe.each([
+  ["notifyAdminNewEducator", notifyAdminNewEducator],
+  ["notifyAdminEducatorReapply", notifyAdminEducatorReapply],
+])("%s escapes applicant-supplied HTML", (_name, notify) => {
+  const HOSTILE = {
+    name: "<img src=x onerror=alert(1)>",
+    organization: '<a href="https://evil.test/approve">Aprobar ahora</a>',
+    email: 'x@y.z"><script>alert(1)</script>',
+    wallet: "0x" + "aa".repeat(20),
+  };
+
+  test("the html body contains no raw tags from those fields", async () => {
+    await notify({ to: SINGLE, ...HOSTILE });
+    const { html } = mockSend.mock.calls[0][0];
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).not.toContain('<a href="https://evil.test');
+    expect(html).not.toContain("<script>alert(1)");
+  });
+
+  test("the text is kept visible, escaped", async () => {
+    await notify({ to: SINGLE, ...HOSTILE });
+    const { html } = mockSend.mock.calls[0][0];
+
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+    expect(html).toContain("&lt;a href=&quot;https://evil.test/approve&quot;&gt;Aprobar ahora&lt;/a&gt;");
+  });
+
+  test("ordinary values, including accents, still render", async () => {
+    await notify({ to: SINGLE, ...PAYLOAD });
+    const { html } = mockSend.mock.calls[0][0];
+
+    expect(html).toContain("Ana García");
+    expect(html).toContain("HackAcademy");
+    expect(html).toContain("ana@university.edu");
+  });
+
+  test("empty fields fall back to a dash", async () => {
+    await notify({ to: SINGLE, name: null, organization: null, email: null, wallet: PAYLOAD.wallet });
+    const { html } = mockSend.mock.calls[0][0];
+
+    expect(html).toContain("—");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Both functions use the same resend FROM address
 // ---------------------------------------------------------------------------
 
