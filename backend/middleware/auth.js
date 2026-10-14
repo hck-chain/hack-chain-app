@@ -113,7 +113,23 @@ async function authenticate(req, res, next) {
   }
 }
 
-const USER_INCLUDE = [{ model: User, attributes: ['name', 'email', 'wallet_address', 'email_verified'] }];
+const USER_INCLUDE = [{
+  model: User,
+  attributes: [
+    'name', 'email', 'wallet_address', 'email_verified',
+    'integrated_wallet_address', 'own_wallet_address', 'privy_did', 'created_at',
+  ],
+}];
+
+// privy_did is selected only to derive has_privy: the DID itself is never returned.
+function privyFields(userRow) {
+  return {
+    integrated_wallet_address: userRow?.integrated_wallet_address || null,
+    own_wallet_address: userRow?.own_wallet_address || null,
+    has_privy: Boolean(userRow?.privy_did),
+    created_at: userRow?.created_at || null,
+  };
+}
 
 async function queryIssuer(wallet) {
   const issuer = await Issuer.findOne({ where: { wallet_address: wallet }, include: USER_INCLUDE });
@@ -126,6 +142,7 @@ async function queryIssuer(wallet) {
       organization_name: issuer.organization_name,
       email: issuer.User?.email || issuer.email || null,
       email_verified: issuer.User?.email_verified ?? false,
+      ...privyFields(issuer.User),
     },
   };
 }
@@ -140,6 +157,7 @@ async function queryStudent(wallet) {
       name: student.User?.name,
       email: student.User?.email || null,
       email_verified: student.User?.email_verified ?? false,
+      ...privyFields(student.User),
     },
   };
 }
@@ -155,6 +173,7 @@ async function queryRecruiter(wallet) {
       company_name: recruiter.company_name,
       email: recruiter.User?.email || recruiter.email || null,
       email_verified: recruiter.User?.email_verified ?? false,
+      ...privyFields(recruiter.User),
     },
   };
 }
