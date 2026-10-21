@@ -154,6 +154,31 @@ npx jest backend/routes/__tests__/classRequests.test.js
 npx jest "backend/usecases/classes/__tests__/cancelClassRequest"
 ```
 
+### Verifying link-privy against a real Postgres (not part of CI)
+
+SQLite cannot reproduce the partial unique indexes on `users`, and `link-privy` can take an email away from another account, so that part is also checked against a real Postgres:
+
+```bash
+npm run verify:privy-followup --workspace=backend
+```
+
+It runs 16 checks: the partial indexes (NULLs coexist, duplicates are rejected), the retry that completes a pending wallet, the verified email taking priority over an unverified one, the cases where an email must **not** be taken, an account that gets verified between the check and the write, and the rollback when the write fails halfway.
+
+It needs a **local** Postgres on `localhost:5433` (user `postgres`, password `postgres`, database `hackchain`); change that with `VERIFY_DB_HOST`, `VERIFY_DB_PORT`, `VERIFY_DB_USER`, `VERIFY_DB_PASSWORD` and `VERIFY_DB_NAME`. To get one from scratch:
+
+```bash
+docker run -d --name hackchain-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=hackchain -p 5433:5432 postgres:16
+npm run verify:privy-followup --workspace=backend -- --bootstrap
+```
+
+`--bootstrap` creates the `users` table from the Sequelize model when it does not exist and adds the Privy columns and the four partial unique indexes if they are missing (the same DDL as `migrate-email-unique.js` and `migrate-privy-identity.js`). Without it the script only checks that they are there and tells you which migration to run if not. The table built by `--bootstrap` is the model's view of the schema, not necessarily production's.
+
+Safety:
+
+- It **never reads `DATABASE_URL`, `DATABASE_URL_UNPOOLED` or `DB_DATABASE_URL`**, so a production URL in your environment or `.env` is not used. It only accepts `localhost`, `127.0.0.1` or `::1`, and checks the real connection target before touching anything.
+- It creates and deletes only its own rows, built from random wallets and emails, so it never touches data that was already there, and it checks that none are left behind.
+- It makes no network calls beyond the database, and sends no emails.
+
 ## Architecture Rules
 
 - A controller is an HTTP translator, not a business logic layer. If there is a business-rule conditional in a controller, move it to a use case.

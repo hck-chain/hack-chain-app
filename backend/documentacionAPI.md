@@ -224,14 +224,37 @@ Retorna la información del usuario autenticado, obtenida a partir del token JWT
 | `404` | Usuario no encontrado |
 | `500` | Error interno del servidor |
 
+La respuesta trae `modelName` (`student`, `issuer` o `recruiter`) y un objeto `user`. Además de
+`wallet_address`, `name`, `email` y `email_verified`, el objeto trae `organization_name` para
+educadores o `company_name` para reclutadores, y los datos de la integración con Privy:
+
+| Campo | Descripción |
+|---|---|
+| `integrated_wallet_address` | Wallet embebida de Privy, o `null` si todavía no tiene |
+| `own_wallet_address` | Wallet propia vinculada para $HACK, o `null` |
+| `has_privy` | `true` si la cuenta ya tiene una identidad de Privy vinculada. **No** devuelve el DID |
+| `created_at` | Fecha de alta de la cuenta |
+
+`has_privy` solo indica que existe la identidad. Una migración puede quedar a medias, con la identidad
+guardada pero la wallet embebida todavía sin llegar: en ese caso `has_privy` es `true` e
+`integrated_wallet_address` es `null`, y hay que volver a llamar a `POST /api/users/me/link-privy`.
+Para mostrar el aviso de migración a quien aún no vinculó su cuenta, usar `has_privy === false`.
+
 **Ejemplo de respuesta exitosa**
 
 ```json
 {
-  "id": 1,
-  "email": "usuario@ejemplo.com",
-  "role": "Admin",
-  "wallet_address": "0x..."
+  "modelName": "student",
+  "user": {
+    "wallet_address": "0xabc...",
+    "name": "Ana",
+    "email": "ana@ejemplo.com",
+    "email_verified": true,
+    "integrated_wallet_address": "0x4444...",
+    "own_wallet_address": null,
+    "has_privy": true,
+    "created_at": "2026-05-02T10:12:00.000Z"
+  }
 }
 ```
 
@@ -2953,7 +2976,7 @@ así que ninguna petición sale hacia Privy en el camino del login y el app secr
 | Token | De dónde sale | Para qué lo usa el backend |
 |---|---|---|
 | `access_token` | SDK de Privy en el cliente | Probar que quien llama controla una cuenta de Privy; devuelve el DID |
-| `identity_token` | cookie `privy-id-token` | Obtener el objeto de usuario firmado: correo y wallet embebida |
+| `identity_token` | cookie `privy-id-token` | Obtener el objeto de usuario firmado: correo (de correo, Google o Apple) y wallet embebida |
 
 **Las tres columnas de wallet en `users`.** Conviene no confundirlas:
 
@@ -3053,6 +3076,16 @@ Con `ACCOUNT_EXISTS` la respuesta incluye `login_method` (`privy` o `wallet`) pa
 al usuario con qué método entrar, en vez de crearle un perfil duplicado. No es un oráculo de
 enumeración: el correo viene de claims verificados, así que quien llama demostrablemente lo controla.
 
+**Aviso a los administradores.** Cuando se registra un educador nuevo, se envía a los administradores
+el mismo correo de aviso que envía el registro anterior (`POST /api/users/register`), porque el
+educador queda pendiente de aprobación. El envío es independiente de la respuesta: si falla, el
+registro igual responde `201`. Un reintento que devuelve `200` (ya estaba registrado) no lo vuelve
+a enviar, y los talentos y reclutadores no lo disparan.
+
+El correo se obtiene de la cuenta de Privy con el método que usó el usuario (correo, Google o Apple).
+Si Apple no comparte el correo, o la cuenta no tiene ninguno, responde `400`: el correo es obligatorio
+para todos los métodos.
+
 ---
 
 ### POST `/api/users/me/wallet`
@@ -3139,6 +3172,28 @@ wallet, como siempre, vincula su correo o su cuenta de Google **desde el cliente
 guarda el `privy_did` en su fila. A partir de ahí, entrar por Privy lo lleva a ese mismo perfil,
 con su historial y sus certificados intactos.
 
+**Qué guarda, y por qué se puede llamar más de una vez.** Cada llamada completa lo que todavía le
+falte a la cuenta, y lo que ya esté completo no se toca:
+
+| Dato | Cuándo se escribe |
+|---|---|
+| `privy_did` | Si la cuenta todavía no lo tiene. Se guarda en la primera llamada, aunque falte lo demás, para que el usuario no termine con una cuenta nueva y vacía al volver a entrar |
+| `integrated_wallet_address` | Si falta y el token ya la trae. Privy crea la wallet embebida de forma asíncrona, así que la primera llamada puede llegar antes de que exista |
+| `email` | Solo si el perfil no tiene correo. Un correo existente se conserva siempre. Se marca `email_verified`, porque lo verificó Privy |
+
+Por eso, si la respuesta trae `integrated_wallet_address: null`, la migración quedó a medias: hay que
+volver a llamar con un `identity_token` nuevo cuando Privy ya tenga la wallet. Lo recomendable es que
+el frontend espere a que Privy la reporte antes de llamar.
+
+**Correo repetido.** Si el perfil no tiene correo y el de Privy ya lo usa otra cuenta, gana el
+verificado: Privy comprobó que quien llama controla ese correo, mientras que el registro anterior lo
+aceptaba sin verificar. El correo se le quita a la otra cuenta (junto con su token de verificación) y
+pasa a esta, dentro de una transacción. Solo ocurre si la otra cuenta **no está verificada y no tiene
+identidad de Privy**. Si ya está verificada, o ya entra por Privy, no se toca y la respuesta es `409`
+con `EMAIL_ALREADY_IN_USE`. El caso de dos identidades de Privy con el mismo correo (por ejemplo una de
+correo y otra de Google) cae en este segundo supuesto. Queda un registro en el log del servidor con las
+dos cuentas.
+
 > El nombre dice `link-privy` y no `link-email` a propósito: vincular un correo ocurre en el SDK
 > del cliente, no hay API de servidor para hacerlo. Lo único que hace el backend es asociar la
 > identidad de Privy a la cuenta que ya existe.
@@ -3157,17 +3212,36 @@ dirección y tienen que seguir siendo válidos y visibles. La wallet embebida se
 
 | Código | Descripción |
 |---|---|
-| `200` | Identidad vinculada (o ya lo estaba, con el mismo DID) |
-| `400` | Falta `identity_token` |
-| `401` | Token de Privy inválido o expirado |
-| `409` | La cuenta ya está atada a otro DID, o ese DID ya pertenece a otra cuenta |
+| `200` | Identidad vinculada, o ya lo estaba y se completó lo pendiente (o no había nada pendiente) |
+| `400` | Falta `identity_token` (`IDENTITY_TOKEN_REQUIRED`), o ni la cuenta ni Privy tienen correo (`EMAIL_REQUIRED`) |
+| `401` | Token de Privy inválido o expirado (`INVALID_PRIVY_TOKEN`) |
+| `404` | Usuario no encontrado |
+| `409` | Conflicto, ver la tabla de códigos |
 
-**Ejemplo de respuesta exitosa**
+Los errores traen `error` (texto) y `code`, para distinguir los `409` sin leer el mensaje:
+
+| `code` | Significado |
+|---|---|
+| `ALREADY_BOUND` | La cuenta ya está atada a otra identidad de Privy |
+| `DID_ALREADY_LINKED` | Esa identidad de Privy ya pertenece a otra cuenta |
+| `EMBEDDED_WALLET_ALREADY_LINKED` | Esa wallet embebida ya pertenece a otra cuenta |
+| `EMAIL_ALREADY_IN_USE` | El correo lo tiene otra cuenta ya verificada, o que ya entra por Privy |
+| `IDENTITY_CONFLICT` | Dos llamadas simultáneas chocaron; reintentar |
+
+**Respuesta exitosa**
+
+| Campo | Descripción |
+|---|---|
+| `privy_did` | Identidad de Privy vinculada |
+| `integrated_wallet_address` | Wallet embebida, o `null` si todavía no llegó |
+| `email` | Correo de la cuenta, o `null` |
+| `alreadyBound` | `true` si la identidad ya estaba vinculada **antes de esta llamada**, aunque esta llamada haya completado algo pendiente. Para saber si la migración terminó, mirar `integrated_wallet_address` |
 
 ```json
 {
   "privy_did": "did:privy:abc123",
   "integrated_wallet_address": "0x4444...",
+  "email": "ana@ejemplo.com",
   "alreadyBound": false
 }
 ```
@@ -3178,6 +3252,11 @@ dirección y tienen que seguir siendo válidos y visibles. La wallet embebida se
 
 Lista quién ya migró y quién falta. Los usuarios anteriores a Privy son pocos y se acompañan uno
 por uno, así que esta es la lista con la que se persigue a quien todavía no vinculó su identidad.
+
+**Qué cuenta como migrado:** una cuenta con `privy_did` **e** `integrated_wallet_address`. Tener solo
+la identidad no alcanza: Privy crea la wallet de forma asíncrona, así que una cuenta puede tener el
+DID y seguir a medias, y por eso se sigue mostrando como pendiente hasta que la wallet llegue. El
+criterio es el mismo en el resumen, en el filtro `migrated` y en la bandera `migrated` de cada fila.
 
 **Headers**
 

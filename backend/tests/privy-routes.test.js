@@ -182,5 +182,48 @@ describe("Privy routes", () => {
       .send({ identity_token: "bad" });
 
     expect(res.status).toBe(401);
+    expect(res.body.code).toBe("INVALID_PRIVY_TOKEN");
+  });
+
+  it("returns a code with each conflict so the client can tell them apart", async () => {
+    // The seeded session user already has an email, so this exercises the DID conflict.
+    await models.User.create({
+      wallet_address: "0x" + "33".repeat(20),
+      role: "student",
+      email: "otro@hackchain.test",
+      nonce: crypto.randomBytes(16).toString("hex"),
+      is_active: true,
+      privy_did: DID,
+    });
+    privyService.verifyIdentityToken.mockResolvedValue({
+      did: DID,
+      email: "migrado@hackchain.test",
+      embeddedWallet: "0x" + "44".repeat(20),
+    });
+
+    const res = await request(app)
+      .post("/api/users/me/link-privy")
+      .send({ identity_token: "id-token" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("DID_ALREADY_LINKED");
+    expect(res.body.error).toBeTruthy();
+  });
+
+  it("completes a pending wallet when link-privy is called again", async () => {
+    privyService.verifyIdentityToken.mockResolvedValue({ did: DID, email: "migrado@hackchain.test", embeddedWallet: null });
+    const first = await request(app).post("/api/users/me/link-privy").send({ identity_token: "t" });
+    expect(first.status).toBe(200);
+    expect(first.body.integrated_wallet_address).toBeNull();
+
+    privyService.verifyIdentityToken.mockResolvedValue({
+      did: DID,
+      email: "migrado@hackchain.test",
+      embeddedWallet: "0x" + "44".repeat(20),
+    });
+    const retry = await request(app).post("/api/users/me/link-privy").send({ identity_token: "t" });
+    expect(retry.status).toBe(200);
+    expect(retry.body.alreadyBound).toBe(true);
+    expect(retry.body.integrated_wallet_address).toBe("0x" + "44".repeat(20));
   });
 });

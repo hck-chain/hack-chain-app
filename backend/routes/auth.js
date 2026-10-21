@@ -15,7 +15,8 @@ const { User, UserSession } = require("../models");
 const { Op } = require('sequelize');
 const { cacheSession, deleteSession, getRedis } = require("../services/redis");
 const { RedisStore } = require("rate-limit-redis");
-const { sendVerificationEmail } = require("../services/emailService");
+const { sendVerificationEmail, notifyAdminNewEducator } = require("../services/emailService");
+const { getAdminEmails } = require("../services/adminService");
 const buildRateLimitStore = require("../lib/rateLimitStore");
 const db = require("../models");
 const privyService = require("../services/privyService");
@@ -448,6 +449,24 @@ async function issuePrivySession(res, user) {
   };
 }
 
+// Same notice POST /api/users/register sends when an educator signs up, so the approval
+// queue does not depend on someone happening to open the admin panel. It runs detached: a
+// mail provider outage must never turn a completed registration into an error response.
+function notifyAdminsOfNewEducator(user, organization) {
+  (async () => {
+    const to = await getAdminEmails(User);
+    await notifyAdminNewEducator({
+      to,
+      name: user.name || null,
+      email: user.email || null,
+      wallet: user.wallet_address,
+      organization: organization || null,
+    });
+  })().catch((err) => {
+    console.error("[complete-registration] notifyAdminNewEducator failed:", err && err.message);
+  });
+}
+
 router.post("/privy", privyLimiter, async (req, res) => {
   try {
     const result = await authenticateWithPrivy({
@@ -503,6 +522,12 @@ router.post("/complete-registration", privyLimiter, async (req, res) => {
       return res
         .status(result.httpStatus)
         .json({ error: result.message, code: result.code, ...(result.data || {}) });
+    }
+
+    // Only a brand new educator: a retry of a registration that already happened must not
+    // send the notice twice.
+    if (result.data.user.role === "issuer" && !result.data.alreadyRegistered) {
+      notifyAdminsOfNewEducator(result.data.user, req.body.organization_name);
     }
 
     const user = await issuePrivySession(res, result.data.user);

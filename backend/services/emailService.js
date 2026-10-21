@@ -610,25 +610,25 @@ async function notifyAdminNewEducator({ to, name, email, wallet, organization}) 
     <tr>
       <td style="padding:0 0 16px;">
         <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Nombre</p>
-        <p style="margin:0;font-weight:600;color:#222222;">${name || "—"}</p>
+        <p style="margin:0;font-weight:600;color:#222222;">${esc(name) || "—"}</p>
       </td>
     </tr>
     <tr>
       <td style="padding:0 0 16px;">
         <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Organización</p>
-        <p style="margin:0;color:#222222;">${organization || "—"}</p>
+        <p style="margin:0;color:#222222;">${esc(organization) || "—"}</p>
       </td>
     </tr>
     <tr>
       <td style="padding:0 0 16px;">
         <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Correo</p>
-        <p style="margin:0;color:#222222;word-break:break-all;">${email || "—"}</p>
+        <p style="margin:0;color:#222222;word-break:break-all;">${esc(email) || "—"}</p>
       </td>
     </tr>
     <tr>
       <td>
         <p style="margin:0 0 3px;color:#777777;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Wallet</p>
-        <p style="margin:0;font-family:monospace;font-size:12.5px;line-height:20px;color:#222222;word-break:break-all;">${wallet}</p>
+        <p style="margin:0;font-family:monospace;font-size:12.5px;line-height:20px;color:#222222;word-break:break-all;">${esc(wallet)}</p>
       </td>
     </tr>
   </table>
@@ -672,19 +672,19 @@ async function notifyAdminEducatorReapply({ to, name, email, wallet, organizatio
           <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;line-height:26px;">
             <tr>
               <td style="color:#777;width:130px;">Nombre</td>
-              <td style="font-weight:600;color:#222;">${name || "—"}</td>
+              <td style="font-weight:600;color:#222;">${esc(name) || "—"}</td>
             </tr>
             <tr>
               <td style="color:#777;">Organización</td>
-              <td>${organization || "—"}</td>
+              <td>${esc(organization) || "—"}</td>
             </tr>
             <tr>
               <td style="color:#777;">Correo</td>
-              <td>${email || "—"}</td>
+              <td>${esc(email) || "—"}</td>
             </tr>
             <tr>
               <td style="color:#777;">Wallet</td>
-              <td style="font-family:monospace;font-size:13px;">${wallet}</td>
+              <td style="font-family:monospace;font-size:13px;">${esc(wallet)}</td>
             </tr>
           </table>
         </div>

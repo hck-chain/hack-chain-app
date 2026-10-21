@@ -15,7 +15,8 @@
     "migrate:harjoot-phase1": "node scripts/migrate-harjoot-phase1.js",
     "migrate:referrals-phase1": "node scripts/migrate-referrals-phase1.js",
     "migrate:vacancies": "node scripts/migrate-vacancies.js",
-    "migrate:privy-identity": "node scripts/migrate-privy-identity.js"
+    "migrate:privy-identity": "node scripts/migrate-privy-identity.js",
+    "verify:privy-followup": "node scripts/verify-privy-followup-postgres.js"
   },
   "keywords": [],
   "author": "",

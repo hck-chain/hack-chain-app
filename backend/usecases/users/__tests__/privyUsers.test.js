@@ -271,17 +271,20 @@ describe("Privy user usecases", () => {
   });
 
   describe("bindPrivyIdentity", () => {
-    const privyService = {
-      verifyIdentityToken: jest.fn().mockResolvedValue({
+    const privyService = { verifyIdentityToken: jest.fn() };
+
+    function identity(overrides = {}) {
+      privyService.verifyIdentityToken.mockResolvedValue({
         did: DID,
         email: "migrado@hackchain.test",
         embeddedWallet: EMBEDDED,
-      }),
-    };
+        ...overrides,
+      });
+    }
 
     function bind(overrides = {}) {
       return bindPrivyIdentity({
-        models: { User: models.User },
+        models: { User: models.User, sequelize },
         privyService,
         wallet: SESSION_WALLET,
         identityToken: "id-token",
@@ -289,16 +292,33 @@ describe("Privy user usecases", () => {
       });
     }
 
+    beforeEach(() => identity());
+    afterEach(() => jest.restoreAllMocks());
+
+    it("throws a TypeError when the transaction handle is missing", async () => {
+      await seed();
+      await expect(bind({ models: { User: models.User } })).rejects.toThrow(TypeError);
+    });
+
     it("requires an identity token", async () => {
       await seed();
       const result = await bind({ identityToken: undefined });
       expect(result.code).toBe("IDENTITY_TOKEN_REQUIRED");
     });
 
+    it("rejects an invalid Privy token", async () => {
+      await seed();
+      privyService.verifyIdentityToken.mockResolvedValue(null);
+      const result = await bind();
+      expect(result.code).toBe("INVALID_PRIVY_TOKEN");
+      expect(result.httpStatus).toBe(401);
+    });
+
     it("binds the DID without moving wallet_address", async () => {
       const user = await seed();
       const result = await bind();
       expect(result.ok).toBe(true);
+      expect(result.data.alreadyBound).toBe(false);
 
       await user.reload();
       expect(user.privy_did).toBe(DID);
@@ -307,12 +327,229 @@ describe("Privy user usecases", () => {
       expect(user.wallet_address).toBe(SESSION_WALLET);
     });
 
-    it("is idempotent when the same identity is bound twice", async () => {
+    describe("retries complete what a previous call left pending", () => {
+      it("saves the identity at once and completes the embedded wallet on a later retry", async () => {
+        const user = await seed();
+
+        identity({ embeddedWallet: null });
+        const first = await bind();
+        expect(first.ok).toBe(true);
+        expect(first.data.integrated_wallet_address).toBeNull();
+        await user.reload();
+        expect(user.privy_did).toBe(DID);
+        expect(user.integrated_wallet_address).toBeNull();
+
+        identity({ embeddedWallet: EMBEDDED });
+        const retry = await bind();
+        expect(retry.ok).toBe(true);
+        expect(retry.data.alreadyBound).toBe(true);
+        expect(retry.data.integrated_wallet_address).toBe(EMBEDDED);
+        await user.reload();
+        expect(user.integrated_wallet_address).toBe(EMBEDDED);
+      });
+
+      it("keeps waiting while the wallet still has not arrived", async () => {
+        await seed({ privy_did: DID });
+        identity({ embeddedWallet: null });
+        const result = await bind();
+        expect(result.ok).toBe(true);
+        expect(result.data.integrated_wallet_address).toBeNull();
+      });
+
+      it("refuses to complete the wallet when another account already has it", async () => {
+        const user = await seed({ privy_did: DID });
+        await seed({ wallet_address: OTHER_WALLET, integrated_wallet_address: EMBEDDED });
+
+        const result = await bind();
+        expect(result.code).toBe("EMBEDDED_WALLET_ALREADY_LINKED");
+        expect(result.httpStatus).toBe(409);
+        await user.reload();
+        expect(user.integrated_wallet_address).toBeNull();
+      });
+
+      it("completes an email that is still empty", async () => {
+        const user = await seed({ privy_did: DID, integrated_wallet_address: EMBEDDED, email: null });
+        const result = await bind();
+        expect(result.ok).toBe(true);
+        expect(result.data.alreadyBound).toBe(true);
+        await user.reload();
+        expect(user.email).toBe("migrado@hackchain.test");
+      });
+
+      it("is harmless when nothing is pending", async () => {
+        const user = await seed({ privy_did: DID, integrated_wallet_address: EMBEDDED });
+        const before = user.email;
+
+        const update = jest.spyOn(models.User.prototype, "update");
+        const result = await bind();
+
+        expect(result.ok).toBe(true);
+        expect(result.data.alreadyBound).toBe(true);
+        expect(update).not.toHaveBeenCalled();
+        await user.reload();
+        expect(user.email).toBe(before);
+      });
+    });
+
+    describe("email", () => {
+      it("fills an empty email and marks it verified", async () => {
+        const user = await seed({ email: null });
+        const result = await bind();
+        expect(result.ok).toBe(true);
+        expect(result.data.email).toBe("migrado@hackchain.test");
+
+        await user.reload();
+        expect(user.email).toBe("migrado@hackchain.test");
+        expect(user.email_verified).toBe(true);
+      });
+
+      it("keeps an email the profile already has", async () => {
+        const user = await seed({ email: "propio@hackchain.test", email_verified: false });
+        const result = await bind();
+        expect(result.ok).toBe(true);
+        expect(result.data.email).toBe("propio@hackchain.test");
+
+        await user.reload();
+        expect(user.email).toBe("propio@hackchain.test");
+        expect(user.email_verified).toBe(false);
+      });
+
+      it("rejects when neither the profile nor Privy have an email, writing nothing", async () => {
+        const user = await seed({ email: null });
+        identity({ email: null });
+        const result = await bind();
+        expect(result.code).toBe("EMAIL_REQUIRED");
+        expect(result.httpStatus).toBe(400);
+
+        await user.reload();
+        expect(user.privy_did).toBeNull();
+      });
+
+      it("still links when Privy has no email but the profile already has one", async () => {
+        await seed();
+        identity({ email: null });
+        const result = await bind();
+        expect(result.ok).toBe(true);
+      });
+
+      describe("when another account already holds it", () => {
+        it("takes it from an unverified account without a Privy identity", async () => {
+          const user = await seed({ email: null });
+          const holder = await seed({
+            wallet_address: OTHER_WALLET,
+            email: "migrado@hackchain.test",
+            email_verified: false,
+            verification_token: "stale",
+            verification_token_expires_at: new Date(Date.now() + 60000),
+          });
+          jest.spyOn(console, "warn").mockImplementation(() => {});
+
+          const result = await bind();
+          expect(result.ok).toBe(true);
+
+          await user.reload();
+          await holder.reload();
+          expect(user.email).toBe("migrado@hackchain.test");
+          expect(user.email_verified).toBe(true);
+          expect(holder.email).toBeNull();
+          expect(holder.verification_token).toBeNull();
+          expect(holder.verification_token_expires_at).toBeNull();
+          expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("taken from unverified"));
+        });
+
+        it("matches the email ignoring case and surrounding spaces", async () => {
+          const user = await seed({ email: null });
+          const holder = await seed({ wallet_address: OTHER_WALLET, email: "migrado@hackchain.test", email_verified: false });
+          jest.spyOn(console, "warn").mockImplementation(() => {});
+          identity({ email: "  Migrado@HackChain.TEST " });
+
+          expect((await bind()).ok).toBe(true);
+          await holder.reload();
+          await user.reload();
+          expect(holder.email).toBeNull();
+          expect(user.email).toBe("migrado@hackchain.test");
+        });
+
+        it("does not take it from a verified account", async () => {
+          const user = await seed({ email: null });
+          const holder = await seed({ wallet_address: OTHER_WALLET, email: "migrado@hackchain.test", email_verified: true });
+
+          const result = await bind();
+          expect(result.code).toBe("EMAIL_ALREADY_IN_USE");
+          expect(result.httpStatus).toBe(409);
+
+          await user.reload();
+          await holder.reload();
+          expect(holder.email).toBe("migrado@hackchain.test");
+          expect(user.email).toBeNull();
+          expect(user.privy_did).toBeNull();
+        });
+
+        it("does not take it from an account that already has a Privy identity", async () => {
+          await seed({ email: null });
+          const holder = await seed({
+            wallet_address: OTHER_WALLET,
+            email: "migrado@hackchain.test",
+            email_verified: false,
+            privy_did: "did:privy:other",
+          });
+
+          const result = await bind();
+          expect(result.code).toBe("EMAIL_ALREADY_IN_USE");
+          await holder.reload();
+          expect(holder.email).toBe("migrado@hackchain.test");
+        });
+
+        it("takes nothing if the other account got verified between the check and the write", async () => {
+          const user = await seed({ email: null });
+          const holder = await seed({ wallet_address: OTHER_WALLET, email: "migrado@hackchain.test", email_verified: false });
+          // The conditional update matches no row, as if the account had been verified meanwhile.
+          jest.spyOn(models.User, "update").mockResolvedValue([0]);
+
+          const result = await bind();
+          expect(result.code).toBe("EMAIL_ALREADY_IN_USE");
+          expect(result.httpStatus).toBe(409);
+
+          jest.restoreAllMocks();
+          await holder.reload();
+          await user.reload();
+          expect(holder.email).toBe("migrado@hackchain.test");
+          expect(user.email).toBeNull();
+          expect(user.privy_did).toBeNull();
+        });
+
+        it("never leaves the other account without its email if the write fails halfway", async () => {
+          const user = await seed({ email: null });
+          const holder = await seed({ wallet_address: OTHER_WALLET, email: "migrado@hackchain.test", email_verified: false });
+
+          const original = models.User.prototype.update;
+          let calls = 0;
+          const spy = jest.spyOn(models.User.prototype, "update").mockImplementation(function (...args) {
+            calls += 1;
+            if (calls === 1) throw new Error("boom");
+            return original.apply(this, args);
+          });
+
+          await expect(bind()).rejects.toThrow("boom");
+          spy.mockRestore();
+
+          await holder.reload();
+          await user.reload();
+          expect(holder.email).toBe("migrado@hackchain.test");
+          expect(user.email).toBeNull();
+        });
+      });
+    });
+
+    it("answers 409 instead of failing when a unique index is hit by a concurrent write", async () => {
       await seed();
-      await bind();
-      const second = await bind();
-      expect(second.ok).toBe(true);
-      expect(second.data.alreadyBound).toBe(true);
+      jest.spyOn(models.User.prototype, "update").mockImplementation(() => {
+        throw Object.assign(new Error("duplicate"), { name: "SequelizeUniqueConstraintError" });
+      });
+
+      const result = await bind();
+      expect(result.code).toBe("IDENTITY_CONFLICT");
+      expect(result.httpStatus).toBe(409);
     });
 
     it("refuses to rebind an account to a different identity", async () => {
