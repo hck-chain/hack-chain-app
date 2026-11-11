@@ -27,6 +27,11 @@ const { cancelReferral } = require("../usecases/referrals/cancelReferral");
 const { approveReferralReview } = require("../usecases/referrals/approveReferralReview");
 const { resolvePaymentDispute } = require("../usecases/classPayments/resolvePaymentDispute");
 const { resolveCertificateFlag } = require("../usecases/certificateConfirmation/resolveCertificateFlag");
+const { validateContribution, rejectContribution, listContributionsForAdmin } = require("../usecases/presale/reviewContribution");
+const { verifyContribution, PresaleConfigError } = require("../usecases/presale/verifyContribution");
+const { exportAllocationBatch } = require("../usecases/presale/exportAllocationBatch");
+const { getContractStatus, createPresaleContractReader } = require("../usecases/presale/contractStatus");
+const { createPolygonProvider } = require("../harjoot/adapters/polygonProvider");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -64,6 +69,11 @@ const STATUS_BY_REASON = {
   NOT_FOUND: 404,
   ALREADY_SENT: 409,
   WRONG_STATE: 409,
+  // Preventa
+  VERIFICATION_FAILED: 422,
+  PENDING_CONTRIBUTIONS: 409,
+  CHAIN_UNAVAILABLE: 503,
+  EMPTY: 404,
 };
 
 function handleValidation(req, res) {
@@ -572,6 +582,237 @@ router.get(
       return res.status(500).json({ error: "Failed to load migration status" });
     }
   }
+);
+
+// ===========================================================================
+// Preventa de HACK — revision de aportes y exportacion del lote.
+// Ver usecases/presale/ para las decisiones de diseño (un solo admin valida,
+// la fuente de verdad son las transferencias en cadena).
+// ===========================================================================
+
+/**
+ * Corre un caso de uso de preventa traduciendo la falta de configuracion de
+ * la tesoreria a un 503 claro: sin saber a donde tenia que llegar el pago,
+ * no se valida nada (falla cerrado).
+ */
+async function withPresaleChain(res, fn) {
+  try {
+    return await fn(createPolygonProvider());
+  } catch (err) {
+    if (err instanceof PresaleConfigError) {
+      return res.status(503).json({ error: "PRESALE_NOT_CONFIGURED", detail: err.message });
+    }
+    if (err && /POLYGON_RPC_URL/.test(err.message || "")) {
+      return res.status(503).json({ error: "PRESALE_NOT_CONFIGURED", detail: err.message });
+    }
+    throw err;
+  }
+}
+
+/**
+ * GET /api/admin/presale/contributions
+ * Cola de aportes con filtros, mas los contadores por estado.
+ */
+router.get(
+  "/presale/contributions",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [
+    query("status").optional().isIn(["pending", "validated", "rejected"]),
+    query("page").optional().isInt({ min: 1 }),
+    query("per_page").optional().isInt({ min: 1, max: 100 }),
+    query("search").optional().isString().trim().isLength({ max: 66 }),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      // Number() explicito: en Express 5 req.query es de solo lectura y los
+      // sanitizadores .toInt() de express-validator no se aplican.
+      const result = await listContributionsForAdmin({
+        models: db,
+        status: req.query.status,
+        page: Number(req.query.page) || 1,
+        perPage: Number(req.query.per_page) || 20,
+        search: req.query.search,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("GET /api/admin/presale/contributions error:", err);
+      return res.status(500).json({ error: "Failed to list presale contributions" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/contributions/:id/verification
+ * Verifica en Polygon sin cambiar nada, para que el admin vea el resultado
+ * antes de decidir.
+ */
+router.get(
+  "/presale/contributions/:id/verification",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [param("id").isInt({ min: 1 })],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const contribution = await db.PresaleContribution.findByPk(Number(req.params.id));
+      if (!contribution) return res.status(404).json({ error: "NOT_FOUND" });
+      return await withPresaleChain(res, async (provider) => {
+        const verification = await verifyContribution({ contribution, provider });
+        return res.json({ verification });
+      });
+    } catch (err) {
+      console.error("GET /api/admin/presale/contributions/:id/verification error:", err);
+      return res.status(500).json({ error: "Failed to verify contribution" });
+    }
+  },
+);
+
+/**
+ * POST /api/admin/presale/contributions/:id/validate
+ * Vuelve a verificar en cadena y, solo si pasa, marca como validado.
+ */
+router.post(
+  "/presale/contributions/:id/validate",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [param("id").isInt({ min: 1 })],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      return await withPresaleChain(res, async (provider) => {
+        const result = await validateContribution({
+          models: db,
+          provider,
+          id: Number(req.params.id),
+          adminWallet: req.auth.wallet,
+        });
+        if (!result.ok) {
+          return res.status(STATUS_BY_REASON[result.reason] || 400).json({
+            error: result.reason,
+            ...(result.verification ? { verification: result.verification } : {}),
+            ...(result.currentStatus ? { currentStatus: result.currentStatus } : {}),
+          });
+        }
+        return res.json({ contribution: result.contribution, verification: result.verification });
+      });
+    } catch (err) {
+      console.error("POST /api/admin/presale/contributions/:id/validate error:", err);
+      return res.status(500).json({ error: "Failed to validate contribution" });
+    }
+  },
+);
+
+/**
+ * POST /api/admin/presale/contributions/:id/reject
+ * Body: { reason } — obligatorio, se le muestra al comprador.
+ */
+router.post(
+  "/presale/contributions/:id/reject",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }),
+    body("reason").isString().trim().isLength({ min: 3, max: 255 })
+      .withMessage("reason is required (3-255 chars)"),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await rejectContribution({
+        models: db,
+        id: Number(req.params.id),
+        adminWallet: req.auth.wallet,
+        reason: req.body.reason.trim(),
+      });
+      if (!result.ok) {
+        return res.status(STATUS_BY_REASON[result.reason] || 400).json({
+          error: result.reason,
+          ...(result.currentStatus ? { currentStatus: result.currentStatus } : {}),
+        });
+      }
+      return res.json({ contribution: result.contribution });
+    } catch (err) {
+      console.error("POST /api/admin/presale/contributions/:id/reject error:", err);
+      return res.status(500).json({ error: "Failed to reject contribution" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/export
+ * Lote para allocateBatch + hash para setAllocationListHash, re-verificando
+ * cada aporte validado en cadena. Si una sola fila falla, no se exporta.
+ */
+router.get(
+  "/presale/export",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  async (req, res) => {
+    try {
+      return await withPresaleChain(res, async (provider) => {
+        const result = await exportAllocationBatch({ models: db, provider });
+        if (!result.ok) {
+          return res.status(STATUS_BY_REASON[result.reason] || 400).json({
+            error: result.reason,
+            ...(result.problems ? { problems: result.problems } : {}),
+            ...(result.pending ? { pending: result.pending } : {}),
+          });
+        }
+        console.log(
+          `[presale-export] admin=${req.auth.wallet} wallets=${result.totals.wallets} hash=${result.hash}`
+        );
+        return res.json(result);
+      });
+    } catch (err) {
+      console.error("GET /api/admin/presale/export error:", err);
+      return res.status(500).json({ error: "Failed to export allocation batch" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/contract-status
+ * Lee PresaleAllocation en cadena (solo lectura) y lo compara contra el lote:
+ * fondeo, carga por tanda (incluida la doble carga), totales, hash y cierre.
+ * Sin PRESALE_CONTRACT_ADDRESS responde { configured: false }: el contrato
+ * todavia no esta desplegado, no es un error.
+ */
+router.get(
+  "/presale/contract-status",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  async (req, res) => {
+    const contractAddress = process.env.PRESALE_CONTRACT_ADDRESS;
+    // Variable propia para poder apuntar a otra red (p. ej. Anvil local) sin
+    // tocar la verificacion de pagos, que sigue usando POLYGON_RPC_URL.
+    const rpcUrl = process.env.PRESALE_RPC_URL || process.env.POLYGON_RPC_URL;
+    if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress) || !rpcUrl) {
+      return res.json({
+        configured: false,
+        detail: !contractAddress
+          ? "PRESALE_CONTRACT_ADDRESS no esta configurada (el contrato aun no se desplego)"
+          : !rpcUrl ? "Falta PRESALE_RPC_URL o POLYGON_RPC_URL" : "PRESALE_CONTRACT_ADDRESS no es una direccion valida",
+      });
+    }
+    const reader = createPresaleContractReader({ rpcUrl, contractAddress });
+    try {
+      const status = await getContractStatus({ models: db, reader });
+      return res.json({ configured: true, ...status });
+    } catch (err) {
+      console.error("GET /api/admin/presale/contract-status error:", err.shortMessage || err.message);
+      return res.status(503).json({ error: "CHAIN_UNAVAILABLE", detail: err.shortMessage || err.message });
+    } finally {
+      reader.destroy();
+    }
+  },
 );
 
 module.exports = router;

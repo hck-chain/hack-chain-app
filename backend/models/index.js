@@ -91,6 +91,9 @@ db.IssuerClass = require("./issuerClasses")(sequelize, DataTypes);
 db.ClassRequest = require("./classRequests")(sequelize, DataTypes);
 db.ClassPaymentDispute = require("./classPaymentDisputes")(sequelize, DataTypes);
 
+// Preventa publica de HACK. Ver migrations/*-create-presale-contributions.js
+db.PresaleContribution = require("./presaleContributions")(sequelize, DataTypes);
+
 // Job board (recruiter → talent). See scripts/migrate-vacancies.js.
 db.Vacancy = require("./vacancies")(sequelize, DataTypes);
 db.VacancyApplication = require("./vacancyApplications")(sequelize, DataTypes);
