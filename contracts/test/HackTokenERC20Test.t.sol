@@ -37,7 +37,6 @@ contract HackTokenERC20Test is Test {
 
         vm.prank(admin);
         _hacktoken.mintTokens(recipient, amount);
- main
     }
 
     /// @notice Tests that only the owner can transfer ownership.
