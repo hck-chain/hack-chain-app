@@ -102,6 +102,63 @@ async function verifyUsdtPayment(params) {
     return { ok: false, reason: "REPLAY", existingRequestId: existing.id };
   }
 
+  // ---- (2..4) receipt, Transfer logs, amount --------------------------------
+  return checkUsdtTransfer({
+    provider,
+    txHash: normalizedTxHash,
+    expectedFrom: normalizedFrom,
+    expectedTo: normalizedTo,
+    expectedMinAmountUsdt,
+    config: cfg,
+  });
+}
+
+/**
+ * The chain-only half of the verification: fetch the receipt and confirm a
+ * USDT Transfer from `expectedFrom` to `expectedTo` for at least
+ * `expectedMinAmountUsdt`. No database access and no replay check — callers
+ * own replay protection, because what counts as "already used" differs per
+ * flow (class payments check class_requests; the presale relies on the
+ * UNIQUE constraint on presale_contributions.tx_hash).
+ *
+ * Same result shape as verifyUsdtPayment, minus the REPLAY branch.
+ *
+ * @param {object} params
+ * @param {object} params.provider              getTransactionReceipt(txHash).
+ * @param {string} params.txHash
+ * @param {string} params.expectedFrom
+ * @param {string} params.expectedTo
+ * @param {number} params.expectedMinAmountUsdt
+ * @param {object} [params.config]              { usdtTokenAddress, usdtDecimals }
+ */
+async function checkUsdtTransfer(params) {
+  const { provider, txHash, expectedFrom, expectedTo, expectedMinAmountUsdt } = params;
+  const cfg = params.config || defaultConfig();
+
+  if (!provider || typeof provider.getTransactionReceipt !== "function") {
+    throw new TypeError("checkUsdtTransfer requires { provider.getTransactionReceipt }");
+  }
+  if (typeof txHash !== "string" || !TX_HASH_REGEX.test(txHash)) {
+    throw new TypeError("checkUsdtTransfer requires a 0x-prefixed 32-byte txHash");
+  }
+  if (typeof expectedFrom !== "string" || !WALLET_REGEX.test(expectedFrom)) {
+    throw new TypeError("checkUsdtTransfer requires a valid expectedFrom wallet");
+  }
+  if (typeof expectedTo !== "string" || !WALLET_REGEX.test(expectedTo)) {
+    throw new TypeError("checkUsdtTransfer requires a valid expectedTo wallet");
+  }
+  if (typeof expectedMinAmountUsdt !== "number" || expectedMinAmountUsdt <= 0) {
+    throw new TypeError("checkUsdtTransfer requires expectedMinAmountUsdt as a positive number");
+  }
+  if (!cfg.usdtTokenAddress) {
+    throw new TypeError("checkUsdtTransfer requires config.usdtTokenAddress (USDT_CONTRACT_ADDRESS)");
+  }
+
+  const normalizedFrom = expectedFrom.toLowerCase();
+  const normalizedTo = expectedTo.toLowerCase();
+  const usdtToken = cfg.usdtTokenAddress.toLowerCase();
+  const normalizedTxHash = txHash.toLowerCase();
+
   // ---- (2) fetch receipt -------------------------------------------------------
   let receipt;
   try {
@@ -177,5 +234,6 @@ async function verifyUsdtPayment(params) {
 
 module.exports = {
   verifyUsdtPayment,
+  checkUsdtTransfer,
   __TRANSFER_TOPIC0: TRANSFER_TOPIC0,
 };
