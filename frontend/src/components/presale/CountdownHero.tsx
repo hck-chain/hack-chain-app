@@ -1,14 +1,15 @@
-import { Wallet } from "lucide-react";
+import { Wallet, PenLine, Check, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import type { Phase } from "@/types/presale";
 import { useCountdown } from "@/hooks/useCountdown";
-import { PRESALE_PAUSED } from "@/utils/presale";
+import { PRESALE_PAUSED, shortenAddress } from "@/utils/presale";
+import type { PresaleWallet } from "@/hooks/usePresaleWallet";
 import VerificationStrip from "@/components/presale/VerificationStrip";
 
 interface CountdownHeroProps {
   activePhase: Phase | null;
-  walletConnected: boolean;
-  onConnect: () => void;
+  wallet: PresaleWallet;
 }
 
 interface TimeBlockProps {
@@ -29,9 +30,10 @@ function TimeBlock({ value, label }: TimeBlockProps) {
   );
 }
 
-export default function CountdownHero({ activePhase, walletConnected, onConnect }: CountdownHeroProps) {
+export default function CountdownHero({ activePhase, wallet }: CountdownHeroProps) {
   const finished = !activePhase;
-const preLaunch = PRESALE_PAUSED || (!!activePhase && new Date() < activePhase.start);  const targetDate = activePhase && !preLaunch ? activePhase.end : null;
+  const preLaunch = PRESALE_PAUSED || (!!activePhase && new Date() < activePhase.start);
+  const targetDate = activePhase && !preLaunch ? activePhase.end : null;
   const { days, hours, minutes, seconds } = useCountdown(targetDate);
 
   return (
@@ -104,13 +106,66 @@ const preLaunch = PRESALE_PAUSED || (!!activePhase && new Date() < activePhase.s
           </div>
 
           <button
-            onClick={onConnect}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-3 font-title text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition-all group"
+            onClick={
+              wallet.isAuthenticated
+                ? undefined
+                : wallet.needsSignature
+                  ? wallet.signAndLogin
+                  : wallet.connect
+            }
+            disabled={wallet.isBusy || wallet.isAuthenticated}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-3 font-title text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition-all group disabled:cursor-default disabled:opacity-60 disabled:shadow-none"
           >
-            <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" aria-hidden="true" />
-            {walletConnected ? "Cartera conectada" : "Conectar cartera digital"}
+            {wallet.isAuthenticated ? (
+              <Check className="h-4 w-4" aria-hidden="true" />
+            ) : wallet.isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : wallet.needsSignature ? (
+              <PenLine className="h-4 w-4 group-hover:scale-110 transition-transform" aria-hidden="true" />
+            ) : (
+              <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" aria-hidden="true" />
+            )}
+            {wallet.isAuthenticated && wallet.address
+              ? shortenAddress(wallet.address)
+              : wallet.isBusy
+                ? "Esperando a tu cartera…"
+                : wallet.needsSignature
+                  ? "Firmar para continuar"
+                  : "Conectar cartera digital"}
           </button>
         </motion.div>
+
+        {/* Sin esto el boton fallaba en silencio: al pulsar "Firmar" con una
+            cartera que no tiene cuenta, el nonce devuelve 404 y no pasaba
+            absolutamente nada en pantalla. El WalletGate si mostraba el error;
+            este boton, no. */}
+        {!wallet.isAuthenticated && (wallet.isWalletNotFound || wallet.error) && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4"
+          >
+            {wallet.isWalletNotFound ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 font-body text-sm sm:flex-row sm:items-center sm:gap-3">
+                <span className="flex items-center gap-2 text-amber-400">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  Esta cartera todavía no tiene cuenta en HackChain.
+                </span>
+                <Link
+                  to="/register"
+                  className="text-purple-400 underline underline-offset-2 transition-colors hover:text-purple-300"
+                >
+                  Crear una cuenta
+                </Link>
+              </div>
+            ) : (
+              <p className="flex items-center gap-2 font-body text-xs text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {wallet.error}
+              </p>
+            )}
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}

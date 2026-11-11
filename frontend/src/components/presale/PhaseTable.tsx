@@ -51,8 +51,11 @@ export default function PhaseTable({ activePhase }: PhaseTableProps) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-white/40">
-                      {phase.start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} –{" "}
-                      {phase.end.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                      {/* timeZone UTC a proposito: las fechas de PHASES se declaran
+                          en UTC, y sin esto un visitante al oeste de Greenwich veia
+                          la fase arrancando un dia antes de lo configurado. */}
+                      {phase.start.toLocaleDateString("es-ES", { day: "2-digit", month: "short", timeZone: "UTC" })} –{" "}
+                      {phase.end.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}
                     </td>
                     <td className="px-4 py-3 text-white/70">${phase.price.toFixed(5)} USD</td>
                     <td className="px-4 py-3 text-white/70">{formatNumber(phase.tokensAvailable)}</td>

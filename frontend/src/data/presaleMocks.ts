@@ -26,7 +26,7 @@ export const FAQ_ITEMS: FaqEntry[] = [
   },
   {
     q: "¿Cómo consigo USDT en mi cartera digital?",
-    a: "Instalá MetaMask, creá tu cuenta, entrá a \"Buy\"/\"Comprar\", buscá \"USDT\", elegí la red Ethereum y el token \"USDT\" o \"Tether USDT\", indicá el monto y completá el pago. Los USDT quedan disponibles en la sección \"Tokens\" para comprar tus HACK.",
+    a: "Instalá MetaMask, creá tu cuenta, entrá a \"Buy\"/\"Comprar\", buscá \"USDT\", elegí la red Polygon y el token \"USDT\" o \"Tether USDT\", indicá el monto y completá el pago. Los USDT quedan disponibles en la sección \"Tokens\" para comprar tus HACK.",
   },
   {
     q: "¿Es seguro conectar mi cartera digital? ¿Pueden robarme los tokens?",
