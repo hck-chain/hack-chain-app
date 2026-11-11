@@ -351,3 +351,138 @@ describe('useWalletLogin — reset', () => {
         expect(result.current.error).toBeUndefined();
     });
 });
+
+describe('useWalletLogin — cartera fantasma', () => {
+    // AppKit rehidrata la direccion desde localStorage. Si para entonces la
+    // cartera esta bloqueada, desconectada o en otra cuenta, la pantalla
+    // ofrecia "Firmar" sobre una direccion muerta. El caso feo: desbloquear
+    // con OTRA cuenta -> la firma sale de otra direccion y el backend
+    // responde 401 sin nada que lo explique en pantalla.
+    //
+    // Este comportamiento se comparte entre /login y /presale, por eso vive
+    // aca y no en usePresaleWallet.
+
+    /** Provider EIP-1193 simulado. `cuentas` es lo que la cartera expone. */
+    const fakeProvider = (cuentas: string[]) => {
+        const p = {
+            cuentas,
+            request: vi.fn(async () => p.cuentas),
+            on: vi.fn(),
+            removeListener: vi.fn(),
+        };
+        return p;
+    };
+
+    /** Deja el hook en 'awaiting-signature', que es el estado fantasma. */
+    const hidratarCon = (address: string) => {
+        vi.mocked(appKit.getAddress).mockReturnValue(address);
+        vi.mocked(appKit.subscribeAccount).mockReturnValue(vi.fn());
+        vi.mocked(appKit.subscribeEvents).mockReturnValue(vi.fn());
+    };
+
+    it('suelta la sesión si la cartera ya no expone esa dirección (bloqueada)', async () => {
+        const provider = fakeProvider([]); // MetaMask bloqueada
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+
+        await waitFor(() => expect(result.current.walletAddress).toBeNull());
+        expect(result.current.phase).toBe('idle');
+    });
+
+    it('suelta la sesión si la cartera cambió a otra cuenta', async () => {
+        const provider = fakeProvider(['0x' + 'dd'.repeat(20)]);
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+
+        await waitFor(() => expect(result.current.walletAddress).toBeNull());
+    });
+
+    it('NO suelta la sesión si sigue siendo la misma cuenta', async () => {
+        // Mismo address con otro casing: debe reconocerlo igual.
+        const provider = fakeProvider([MOCK_WALLET.toUpperCase()]);
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+
+        await waitFor(() => expect(provider.request).toHaveBeenCalled());
+        expect(result.current.walletAddress).toBe(MOCK_WALLET_LC);
+        expect(result.current.isAwaitingSignature).toBe(true);
+    });
+
+    it('un provider sin eth_accounts no cuenta como prueba', async () => {
+        const provider = fakeProvider([]);
+        provider.request.mockRejectedValue(new Error('unsupported'));
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+
+        await waitFor(() => expect(provider.request).toHaveBeenCalled());
+        expect(result.current.walletAddress).toBe(MOCK_WALLET_LC);
+    });
+
+    it('vuelve a comprobar al regresar a la pestaña (bloqueo en caliente)', async () => {
+        const provider = fakeProvider([MOCK_WALLET]);
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+        await waitFor(() => expect(result.current.isAwaitingSignature).toBe(true));
+
+        // El usuario se va a la extension y echa el candado.
+        provider.cuentas = [];
+        act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+
+        await waitFor(() => expect(result.current.walletAddress).toBeNull());
+    });
+
+    it('vuelve a comprobar al recuperar el foco la ventana', async () => {
+        const provider = fakeProvider([MOCK_WALLET]);
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+        await waitFor(() => expect(result.current.isAwaitingSignature).toBe(true));
+
+        provider.cuentas = [];
+        act(() => { window.dispatchEvent(new Event('focus')); });
+
+        await waitFor(() => expect(result.current.walletAddress).toBeNull());
+    });
+
+    it('reacciona al accountsChanged de la cartera', async () => {
+        const provider = fakeProvider([MOCK_WALLET]);
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+        await waitFor(() => expect(provider.on).toHaveBeenCalledWith('accountsChanged', expect.any(Function)));
+
+        const handler = provider.on.mock.calls.find((c) => c[0] === 'accountsChanged')![1] as (a: string[]) => void;
+        act(() => { handler(['0x' + 'ee'.repeat(20)]); });
+
+        await waitFor(() => expect(result.current.walletAddress).toBeNull());
+    });
+
+    it('deja de escuchar al desmontarse', async () => {
+        const provider = fakeProvider([MOCK_WALLET]);
+        vi.mocked(appKit.getProvider).mockReturnValue(provider as any);
+        hidratarCon(MOCK_WALLET);
+
+        const { result, unmount } = renderHook(() => useWalletLogin(), { wrapper: createWrapper() });
+        await waitFor(() => expect(result.current.isAwaitingSignature).toBe(true));
+
+        unmount();
+        provider.request.mockClear();
+        window.dispatchEvent(new Event('focus'));
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        expect(provider.request).not.toHaveBeenCalled();
+        expect(provider.removeListener).toHaveBeenCalledWith('accountsChanged', expect.any(Function));
+    });
+});
