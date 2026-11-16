@@ -96,22 +96,34 @@ async function exportAllocationBatch({ models, provider, config, batchSize = BAT
   if (validados.length === 0) return { ok: false, reason: "EMPTY" };
 
   // ---- segunda revision: todo contra la cadena -------------------------------
+  // Los validados por revision manual (pago desde un exchange) se
+  // re-verifican aceptando otro remitente, igual que cuando se validaron.
   const resultados = await mapLimit(validados, CONCURRENCY, (c) =>
-    verifyContribution({ contribution: c, provider, config })
+    verifyContribution({ contribution: c, provider, config, allowAnySender: Boolean(c.manual_review_note) })
   );
 
   const problems = [];
   resultados.forEach((r, i) => {
+    const c = validados[i];
+    const fila = { id: c.id, wallet_address: c.wallet_address, tx_hash: c.tx_hash };
     if (!r.ok) {
-      const c = validados[i];
-      problems.push({ id: c.id, wallet_address: c.wallet_address, tx_hash: c.tx_hash, reason: r.reason });
+      problems.push({ ...fila, reason: r.reason });
+      return;
+    }
+    // Lo acreditado se vuelve a derivar de la cadena y se compara con lo
+    // guardado: si alguien edito la fase o los HACK de una fila en la base,
+    // el pago real no lo respalda y no se exporta.
+    if (Number(c.phase_id) !== r.phaseId) {
+      problems.push({ ...fila, reason: "PHASE_MISMATCH" });
+    } else if (String(c.hack_amount).split(".")[0] !== r.hackAmount) {
+      problems.push({ ...fila, reason: "AMOUNT_MISMATCH" });
     }
   });
 
   if (problems.length) {
     // Si lo unico que fallo es el RPC, no hay evidencia contra ningun aporte:
     // se reintenta, no se investiga.
-    const soloRpc = problems.every((p) => p.reason === "RPC_ERROR");
+    const soloRpc = problems.every((p) => p.reason === "RPC_ERROR" || p.reason === "NOT_ENOUGH_CONFIRMATIONS");
     return { ok: false, reason: soloRpc ? "CHAIN_UNAVAILABLE" : "VERIFICATION_FAILED", problems };
   }
 

@@ -2,8 +2,8 @@
 //
 // Registro de aportes de la preventa publica de HACK.
 //
-// Modelo: la venta ocurre fuera de la cadena. El comprador transfiere USDT a
-// la direccion oficial, sube el comprobante a /api/upload/payment-proof (que
+// Modelo: la venta ocurre fuera de la cadena. El comprador transfiere USDT
+// (en Ethereum) a la tesoreria, sube el comprobante a /api/upload/payment-proof (que
 // lo manda a Pinata sin tocar disco) y registra el aporte aca con el CID que
 // ese endpoint devolvio. Al cerrar la venta, las filas validadas se exportan
 // como el lote que el multisig escribe en PresaleAllocation.allocateBatch.
@@ -12,6 +12,7 @@ const rateLimit = require("express-rate-limit");
 const { body, query, validationResult } = require("express-validator");
 const { PresaleContribution, Sequelize } = require("../models");
 const { authenticate } = require("../middleware/auth");
+const { phaseById, hackFor, MIN_PURCHASE_BASE, USDT_DECIMALS, getNetworks, loadPhases } = require("../config/presale");
 
 const { Op } = Sequelize;
 const router = express.Router();
@@ -19,19 +20,18 @@ const router = express.Router();
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/;
 const WALLET_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
-// Fases y precios. Deben coincidir con frontend/src/utils/presale.ts: el
-// precio no se acepta del cliente, se busca aca, para que nadie pueda
-// registrar 50 millones de HACK por un dolar manipulando el body.
-const PHASES = {
-  1: { label: "Primera", price: 0.00003, maxPerPurchase: 5_000_000 },
-  2: { label: "Segunda", price: 0.00005, maxPerPurchase: 7_500_000 },
-  3: { label: "Tercera", price: 0.00008, maxPerPurchase: 12_500_000 },
-};
-
-const MIN_PURCHASE_USDT = 1;
+// Fases, precios y minimo salen de config/presale.js (la autoridad).
+//
+// Lo que el comprador manda al registrar (fase, USDT, HACK) es solo lo que
+// DECLARA. Lo que se acredita lo decide la validacion con la cadena: la fase
+// por la fecha del bloque del pago y los HACK por lo transferido. Aca solo
+// se controla que la declaracion sea coherente, para atajar errores de
+// tipeo antes de que lleguen al admin.
+const MIN_PURCHASE_USDT = Number(MIN_PURCHASE_BASE) / 10 ** USDT_DECIMALS;
 // Tolerancia al comparar el hack_amount declarado contra el recalculado: el
 // cliente hace la division en coma flotante y puede diferir en el ultimo bit.
 const HACK_TOLERANCE = 1;
+const phaseLabel = (id) => phaseById(id)?.label ?? String(id);
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 10;
@@ -58,7 +58,7 @@ function rejectInvalid(req, res) {
 function toPublicRow(row) {
   return {
     address: row.wallet_address,
-    phase: PHASES[row.phase_id]?.label ?? String(row.phase_id),
+    phase: phaseLabel(row.phase_id),
     phase_id: row.phase_id,
     usdt: Number(row.usdt_amount),
     hack: Number(row.hack_amount),
@@ -91,7 +91,7 @@ router.post(
     body("usdt_amount").isFloat({ gt: 0 }).toFloat(),
     body("hack_amount").isFloat({ gt: 0 }).toFloat(),
     // Obligatorio: la fuente de verdad son las transferencias en cadena, y una
-    // captura sola no se puede verificar contra Polygon.
+    // captura sola no se puede verificar.
     body("tx_hash").exists({ checkFalsy: true }).withMessage("tx_hash is required")
       .bail()
       .matches(TX_HASH_REGEX).withMessage("tx_hash must be a 0x-prefixed 64-hex hash"),
@@ -104,31 +104,33 @@ router.post(
     if (rejectInvalid(req, res)) return;
 
     const { phase_id, usdt_amount, hack_amount, tx_hash, proof_cid, proof_uri } = req.body;
-    const phase = PHASES[phase_id];
+    const phase = phaseById(phase_id);
 
     if (usdt_amount < MIN_PURCHASE_USDT) {
       return res.status(400).json({ error: `Minimum purchase is ${MIN_PURCHASE_USDT} USDT` });
     }
 
-    // El precio es el del servidor, no el que diga el cliente.
-    const expectedHack = usdt_amount / phase.price;
+    // El precio es el del servidor, no el que diga el cliente. Sin tope por
+    // compra: las reglas acordadas dicen "sin tope de compra por direccion";
+    // lo que limita es el cupo de cada fase, que se controla al validar.
+    const usdtBase = BigInt(Math.round(usdt_amount * 10 ** USDT_DECIMALS));
+    const expectedHack = Number(hackFor(usdtBase, phase));
     if (Math.abs(expectedHack - hack_amount) > HACK_TOLERANCE) {
       return res.status(400).json({
         error: "hack_amount does not match usdt_amount at this phase's price",
-      });
-    }
-    if (hack_amount > phase.maxPerPurchase) {
-      return res.status(400).json({
-        error: `Maximum per purchase in this phase is ${phase.maxPerPurchase} HACK`,
       });
     }
 
     try {
       const contribution = await PresaleContribution.create({
         wallet_address: req.auth.wallet.toLowerCase(),
+        // phase_id y hack_amount se reemplazan por lo acreditado al validar;
+        // lo declarado queda en declared_* para auditoria.
         phase_id,
         usdt_amount,
         hack_amount: Math.floor(hack_amount),
+        declared_phase_id: phase_id,
+        declared_hack_amount: Math.floor(hack_amount),
         // Minusculas siempre. Postgres compara VARCHAR respetando mayusculas,
         // asi que sin esto el mismo pago entraba dos veces cambiando el casing
         // del hash, y las dos filas pasaban la verificacion en cadena porque
@@ -254,6 +256,46 @@ router.get("/stats", async (req, res) => {
     console.error("Fetch presale stats error:", err);
     return res.status(500).json({ error: "Failed to fetch presale stats" });
   }
+});
+
+/** Precio en USDT por HACK, para mostrar (la cuenta real se hace con enteros). */
+function phasePublic(p) {
+  return {
+    id: p.id,
+    label: p.label,
+    priceUsdt: (Number(p.priceBase) / 10 ** USDT_DECIMALS).toString(),
+    capHack: p.capHack.toString(),
+    start: p.start.toISOString(),
+    end: p.end.toISOString(),
+  };
+}
+
+// GET /api/presale/config — publico. Regla 14: "publica la direccion donde se
+// paga, la moneda aceptada, el minimo y los datos de las fases". La pagina
+// muestra la direccion de pago DESDE ACA, no desde una constante del front:
+// asi hay un solo lugar donde esta escrita. Si todavia no esta definida, sale
+// null y la pagina no muestra ninguna (mejor nada que una equivocada).
+router.get("/config", (req, res) => {
+  const { networks } = getNetworks();
+  const pago = networks.find((n) => n.role === "payment");
+  const token = networks.find((n) => n.role === "token");
+  return res.json({
+    payment: {
+      network: pago.network,
+      chainId: pago.chainId,
+      explorer: pago.explorer,
+      treasury: pago.treasury,
+      token: pago.token,
+    },
+    token: {
+      network: token.network,
+      chainId: token.chainId,
+      explorer: token.explorer,
+      presaleContract: token.presaleContract,
+    },
+    minPurchaseUsdt: MIN_PURCHASE_USDT,
+    phases: loadPhases().map(phasePublic),
+  });
 });
 
 module.exports = router;

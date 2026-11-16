@@ -47,6 +47,11 @@ async function run() {
     reviewed_by: { type: DataTypes.STRING(42), allowNull: true },
     reviewed_at: { type: DataTypes.DATE, allowNull: true },
     onchain_amount_usdt: { type: DataTypes.DECIMAL(18, 6), allowNull: true },
+    declared_phase_id: { type: DataTypes.INTEGER, allowNull: true },
+    declared_hack_amount: { type: DataTypes.DECIMAL(38, 0), allowNull: true },
+    payment_block_time: { type: DataTypes.DATE, allowNull: true },
+    payment_sender: { type: DataTypes.STRING(42), allowNull: true },
+    manual_review_note: { type: DataTypes.STRING(500), allowNull: true },
   };
   for (const [col, spec] of Object.entries(nuevas)) {
     if (!columns[col]) {

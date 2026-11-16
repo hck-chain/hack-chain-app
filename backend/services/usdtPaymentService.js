@@ -130,9 +130,17 @@ async function verifyUsdtPayment(params) {
  * @param {string} params.expectedTo
  * @param {number} params.expectedMinAmountUsdt
  * @param {object} [params.config]              { usdtTokenAddress, usdtDecimals }
+ * @param {boolean} [params.anySender]          Cuenta transferencias hacia
+ *   `expectedTo` sin importar quien las envio. Lo usa la revision manual de
+ *   la preventa (pagos desde un exchange). Por defecto false: el remitente
+ *   tiene que ser `expectedFrom`.
+ *
+ * El resultado ok trae ademas `amountBase` (unidades base del token, string),
+ * `senders` (quien envio a `expectedTo`) y `blockNumber`, para quien necesite
+ * aritmetica exacta o la fecha del bloque.
  */
 async function checkUsdtTransfer(params) {
-  const { provider, txHash, expectedFrom, expectedTo, expectedMinAmountUsdt } = params;
+  const { provider, txHash, expectedFrom, expectedTo, expectedMinAmountUsdt, anySender = false } = params;
   const cfg = params.config || defaultConfig();
 
   if (!provider || typeof provider.getTransactionReceipt !== "function") {
@@ -178,6 +186,7 @@ async function checkUsdtTransfer(params) {
   let usdtTransfers = 0;
   let toEducator = 0;
   let summedFromExpected = 0n;
+  const senders = new Set();
 
   for (const log of receipt.logs || []) {
     if (!log || !log.address || !Array.isArray(log.topics)) continue;
@@ -198,8 +207,9 @@ async function checkUsdtTransfer(params) {
 
     if (to !== normalizedTo) continue;
     toEducator += 1;
+    senders.add(from);
 
-    if (from !== normalizedFrom) continue;
+    if (!anySender && from !== normalizedFrom) continue;
     summedFromExpected += value;
   }
 
@@ -210,7 +220,7 @@ async function checkUsdtTransfer(params) {
     return { ok: false, reason: "WRONG_RECIPIENT" };
   }
   if (summedFromExpected === 0n) {
-    return { ok: false, reason: "WRONG_SENDER" };
+    return { ok: false, reason: "WRONG_SENDER", senders: [...senders] };
   }
 
   // ---- (4) amount check ---------------------------------------------------------
@@ -229,7 +239,14 @@ async function checkUsdtTransfer(params) {
     `${LOG_PREFIX} confirmed tx=${normalizedTxHash} from=${normalizedFrom} to=${normalizedTo} amount=${amountUsdt}`
   );
 
-  return { ok: true, amountUsdt, txHash: normalizedTxHash };
+  return {
+    ok: true,
+    amountUsdt,
+    txHash: normalizedTxHash,
+    amountBase: summedFromExpected.toString(),
+    senders: [...senders],
+    blockNumber: receipt.blockNumber,
+  };
 }
 
 module.exports = {

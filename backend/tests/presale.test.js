@@ -143,14 +143,21 @@ describe("Presale routes", () => {
       expect(res.body.error).toMatch(/minimum/i);
     });
 
-    test("400 por encima del maximo por compra de la fase", async () => {
-      // Fase 1 tope 5.000.000 HACK; 180 USDT serian 6.000.000.
+    test("sin tope por compra: las reglas dicen 'sin tope de compra por direccion'", async () => {
+      // Antes se rechazaba por encima de 5.000.000 HACK en la fase 1. Lo que
+      // limita es el cupo de la fase, y eso se controla al validar.
       const res = await request(app)
         .post("/api/presale/contributions")
         .send({ phase_id: 1, usdt_amount: 180, hack_amount: 6_000_000, tx_hash: txHash(2) });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/maximum/i);
+      expect(res.status).toBe(201);
+    });
+
+    test("guarda lo declarado aparte: lo acreditado se decide al validar", async () => {
+      const res = await request(app).post("/api/presale/contributions").send(VALID);
+      const row = await PresaleContribution.findByPk(res.body.id);
+      expect(row.declared_phase_id).toBe(1);
+      expect(String(row.declared_hack_amount)).toBe("1000000");
     });
 
     test("409 si el mismo hash se registra dos veces", async () => {
@@ -269,6 +276,26 @@ describe("Presale routes", () => {
       const res = await request(app).get("/api/presale/contributors?per_page=5000");
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe("GET /api/presale/config", () => {
+    test("publica red de pago, token, tesoreria, minimo y fases (regla 14)", async () => {
+      process.env.PRESALE_TREASURY_ADDRESS = "0x" + "77".repeat(20);
+      const res = await request(app).get("/api/presale/config");
+      delete process.env.PRESALE_TREASURY_ADDRESS;
+
+      expect(res.status).toBe(200);
+      expect(res.body.payment).toMatchObject({ network: "Ethereum", chainId: 1, treasury: "0x" + "77".repeat(20) });
+      expect(res.body.payment.token.symbol).toBe("USDT");
+      expect(res.body.token).toMatchObject({ network: "Polygon", chainId: 137 });
+      expect(res.body.minPurchaseUsdt).toBe(1);
+      expect(res.body.phases.map((p) => p.priceUsdt)).toEqual(["0.00003", "0.00005", "0.00008"]);
+    });
+
+    test("sin tesoreria definida publica null: mejor ninguna direccion que una equivocada", async () => {
+      const res = await request(app).get("/api/presale/config");
+      expect(res.body.payment.treasury).toBeNull();
     });
   });
 

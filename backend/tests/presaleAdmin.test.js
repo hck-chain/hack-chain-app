@@ -27,22 +27,38 @@ const BUYER_A = "0x" + "aa".repeat(20);
 const BUYER_B = "0x" + "bb".repeat(20);
 const THIEF = "0x" + "cc".repeat(20);
 
-// Polygon simulado: tx_hash -> recibo. Lo que no esta, no existe en cadena.
+// Red de pagos (Ethereum) simulada: tx_hash -> recibo, y bloque -> fecha.
+// Lo que no esta, no existe en cadena.
 const mockChain = new Map();
+const mockBlockTimes = new Map();
 let mockChainDown = false;
-jest.mock("../harjoot/adapters/polygonProvider", () => ({
-  createPolygonProvider: () => ({
+let mockNextBlock = 1000;
+jest.mock("../usecases/presale/paymentChain", () => ({
+  createPaymentProvider: () => ({
     getTransactionReceipt: async (tx) => {
       if (mockChainDown) throw new Error("RPC timeout");
       return mockChain.get(tx.toLowerCase()) || null;
     },
+    getBlockNumber: async () => 1_000_000,
+    getBlock: async (n) => ({ timestamp: mockBlockTimes.get(n) }),
+    destroy: () => {},
   }),
 }));
 
+// Fechas dentro de cada fase (las fases por defecto: 8-14, 15-21 y 22-28 dic).
+const FASE = {
+  1: "2026-12-10T12:00:00Z",
+  2: "2026-12-17T12:00:00Z",
+  3: "2026-12-24T12:00:00Z",
+  ninguna: "2026-12-01T12:00:00Z",
+};
+
 const iface = new Interface(["event Transfer(address indexed from, address indexed to, uint256 value)"]);
-function pagar(tx, { from, to = TREASURY, usdt }) {
+function pagar(tx, { from, to = TREASURY, usdt, fase = 1 }) {
   const e = iface.encodeEventLog("Transfer", [from, to, BigInt(Math.round(usdt * 1e6))]);
-  mockChain.set(tx, { status: 1, logs: [{ address: USDT, topics: e.topics, data: e.data }] });
+  const block = mockNextBlock++;
+  mockBlockTimes.set(block, Math.floor(new Date(FASE[fase]).getTime() / 1000));
+  mockChain.set(tx, { status: 1, blockNumber: block, logs: [{ address: USDT, topics: e.topics, data: e.data }] });
 }
 const tx = (n) => "0x" + n.toString(16).padStart(64, "0");
 
@@ -52,7 +68,7 @@ describe("Panel de admin de preventa", () => {
   beforeAll(async () => {
     process.env.ADMIN_WALLETS = ADMIN;
     process.env.PRESALE_TREASURY_ADDRESS = TREASURY;
-    process.env.USDT_CONTRACT_ADDRESS = USDT;
+    process.env.PRESALE_USDT_ADDRESS = USDT;
 
     sequelize = new SequelizePkg.Sequelize("sqlite::memory:", {
       logging: false,
@@ -86,6 +102,7 @@ describe("Panel de admin de preventa", () => {
   beforeEach(async () => {
     await sequelize.sync({ force: true });
     mockChain.clear();
+    mockBlockTimes.clear();
     mockChainDown = false;
     process.env.PRESALE_TREASURY_ADDRESS = TREASURY;
   });
@@ -161,15 +178,75 @@ describe("Panel de admin de preventa", () => {
       expect(Number(c.onchain_amount_usdt)).toBe(35);
     });
 
-    test("hash ajeno (el pago salio de otra wallet): 422 y sigue pendiente", async () => {
+    test("hash ajeno (el pago salio de otra wallet): sin nota no valida y sigue pendiente", async () => {
       const c = await aporte({ wallet_address: THIEF });
       pagar(tx(1), { from: BUYER_A, usdt: 30 });
 
       const res = await request(app).post(`/api/admin/presale/contributions/${c.id}/validate`);
 
       expect(res.status).toBe(422);
-      expect(res.body.error).toBe("VERIFICATION_FAILED");
+      expect(res.body.error).toBe("MANUAL_NOTE_REQUIRED");
       expect(res.body.verification.reason).toBe("WRONG_SENDER");
+      // El admin ve quien pago de verdad: con eso detecta el robo.
+      expect(res.body.verification.senders).toEqual([BUYER_A]);
+      expect((await c.reload()).status).toBe("pending");
+    });
+
+    test("pago desde un exchange: con nota del admin se valida por revision manual", async () => {
+      const EXCHANGE = "0x" + "ee".repeat(20);
+      const c = await aporte();
+      pagar(tx(1), { from: EXCHANGE, usdt: 30 });
+
+      const corta = await request(app)
+        .post(`/api/admin/presale/contributions/${c.id}/validate`).send({ manualReviewNote: "ok" });
+      expect(corta.status).toBe(422);
+
+      const res = await request(app)
+        .post(`/api/admin/presale/contributions/${c.id}/validate`)
+        .send({ manualReviewNote: "Retiro de Binance; el comprador mostró el historial del exchange." });
+
+      expect(res.status).toBe(200);
+      await c.reload();
+      expect(c.status).toBe("validated");
+      expect(c.payment_sender).toBe(EXCHANGE);
+      expect(c.manual_review_note).toMatch(/Binance/);
+    });
+
+    test("REGRESION: se acredita la fase del pago, no la declarada", async () => {
+      // Declara fase 1 (precio 0,00003) pero pago en la fase 3 (0,00008).
+      const c = await aporte({ phase_id: 1, usdt_amount: 100, hack_amount: 3_333_333, declared_phase_id: 1, declared_hack_amount: 3_333_333 });
+      pagar(tx(1), { from: BUYER_A, usdt: 100, fase: 3 });
+
+      const res = await request(app).post(`/api/admin/presale/contributions/${c.id}/validate`);
+
+      expect(res.status).toBe(200);
+      await c.reload();
+      expect(c.phase_id).toBe(3);
+      expect(String(c.hack_amount)).toBe("1250000");
+      // Lo declarado queda para auditoria.
+      expect(c.declared_phase_id).toBe(1);
+      expect(String(c.declared_hack_amount)).toBe("3333333");
+    });
+
+    test("pago fuera de fase: no se valida", async () => {
+      const c = await aporte();
+      pagar(tx(1), { from: BUYER_A, usdt: 30, fase: "ninguna" });
+      const res = await request(app).post(`/api/admin/presale/contributions/${c.id}/validate`);
+      expect(res.status).toBe(422);
+      expect(res.body.verification.reason).toBe("OUTSIDE_PHASE");
+    });
+
+    test("no deja vender mas que el cupo de la fase", async () => {
+      // Fase 1: 20.000.000 HACK. Ya hay 19.500.000 validados.
+      await aporte({ tx_hash: tx(9), status: "validated", hack_amount: 19_500_000 });
+      const c = await aporte({ tx_hash: tx(1) });
+      pagar(tx(1), { from: BUYER_A, usdt: 30 }); // 1.000.000 HACK: no entra
+
+      const res = await request(app).post(`/api/admin/presale/contributions/${c.id}/validate`);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe("PHASE_CAP_EXCEEDED");
+      expect(res.body.availableHack).toBe("500000");
       expect((await c.reload()).status).toBe("pending");
     });
 
@@ -257,6 +334,29 @@ describe("Panel de admin de preventa", () => {
     });
   });
 
+  describe("configuracion", () => {
+    test("muestra el array de redes, lo pendiente, lo sobrescrito y lo vendido por fase", async () => {
+      await aporte({ tx_hash: tx(1), status: "validated", hack_amount: 1_500_000 });
+      await aporte({ tx_hash: tx(2), status: "pending", hack_amount: 9_000_000 }); // pendiente: no cuenta
+
+      const res = await request(app).get("/api/admin/presale/config");
+
+      expect(res.status).toBe(200);
+      expect(res.body.networks.map((n) => n.network)).toEqual(["Ethereum", "Polygon"]);
+      // En este test la tesoreria y el token vienen del entorno: el panel lo avisa.
+      expect(res.body.overrides.map((o) => o.env)).toEqual(expect.arrayContaining(["PRESALE_TREASURY_ADDRESS", "PRESALE_USDT_ADDRESS"]));
+      expect(res.body.pending).toEqual(expect.arrayContaining([{ role: "token", field: "presaleContract" }]));
+      const f1 = res.body.phases.find((p) => p.id === 1);
+      expect(f1).toMatchObject({ priceUsdt: "0.00003", capHack: "20000000", soldHack: "1500000", availableHack: "18500000" });
+    });
+
+    test("sin tesoreria definida, figura como pendiente", async () => {
+      delete process.env.PRESALE_TREASURY_ADDRESS;
+      const res = await request(app).get("/api/admin/presale/config");
+      expect(res.body.pending).toEqual(expect.arrayContaining([{ role: "payment", field: "treasury" }]));
+    });
+  });
+
   describe("estado del contrato", () => {
     test("sin PRESALE_CONTRACT_ADDRESS: configured false, no es un error", async () => {
       delete process.env.PRESALE_CONTRACT_ADDRESS;
@@ -286,9 +386,11 @@ describe("Panel de admin de preventa", () => {
       await aporte({ wallet_address: BUYER_A, tx_hash: tx(2), hack_amount: 1_000_000, status: "validated" });
       await aporte({ wallet_address: BUYER_A, tx_hash: tx(3), hack_amount: 250_000, status: "validated" });
       await aporte({ wallet_address: THIEF, tx_hash: tx(4), status: "rejected" }); // no entra
-      pagar(tx(1), { from: BUYER_B, usdt: 30 });
+      // Lo pagado tiene que respaldar lo acreditado: 15 USDT = 500.000 HACK
+      // en la fase 1, 30 = 1.000.000, 7,5 = 250.000.
+      pagar(tx(1), { from: BUYER_B, usdt: 15 });
       pagar(tx(2), { from: BUYER_A, usdt: 30 });
-      pagar(tx(3), { from: BUYER_A, usdt: 30 });
+      pagar(tx(3), { from: BUYER_A, usdt: 7.5 });
 
       const res = await request(app).get("/api/admin/presale/export");
 
@@ -332,6 +434,28 @@ describe("Panel de admin de preventa", () => {
       ]);
     });
 
+    test("un monto alterado en la base no lo respalda el pago: no exporta", async () => {
+      // Alguien con acceso a la base sube los HACK de una fila validada.
+      await aporte({ wallet_address: BUYER_A, tx_hash: tx(1), status: "validated", hack_amount: 9_000_000 });
+      pagar(tx(1), { from: BUYER_A, usdt: 30 }); // respalda 1.000.000
+
+      const res = await request(app).get("/api/admin/presale/export");
+
+      expect(res.status).toBe(422);
+      expect(res.body.problems).toEqual([expect.objectContaining({ reason: "AMOUNT_MISMATCH" })]);
+    });
+
+    test("un aporte validado por revision manual entra en el lote", async () => {
+      const EXCHANGE = "0x" + "ee".repeat(20);
+      await aporte({ tx_hash: tx(1), status: "validated", manual_review_note: "Retiro de exchange verificado." });
+      pagar(tx(1), { from: EXCHANGE, usdt: 30 });
+
+      const res = await request(app).get("/api/admin/presale/export");
+
+      expect(res.status).toBe(200);
+      expect(res.body.totals.wallets).toBe(1);
+    });
+
     test("RPC caido: 503, no acusa a ningun aporte", async () => {
       await aporte({ status: "validated" });
       mockChainDown = true;
@@ -358,7 +482,7 @@ describe("Panel de admin de preventa", () => {
 
     test("parte en tandas que concatenadas dan el archivo completo", async () => {
       const { exportAllocationBatch } = require("../usecases/presale/exportAllocationBatch");
-      const provider = require("../harjoot/adapters/polygonProvider").createPolygonProvider();
+      const provider = require("../usecases/presale/paymentChain").createPaymentProvider();
       const wallets = [BUYER_B, BUYER_A, THIEF, "0x" + "dd".repeat(20), "0x" + "ee".repeat(20)];
       for (const [i, w] of wallets.entries()) {
         await aporte({ wallet_address: w, tx_hash: tx(i + 1), status: "validated" });

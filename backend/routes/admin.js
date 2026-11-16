@@ -31,7 +31,8 @@ const { validateContribution, rejectContribution, listContributionsForAdmin } = 
 const { verifyContribution, PresaleConfigError } = require("../usecases/presale/verifyContribution");
 const { exportAllocationBatch } = require("../usecases/presale/exportAllocationBatch");
 const { getContractStatus, createPresaleContractReader } = require("../usecases/presale/contractStatus");
-const { createPolygonProvider } = require("../harjoot/adapters/polygonProvider");
+const { createPaymentProvider } = require("../usecases/presale/paymentChain");
+const { networkFor, getNetworks, loadPhases, USDT_DECIMALS } = require("../config/presale");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -71,6 +72,8 @@ const STATUS_BY_REASON = {
   WRONG_STATE: 409,
   // Preventa
   VERIFICATION_FAILED: 422,
+  MANUAL_NOTE_REQUIRED: 422,
+  PHASE_CAP_EXCEEDED: 409,
   PENDING_CONTRIBUTIONS: 409,
   CHAIN_UNAVAILABLE: 503,
   EMPTY: 404,
@@ -591,21 +594,23 @@ router.get(
 // ===========================================================================
 
 /**
- * Corre un caso de uso de preventa traduciendo la falta de configuracion de
- * la tesoreria a un 503 claro: sin saber a donde tenia que llegar el pago,
- * no se valida nada (falla cerrado).
+ * Corre un caso de uso de preventa con un proveedor de la red de PAGOS
+ * (Ethereum), traduciendo la falta de configuracion a un 503 claro: sin
+ * saber a donde tenia que llegar el pago, no se valida nada (falla cerrado).
+ * El proveedor se libera siempre al terminar.
  */
 async function withPresaleChain(res, fn) {
+  let provider;
   try {
-    return await fn(createPolygonProvider());
+    provider = createPaymentProvider();
+    return await fn(provider);
   } catch (err) {
     if (err instanceof PresaleConfigError) {
       return res.status(503).json({ error: "PRESALE_NOT_CONFIGURED", detail: err.message });
     }
-    if (err && /POLYGON_RPC_URL/.test(err.message || "")) {
-      return res.status(503).json({ error: "PRESALE_NOT_CONFIGURED", detail: err.message });
-    }
     throw err;
+  } finally {
+    provider?.destroy?.();
   }
 }
 
@@ -646,8 +651,8 @@ router.get(
 
 /**
  * GET /api/admin/presale/contributions/:id/verification
- * Verifica en Polygon sin cambiar nada, para que el admin vea el resultado
- * antes de decidir.
+ * Verifica el pago en Ethereum sin cambiar nada, para que el admin vea el
+ * resultado (y la fase y los HACK que se acreditarian) antes de decidir.
  */
 router.get(
   "/presale/contributions/:id/verification",
@@ -673,14 +678,20 @@ router.get(
 
 /**
  * POST /api/admin/presale/contributions/:id/validate
- * Vuelve a verificar en cadena y, solo si pasa, marca como validado.
+ * Vuelve a verificar en cadena y, solo si pasa, marca como validado con lo
+ * que dice la cadena (fase por fecha del bloque, HACK por monto transferido).
+ * Body opcional: { manualReviewNote } para un pago que llego desde otra
+ * direccion (exchange): revision manual con la explicacion del admin.
  */
 router.post(
   "/presale/contributions/:id/validate",
   authenticate,
   requireAdmin,
   adminEducatorLimiter,
-  [param("id").isInt({ min: 1 })],
+  [
+    param("id").isInt({ min: 1 }),
+    body("manualReviewNote").optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
+  ],
   async (req, res) => {
     if (handleValidation(req, res)) return;
     try {
@@ -690,12 +701,14 @@ router.post(
           provider,
           id: Number(req.params.id),
           adminWallet: req.auth.wallet,
+          manualReviewNote: req.body?.manualReviewNote,
         });
         if (!result.ok) {
           return res.status(STATUS_BY_REASON[result.reason] || 400).json({
             error: result.reason,
             ...(result.verification ? { verification: result.verification } : {}),
             ...(result.currentStatus ? { currentStatus: result.currentStatus } : {}),
+            ...(result.availableHack !== undefined ? { availableHack: result.availableHack } : {}),
           });
         }
         return res.json({ contribution: result.contribution, verification: result.verification });
@@ -790,7 +803,8 @@ router.get(
   requireAdmin,
   adminReadLimiter,
   async (req, res) => {
-    const contractAddress = process.env.PRESALE_CONTRACT_ADDRESS;
+    // Direccion del contrato: del array de config/presale.js (red "token").
+    const contractAddress = networkFor("token").presaleContract;
     // Variable propia para poder apuntar a otra red (p. ej. Anvil local) sin
     // tocar la verificacion de pagos, que sigue usando POLYGON_RPC_URL.
     const rpcUrl = process.env.PRESALE_RPC_URL || process.env.POLYGON_RPC_URL;
@@ -798,8 +812,8 @@ router.get(
       return res.json({
         configured: false,
         detail: !contractAddress
-          ? "PRESALE_CONTRACT_ADDRESS no esta configurada (el contrato aun no se desplego)"
-          : !rpcUrl ? "Falta PRESALE_RPC_URL o POLYGON_RPC_URL" : "PRESALE_CONTRACT_ADDRESS no es una direccion valida",
+          ? "El contrato aun no se desplego (config/presale.js -> token.presaleContract)"
+          : !rpcUrl ? "Falta PRESALE_RPC_URL o POLYGON_RPC_URL" : "La direccion del contrato no es valida",
       });
     }
     const reader = createPresaleContractReader({ rpcUrl, contractAddress });
@@ -811,6 +825,66 @@ router.get(
       return res.status(503).json({ error: "CHAIN_UNAVAILABLE", detail: err.shortMessage || err.message });
     } finally {
       reader.destroy();
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/config
+ * Todo lo que el encargado necesita para analizar la configuracion: donde
+ * queda cada cosa (el array de config/presale.js), que falta definir, que
+ * esta sobrescrito por variables de entorno, y cada fase con lo vendido y lo
+ * disponible.
+ */
+router.get(
+  "/presale/config",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  async (req, res) => {
+    try {
+      const { networks, overrides } = getNetworks();
+
+      // Lo que falta definir: campos de direccion en null.
+      const pending = [];
+      for (const n of networks) {
+        for (const field of ["treasury", "multisig", "presaleContract"]) {
+          if (field in n && !n[field]) pending.push({ role: n.role, field });
+        }
+      }
+
+      const vendidoPorFase = await db.PresaleContribution.findAll({
+        attributes: ["phase_id", [db.Sequelize.fn("SUM", db.Sequelize.col("hack_amount")), "sold"]],
+        where: { status: "validated" },
+        group: ["phase_id"],
+        raw: true,
+      });
+      const vendido = new Map(vendidoPorFase.map((r) => [Number(r.phase_id), BigInt(String(r.sold ?? 0).split(".")[0])]));
+
+      const phases = loadPhases().map((p) => {
+        const sold = vendido.get(p.id) || 0n;
+        return {
+          id: p.id,
+          label: p.label,
+          priceUsdt: (Number(p.priceBase) / 10 ** USDT_DECIMALS).toString(),
+          start: p.start.toISOString(),
+          end: p.end.toISOString(),
+          capHack: p.capHack.toString(),
+          soldHack: sold.toString(),
+          availableHack: (p.capHack > sold ? p.capHack - sold : 0n).toString(),
+        };
+      });
+
+      return res.json({
+        networks,
+        overrides,
+        pending,
+        phases,
+        phasesOverridden: Boolean(process.env.PRESALE_PHASES),
+      });
+    } catch (err) {
+      console.error("GET /api/admin/presale/config error:", err);
+      return res.status(500).json({ error: "Failed to read presale config" });
     }
   },
 );

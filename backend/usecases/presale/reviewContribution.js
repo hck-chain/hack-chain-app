@@ -5,15 +5,23 @@
 // Decisiones del encargado que este archivo implementa:
 //   - Valida UN solo admin; no hay doble aprobacion por codigo. Si mas
 //     adelante hace falta, es por proceso.
-//   - La fuente de verdad es la transferencia de USDT en cadena. Validar
-//     vuelve a verificar en Polygon en el momento, aunque el panel ya lo haya
+//   - La fuente de verdad es la transferencia de USDT en cadena (Ethereum).
+//     Validar vuelve a verificar en el momento, aunque el panel ya lo haya
 //     mostrado: entre que el admin mira y aprieta pueden pasar minutos, y lo
 //     que se graba tiene que ser lo que se comprobo en ese instante.
+//   - Lo ACREDITADO sale de la cadena: la fase, de la fecha del bloque; los
+//     HACK, de lo transferido. Lo declarado queda guardado aparte.
+//   - Pago desde un exchange (otro remitente): revision manual, con nota
+//     obligatoria del admin explicando por que se acepta.
+//   - No se valida nada que supere el cupo de su fase.
 //   - Solo se revisa lo que esta 'pending'. Un aporte validado ya puede estar
 //     en un lote exportado al contrato; cambiarlo despues romperia la
 //     correspondencia con el hash publicado.
 
 const { verifyContribution } = require("./verifyContribution");
+const { loadPhases, phaseById } = require("../../config/presale");
+
+const MIN_MANUAL_NOTE = 10;
 
 /**
  * Pasa un aporte de 'pending' a otro estado SOLO si sigue en 'pending'.
@@ -36,24 +44,59 @@ async function transitionFromPending(models, id, values) {
  *   | { ok: false, reason: "NOT_FOUND" | "WRONG_STATE", currentStatus?: string }
  *   | { ok: false, reason: "VERIFICATION_FAILED", verification: object }
  *   | { ok: false, reason: "CHAIN_UNAVAILABLE", verification: object }
+ *   | { ok: false, reason: "MANUAL_NOTE_REQUIRED", verification: object }
+ *   | { ok: false, reason: "PHASE_CAP_EXCEEDED", verification, availableHack: string }
  * >}
+ *
+ * @param {string} [params.manualReviewNote] solo para pagos que llegaron desde
+ *   otra direccion (exchange): por que el admin acepta igual el pago.
  */
-async function validateContribution({ models, provider, id, adminWallet, config }) {
+async function validateContribution({ models, provider, id, adminWallet, config, manualReviewNote }) {
   const contribution = await models.PresaleContribution.findByPk(id);
   if (!contribution) return { ok: false, reason: "NOT_FOUND" };
   if (contribution.status !== "pending") {
     return { ok: false, reason: "WRONG_STATE", currentStatus: contribution.status };
   }
 
-  const verification = await verifyContribution({ contribution, provider, config });
+  const note = (manualReviewNote || "").trim();
+  let verification = await verifyContribution({ contribution, provider, config });
+
+  // Pago que llego desde otra direccion: solo con revision manual explicita.
+  if (!verification.ok && verification.reason === "WRONG_SENDER" && verification.manualReviewPossible) {
+    if (note.length < MIN_MANUAL_NOTE) {
+      return { ok: false, reason: "MANUAL_NOTE_REQUIRED", verification };
+    }
+    verification = await verifyContribution({ contribution, provider, config, allowAnySender: true });
+  }
 
   if (!verification.ok) {
-    // Un RPC caido no dice nada sobre el pago: se informa distinto para que
-    // el panel ofrezca reintentar en vez de sugerir rechazar.
-    if (verification.reason === "RPC_ERROR") {
+    // Un RPC caido, o un pago con pocas confirmaciones, no dicen nada en
+    // contra del pago: se informa distinto para que el panel ofrezca
+    // reintentar en vez de sugerir rechazar.
+    if (verification.soft_failed) {
       return { ok: false, reason: "CHAIN_UNAVAILABLE", verification };
     }
     return { ok: false, reason: "VERIFICATION_FAILED", verification };
+  }
+
+  // Cupo de la fase (reglas: 20M / 30M / 50M). Lo que no entra se tendria
+  // que acreditar en parte y devolver el resto; hasta que exista el registro
+  // de devoluciones, el panel lo frena para que no se venda de mas.
+  const phases = (config && config.phases) || loadPhases();
+  const phase = phaseById(verification.phaseId, phases);
+  const vendido = BigInt(
+    (await models.PresaleContribution.sum("hack_amount", {
+      where: { status: "validated", phase_id: verification.phaseId },
+    })) || 0
+  );
+  const disponible = phase.capHack - vendido;
+  if (BigInt(verification.hackAmount) > disponible) {
+    return {
+      ok: false,
+      reason: "PHASE_CAP_EXCEEDED",
+      verification,
+      availableHack: (disponible > 0n ? disponible : 0n).toString(),
+    };
   }
 
   const now = new Date();
@@ -64,6 +107,12 @@ async function validateContribution({ models, provider, id, adminWallet, config 
     reviewed_at: now,
     onchain_amount_usdt: verification.amountUsdt,
     rejection_reason: null,
+    // Lo acreditado, tomado de la cadena.
+    phase_id: verification.phaseId,
+    hack_amount: verification.hackAmount,
+    payment_block_time: verification.blockTime,
+    payment_sender: verification.senders[0],
+    manual_review_note: verification.manualReview ? note : null,
   });
   if (!changed) {
     const fresh = await models.PresaleContribution.findByPk(id);

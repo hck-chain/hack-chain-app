@@ -88,6 +88,34 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(18, 6),
       allowNull: true,
     },
+    // Lo que el comprador DECLARO en el formulario. phase_id y hack_amount
+    // pasan a ser lo ACREDITADO al validar (fase segun la fecha del bloque,
+    // HACK segun lo transferido). Se guardan los dos para auditoria.
+    declared_phase_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    declared_hack_amount: {
+      type: DataTypes.DECIMAL(38, 0),
+      allowNull: true,
+    },
+    // Datos del pago tomados de la cadena al validar.
+    payment_block_time: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    // Direccion que efectivamente envio el USDT. Coincide con wallet_address
+    // salvo en la revision manual (pago desde un exchange).
+    payment_sender: {
+      type: DataTypes.STRING(42),
+      allowNull: true,
+    },
+    // Presente solo si se valido por revision manual: por que se acepto un
+    // pago que no salio de la wallet del comprador.
+    manual_review_note: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
   }, {
     tableName: 'presale_contributions',
     underscored: true,
