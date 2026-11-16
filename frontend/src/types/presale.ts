@@ -5,7 +5,6 @@ export interface Phase {
   end: Date;
   price: number;
   tokensAvailable: number;
-  maxPerPurchase: number;
   lockup: string;
   release: string;
 }

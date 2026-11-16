@@ -16,7 +16,9 @@
     "migrate:referrals-phase1": "node scripts/migrate-referrals-phase1.js",
     "migrate:vacancies": "node scripts/migrate-vacancies.js",
     "migrate:privy-identity": "node scripts/migrate-privy-identity.js",
-    "verify:privy-followup": "node scripts/verify-privy-followup-postgres.js"
+    "verify:privy-followup": "node scripts/verify-privy-followup-postgres.js",
+    "migrate:presale": "node scripts/migrate-presale.js",
+    "seed:presale": "node scripts/seed-presale.js"
   },
   "keywords": [],
   "author": "",

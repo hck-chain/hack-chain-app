@@ -102,6 +102,71 @@ async function verifyUsdtPayment(params) {
     return { ok: false, reason: "REPLAY", existingRequestId: existing.id };
   }
 
+  // ---- (2..4) receipt, Transfer logs, amount --------------------------------
+  return checkUsdtTransfer({
+    provider,
+    txHash: normalizedTxHash,
+    expectedFrom: normalizedFrom,
+    expectedTo: normalizedTo,
+    expectedMinAmountUsdt,
+    config: cfg,
+  });
+}
+
+/**
+ * The chain-only half of the verification: fetch the receipt and confirm a
+ * USDT Transfer from `expectedFrom` to `expectedTo` for at least
+ * `expectedMinAmountUsdt`. No database access and no replay check — callers
+ * own replay protection, because what counts as "already used" differs per
+ * flow (class payments check class_requests; the presale relies on the
+ * UNIQUE constraint on presale_contributions.tx_hash).
+ *
+ * Same result shape as verifyUsdtPayment, minus the REPLAY branch.
+ *
+ * @param {object} params
+ * @param {object} params.provider              getTransactionReceipt(txHash).
+ * @param {string} params.txHash
+ * @param {string} params.expectedFrom
+ * @param {string} params.expectedTo
+ * @param {number} params.expectedMinAmountUsdt
+ * @param {object} [params.config]              { usdtTokenAddress, usdtDecimals }
+ * @param {boolean} [params.anySender]          Cuenta transferencias hacia
+ *   `expectedTo` sin importar quien las envio. Lo usa la revision manual de
+ *   la preventa (pagos desde un exchange). Por defecto false: el remitente
+ *   tiene que ser `expectedFrom`.
+ *
+ * El resultado ok trae ademas `amountBase` (unidades base del token, string),
+ * `senders` (quien envio a `expectedTo`) y `blockNumber`, para quien necesite
+ * aritmetica exacta o la fecha del bloque.
+ */
+async function checkUsdtTransfer(params) {
+  const { provider, txHash, expectedFrom, expectedTo, expectedMinAmountUsdt, anySender = false } = params;
+  const cfg = params.config || defaultConfig();
+
+  if (!provider || typeof provider.getTransactionReceipt !== "function") {
+    throw new TypeError("checkUsdtTransfer requires { provider.getTransactionReceipt }");
+  }
+  if (typeof txHash !== "string" || !TX_HASH_REGEX.test(txHash)) {
+    throw new TypeError("checkUsdtTransfer requires a 0x-prefixed 32-byte txHash");
+  }
+  if (typeof expectedFrom !== "string" || !WALLET_REGEX.test(expectedFrom)) {
+    throw new TypeError("checkUsdtTransfer requires a valid expectedFrom wallet");
+  }
+  if (typeof expectedTo !== "string" || !WALLET_REGEX.test(expectedTo)) {
+    throw new TypeError("checkUsdtTransfer requires a valid expectedTo wallet");
+  }
+  if (typeof expectedMinAmountUsdt !== "number" || expectedMinAmountUsdt <= 0) {
+    throw new TypeError("checkUsdtTransfer requires expectedMinAmountUsdt as a positive number");
+  }
+  if (!cfg.usdtTokenAddress) {
+    throw new TypeError("checkUsdtTransfer requires config.usdtTokenAddress (USDT_CONTRACT_ADDRESS)");
+  }
+
+  const normalizedFrom = expectedFrom.toLowerCase();
+  const normalizedTo = expectedTo.toLowerCase();
+  const usdtToken = cfg.usdtTokenAddress.toLowerCase();
+  const normalizedTxHash = txHash.toLowerCase();
+
   // ---- (2) fetch receipt -------------------------------------------------------
   let receipt;
   try {
@@ -121,6 +186,7 @@ async function verifyUsdtPayment(params) {
   let usdtTransfers = 0;
   let toEducator = 0;
   let summedFromExpected = 0n;
+  const senders = new Set();
 
   for (const log of receipt.logs || []) {
     if (!log || !log.address || !Array.isArray(log.topics)) continue;
@@ -141,8 +207,9 @@ async function verifyUsdtPayment(params) {
 
     if (to !== normalizedTo) continue;
     toEducator += 1;
+    senders.add(from);
 
-    if (from !== normalizedFrom) continue;
+    if (!anySender && from !== normalizedFrom) continue;
     summedFromExpected += value;
   }
 
@@ -153,7 +220,7 @@ async function verifyUsdtPayment(params) {
     return { ok: false, reason: "WRONG_RECIPIENT" };
   }
   if (summedFromExpected === 0n) {
-    return { ok: false, reason: "WRONG_SENDER" };
+    return { ok: false, reason: "WRONG_SENDER", senders: [...senders] };
   }
 
   // ---- (4) amount check ---------------------------------------------------------
@@ -172,10 +239,18 @@ async function verifyUsdtPayment(params) {
     `${LOG_PREFIX} confirmed tx=${normalizedTxHash} from=${normalizedFrom} to=${normalizedTo} amount=${amountUsdt}`
   );
 
-  return { ok: true, amountUsdt, txHash: normalizedTxHash };
+  return {
+    ok: true,
+    amountUsdt,
+    txHash: normalizedTxHash,
+    amountBase: summedFromExpected.toString(),
+    senders: [...senders],
+    blockNumber: receipt.blockNumber,
+  };
 }
 
 module.exports = {
   verifyUsdtPayment,
+  checkUsdtTransfer,
   __TRANSFER_TOPIC0: TRANSFER_TOPIC0,
 };

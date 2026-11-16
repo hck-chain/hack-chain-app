@@ -6,6 +6,13 @@ import { api, ApiServiceError } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { appKit } from '@/config/walletConfig';
 
+/** Lo minimo que necesitamos de un provider EIP-1193. */
+interface Eip1193 {
+    request?(args: { method: string }): Promise<unknown>;
+    on?(event: string, handler: (accounts: string[]) => void): void;
+    removeListener?(event: string, handler: (accounts: string[]) => void): void;
+}
+
 const buildSignMessage = (address: string, nonce: string) =>
     `HackChain wants you to sign in with your Ethereum account:\n${address}\n\nSign in to HackChain\n\nNonce: ${nonce}`;
 
@@ -21,8 +28,23 @@ interface WalletLoginResponse {
 
 type Phase = 'idle' | 'connecting' | 'awaiting-signature' | 'signing';
 
-export const useWalletLogin = () => {
+interface UseWalletLoginOptions {
+    /**
+     * Called instead of the role-based dashboard redirect once the signature
+     * is accepted and the session exists. Lets a page that authenticates
+     * in-place (e.g. /presale, where navigating away would lose the buyer's
+     * half-filled form) stay where it is.
+     */
+    onAuthenticated?: () => void;
+}
+
+export const useWalletLogin = (options?: UseWalletLoginOptions) => {
     const navigate = useNavigate();
+
+    // Kept in a ref so passing an inline closure doesn't re-create the
+    // mutation on every render.
+    const onAuthenticatedRef = useRef(options?.onAuthenticated);
+    onAuthenticatedRef.current = options?.onAuthenticated;
     const { login } = useAuth();
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [phase, setPhase] = useState<Phase>('idle');
@@ -90,6 +112,69 @@ export const useWalletLogin = () => {
         appKit.disconnect().catch(() => { });
     }, []);
 
+    // La cartera fantasma.
+    //
+    // AppKit persiste la direccion en localStorage y la rehidrata al cargar.
+    // La comprobacion de arriba sólo mira que el objeto provider exista, y el
+    // de MetaMask existe igual con la cartera bloqueada o con el sitio
+    // desconectado. Resultado: la pantalla ofrecia "Firmar" sobre una
+    // direccion que la cartera ya no expone.
+    //
+    // El caso feo no es el candado en si: es desbloquear con OTRA cuenta
+    // seleccionada. La firma sale de una direccion distinta a la del nonce y
+    // el backend responde 401 "Signature does not match wallet address", sin
+    // nada en pantalla que lo explique.
+    //
+    // Solo actua en 'awaiting-signature', que es exactamente el estado
+    // fantasma: hay una direccion en pantalla y nadie la ha verificado. En
+    // 'connecting' y 'signing' el flujo tiene el control y no se toca.
+    useEffect(() => {
+        if (phase !== 'awaiting-signature' || !walletAddress) return;
+
+        const provider = appKit.getProvider('eip155') as Eip1193 | undefined;
+        // Un provider que no sepa responder eth_accounts no prueba nada: no
+        // tocamos la sesion en ese caso.
+        if (typeof provider?.request !== 'function') return;
+
+        let cancelled = false;
+        const esNuestra = (cuentas: unknown) =>
+            Array.isArray(cuentas) &&
+            cuentas.some((c) => String(c).toLowerCase() === walletAddress.toLowerCase());
+
+        const comprobar = () => {
+            provider.request!({ method: 'eth_accounts' })
+                .then((cuentas) => {
+                    if (!cancelled && !flowOwnedRef.current && !esNuestra(cuentas)) reset();
+                })
+                .catch(() => { });
+        };
+
+        comprobar();
+
+        // Tres disparadores, porque ninguno alcanza solo:
+        //  - `accountsChanged` cubre el cambio de cuenta, que MetaMask siempre
+        //    emite. Al echar el candado no es seguro que lo emita.
+        //  - volver a la pestaña cubre justamente eso: el usuario se va a la
+        //    extension, bloquea y vuelve. Es el camino real.
+        //  - `focus` cubre el mismo caso cuando la pestaña nunca llego a
+        //    ocultarse (la extension abierta como popup al lado).
+        const alCambiarCuentas = (cuentas: string[]) => {
+            if (!flowOwnedRef.current && !esNuestra(cuentas)) reset();
+        };
+        const alVolver = () => { if (document.visibilityState === 'visible') comprobar(); };
+
+        provider.on?.('accountsChanged', alCambiarCuentas);
+        document.addEventListener('visibilitychange', alVolver);
+        window.addEventListener('focus', comprobar);
+
+        return () => {
+            cancelled = true;
+            provider.removeListener?.('accountsChanged', alCambiarCuentas);
+            document.removeEventListener('visibilitychange', alVolver);
+            window.removeEventListener('focus', comprobar);
+        };
+    }, [phase, walletAddress, reset]);
+
     const mutation = useMutation({
         mutationFn: async ({ walletAddress, signature }: { walletAddress: string; signature: string }) =>
             api.postPublic<WalletLoginResponse>('/api/auth/login', {
@@ -106,6 +191,11 @@ export const useWalletLogin = () => {
                 lastName: null,
                 walletAddress: data.user.wallet_address,
             });
+
+            if (onAuthenticatedRef.current) {
+                onAuthenticatedRef.current();
+                return;
+            }
 
             if (data.user.role === 'student') navigate('/dashboard/talent');
             else if (data.user.role === 'issuer') navigate('/educator/dashboard');

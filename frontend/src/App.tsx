@@ -63,6 +63,7 @@ const AdminEducatorsPage = lazy(() => import("./pages/admin/AdminEducatorsPage")
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
 const AdminPaymentDisputesPage = lazy(() => import("./pages/admin/AdminPaymentDisputesPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
+const AdminPresalePage = lazy(() => import("./pages/admin/AdminPresalePage"));
 
 const queryClient = new QueryClient();
 
@@ -174,6 +175,7 @@ const App = () => {
                   <Route path="payments"  element={<AdminPaymentsPage />} />
                   <Route path="payment-disputes" element={<AdminPaymentDisputesPage />} />
                   <Route path="treasury"  element={<AdminTreasuryPage />} />
+                  <Route path="presale"   element={<AdminPresalePage />} />
                 </Route>
 
                 {/* Educator public profile */}

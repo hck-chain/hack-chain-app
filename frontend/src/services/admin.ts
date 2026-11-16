@@ -152,6 +152,168 @@ export type ListEducatorsParams = {
   limit?: number;
 };
 
+
+// ---------------------------------------------------------------------------
+// Preventa de HACK
+// ---------------------------------------------------------------------------
+
+export type PresaleStatus = 'pending' | 'validated' | 'rejected';
+
+/** Motivos que devuelve la verificacion en cadena (usecases/presale/verifyContribution). */
+export type PresaleVerificationReason =
+  | 'NO_TX_HASH' | 'TX_NOT_FOUND' | 'TX_REVERTED' | 'NO_USDT_TRANSFER'
+  | 'WRONG_RECIPIENT' | 'WRONG_SENDER' | 'BELOW_MINIMUM' | 'OUTSIDE_PHASE'
+  | 'NOT_ENOUGH_CONFIRMATIONS' | 'RPC_ERROR'
+  // Solo en la exportacion: lo guardado no coincide con lo que respalda el pago.
+  | 'PHASE_MISMATCH' | 'AMOUNT_MISMATCH';
+
+// Un solo tipo con campos opcionales y no una union discriminada por `ok`:
+// con `strict: false` (tsconfig del proyecto) TypeScript no estrecha la union.
+export type PresaleVerification = {
+  ok: boolean;
+  /** Lo que se movio en cadena (ok, o WRONG_SENDER con revision manual posible). */
+  amountUsdt?: number;
+  txHash?: string;
+  /** Lo que se ACREDITA: fase por la fecha del bloque, HACK por lo transferido. */
+  phaseId?: number;
+  phaseLabel?: string;
+  hackAmount?: string;
+  blockTime?: string;
+  /** Quien envio el USDT a la tesoreria. */
+  senders?: string[];
+  /** Se valido aceptando otro remitente (pago desde un exchange). */
+  manualReview?: boolean;
+  /** Presente si !ok. */
+  reason?: PresaleVerificationReason;
+  /** WRONG_SENDER: el pago llego, desde otra direccion; se puede validar con nota. */
+  manualReviewPossible?: boolean;
+  soft_failed?: boolean;
+  /** NOT_ENOUGH_CONFIRMATIONS */
+  confirmations?: number;
+  required?: number;
+  error?: string;
+};
+
+export type PresaleContributionRow = {
+  id: number;
+  wallet_address: string;
+  phase_id: number;
+  usdt_amount: string;
+  hack_amount: string;
+  tx_hash: string | null;
+  proof_cid: string | null;
+  proof_uri: string | null;
+  status: PresaleStatus;
+  rejection_reason: string | null;
+  validated_at: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  onchain_amount_usdt: string | null;
+  /** Lo que declaro el comprador; phase_id y hack_amount son lo acreditado. */
+  declared_phase_id: number | null;
+  declared_hack_amount: string | null;
+  payment_block_time: string | null;
+  payment_sender: string | null;
+  manual_review_note: string | null;
+  created_at: string;
+};
+
+export type PresaleContributionsPage = {
+  contributions: PresaleContributionRow[];
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+  counts: Record<PresaleStatus, number>;
+};
+
+export type PresaleExport = {
+  ok: true;
+  csv: string;
+  hash: string;
+  rows: Array<{ address: string; wei: string; hack: string; contributions: number }>;
+  totals: { wallets: number; contributions: number; hack: string; wei: string };
+  /** El lote partido para cargar: una transaccion de allocateBatch por tanda. */
+  batches: Array<{ index: number; wallets: number; csv: string }>;
+  batchSize: number;
+};
+
+/** Filas que impidieron exportar: aporte validado que ya no se sostiene en cadena. */
+export type PresaleExportProblem = {
+  id: number;
+  wallet_address: string;
+  tx_hash: string | null;
+  reason: PresaleVerificationReason;
+};
+
+
+/** Estado de una tanda del lote en el contrato. */
+export type PresaleBatchState = 'loaded' | 'not_loaded' | 'partial' | 'over';
+
+// Un solo tipo con opcionales (no union discriminada): con `strict: false`
+// TypeScript no estrecha por `configured`.
+export type PresaleContractStatus = {
+  configured: boolean;
+  /** Presente si !configured. */
+  detail?: string;
+  contract?: string;
+  review?: { pending: number };
+  onchain?: {
+    totalAllocated: string;
+    totalAllocatedHack: string;
+    totalClaimedHack: string;
+    beneficiaryCount: number;
+    presaleCapHack: string;
+    balanceHack: string;
+    allocationListHash: string | null;
+    finalized: boolean;
+    paused: boolean;
+    vestingStart: string | null;
+    claimFrom: string | null;
+  };
+  funding?: { state: 'ok' | 'short'; missingHack?: string };
+  batch?: {
+    hash: string;
+    wallets: number;
+    hack: string;
+    batchSize: number;
+    batches: Array<{ index: number; wallets: number; state: PresaleBatchState; loadedWallets: number }>;
+    problems: Array<{ address: string; state: 'over' | 'partial'; expectedHack: string; onchainHack: string }>;
+  } | null;
+  checks?: {
+    totals: 'match' | 'below' | 'above';
+    unknownBeneficiaries: number;
+    hash: 'unset' | 'match' | 'mismatch';
+  } | null;
+};
+
+/** Una red de la preventa, tal como esta en backend/config/presale.js. */
+export type PresaleNetwork = {
+  role: 'payment' | 'token';
+  description: string;
+  network: string;
+  chainId: number;
+  explorer: string;
+  treasury?: string | null;
+  multisig?: string | null;
+  presaleContract?: string | null;
+  token?: { symbol: string; address: string; decimals: number };
+  rpcEnv: string;
+};
+
+export type PresaleAdminConfig = {
+  networks: PresaleNetwork[];
+  /** Valores del archivo reemplazados por variables de entorno (pruebas). */
+  overrides: Array<{ role: string; field: string; env: string; fileValue: string | null; value: string }>;
+  /** Direcciones todavia sin definir. */
+  pending: Array<{ role: string; field: string }>;
+  phases: Array<{
+    id: number; label: string; priceUsdt: string; start: string; end: string;
+    capHack: string; soldHack: string; availableHack: string;
+  }>;
+  phasesOverridden: boolean;
+};
+
 export const adminApi = {
   listEducators(params: ListEducatorsParams = {}): Promise<Paginated<EducatorRow>> {
     return api.get(`/api/admin/educators${qs(params)}`);
@@ -221,5 +383,54 @@ export const adminApi = {
 
   resolveCertificateFlag(certificateId: number, resolutionNote?: string) {
     return api.patch(`/api/admin/certificates/${certificateId}/resolve-flag`, { resolution_note: resolutionNote });
+  },
+
+  // -------------------------------------------------------------------------
+  // Preventa
+  // -------------------------------------------------------------------------
+
+  listPresaleContributions(params: {
+    status?: PresaleStatus;
+    page?: number;
+    per_page?: number;
+    search?: string;
+  } = {}): Promise<PresaleContributionsPage> {
+    return api.get(`/api/admin/presale/contributions${qs(params)}`);
+  },
+
+  /** Verifica en Polygon sin cambiar nada. */
+  verifyPresaleContribution(id: number): Promise<{ verification: PresaleVerification }> {
+    return api.get(`/api/admin/presale/contributions/${id}/verification`);
+  },
+
+  /**
+   * Re-verifica en cadena y valida solo si pasa. 422 trae { verification }.
+   * `manualReviewNote`: solo para un pago que llego desde otra direccion
+   * (exchange); sin ella, ese caso responde MANUAL_NOTE_REQUIRED.
+   */
+  validatePresaleContribution(
+    id: number,
+    manualReviewNote?: string,
+  ): Promise<{ contribution: PresaleContributionRow; verification: PresaleVerification }> {
+    return api.post(`/api/admin/presale/contributions/${id}/validate`, manualReviewNote ? { manualReviewNote } : undefined);
+  },
+
+  rejectPresaleContribution(id: number, reason: string): Promise<{ contribution: PresaleContributionRow }> {
+    return api.post(`/api/admin/presale/contributions/${id}/reject`, { reason });
+  },
+
+  /** 422 trae { problems: PresaleExportProblem[] }. */
+  exportPresaleBatch(): Promise<PresaleExport> {
+    return api.get(`/api/admin/presale/export`);
+  },
+
+  /** Donde queda cada cosa (redes, tesoreria, contrato) y cada fase con lo vendido. */
+  getPresaleConfig(): Promise<PresaleAdminConfig> {
+    return api.get(`/api/admin/presale/config`);
+  },
+
+  /** Lee PresaleAllocation en cadena y lo compara con el lote. */
+  getPresaleContractStatus(): Promise<PresaleContractStatus> {
+    return api.get(`/api/admin/presale/contract-status`);
   },
 };

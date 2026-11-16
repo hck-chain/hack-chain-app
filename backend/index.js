@@ -123,6 +123,7 @@ const classRequestsRouter = require("./routes/classRequests");
 const issuerClassesRouter = require("./routes/issuerClasses");
 const exchangeRateRouter = require("./routes/exchangeRate");
 const vacanciesRouter = require("./routes/vacancies");
+const presaleRouter = require("./routes/presale");
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
@@ -139,6 +140,7 @@ app.use("/api/class-requests", classRequestsRouter);
 app.use("/api/issuer-classes", issuerClassesRouter);
 app.use("/api/exchange-rate", exchangeRateRouter);
 app.use("/api/vacancies", vacanciesRouter);
+app.use("/api/presale", presaleRouter);
 
 // Servir build Vite
 app.use(express.static(path.join(__dirname, '../frontend/dist')));

@@ -27,6 +27,12 @@ const { cancelReferral } = require("../usecases/referrals/cancelReferral");
 const { approveReferralReview } = require("../usecases/referrals/approveReferralReview");
 const { resolvePaymentDispute } = require("../usecases/classPayments/resolvePaymentDispute");
 const { resolveCertificateFlag } = require("../usecases/certificateConfirmation/resolveCertificateFlag");
+const { validateContribution, rejectContribution, listContributionsForAdmin } = require("../usecases/presale/reviewContribution");
+const { verifyContribution, PresaleConfigError } = require("../usecases/presale/verifyContribution");
+const { exportAllocationBatch } = require("../usecases/presale/exportAllocationBatch");
+const { getContractStatus, createPresaleContractReader } = require("../usecases/presale/contractStatus");
+const { createPaymentProvider } = require("../usecases/presale/paymentChain");
+const { networkFor, getNetworks, loadPhases, USDT_DECIMALS } = require("../config/presale");
 
 // Per Phase 9 plan: 100/hour per admin wallet. Even with only one admin
 // today, a runaway script that loops over a list of educator IDs should be
@@ -64,6 +70,13 @@ const STATUS_BY_REASON = {
   NOT_FOUND: 404,
   ALREADY_SENT: 409,
   WRONG_STATE: 409,
+  // Preventa
+  VERIFICATION_FAILED: 422,
+  MANUAL_NOTE_REQUIRED: 422,
+  PHASE_CAP_EXCEEDED: 409,
+  PENDING_CONTRIBUTIONS: 409,
+  CHAIN_UNAVAILABLE: 503,
+  EMPTY: 404,
 };
 
 function handleValidation(req, res) {
@@ -572,6 +585,308 @@ router.get(
       return res.status(500).json({ error: "Failed to load migration status" });
     }
   }
+);
+
+// ===========================================================================
+// Preventa de HACK — revision de aportes y exportacion del lote.
+// Ver usecases/presale/ para las decisiones de diseño (un solo admin valida,
+// la fuente de verdad son las transferencias en cadena).
+// ===========================================================================
+
+/**
+ * Corre un caso de uso de preventa con un proveedor de la red de PAGOS
+ * (Ethereum), traduciendo la falta de configuracion a un 503 claro: sin
+ * saber a donde tenia que llegar el pago, no se valida nada (falla cerrado).
+ * El proveedor se libera siempre al terminar.
+ */
+async function withPresaleChain(res, fn) {
+  let provider;
+  try {
+    provider = createPaymentProvider();
+    return await fn(provider);
+  } catch (err) {
+    if (err instanceof PresaleConfigError) {
+      return res.status(503).json({ error: "PRESALE_NOT_CONFIGURED", detail: err.message });
+    }
+    throw err;
+  } finally {
+    provider?.destroy?.();
+  }
+}
+
+/**
+ * GET /api/admin/presale/contributions
+ * Cola de aportes con filtros, mas los contadores por estado.
+ */
+router.get(
+  "/presale/contributions",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [
+    query("status").optional().isIn(["pending", "validated", "rejected"]),
+    query("page").optional().isInt({ min: 1 }),
+    query("per_page").optional().isInt({ min: 1, max: 100 }),
+    query("search").optional().isString().trim().isLength({ max: 66 }),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      // Number() explicito: en Express 5 req.query es de solo lectura y los
+      // sanitizadores .toInt() de express-validator no se aplican.
+      const result = await listContributionsForAdmin({
+        models: db,
+        status: req.query.status,
+        page: Number(req.query.page) || 1,
+        perPage: Number(req.query.per_page) || 20,
+        search: req.query.search,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("GET /api/admin/presale/contributions error:", err);
+      return res.status(500).json({ error: "Failed to list presale contributions" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/contributions/:id/verification
+ * Verifica el pago en Ethereum sin cambiar nada, para que el admin vea el
+ * resultado (y la fase y los HACK que se acreditarian) antes de decidir.
+ */
+router.get(
+  "/presale/contributions/:id/verification",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  [param("id").isInt({ min: 1 })],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const contribution = await db.PresaleContribution.findByPk(Number(req.params.id));
+      if (!contribution) return res.status(404).json({ error: "NOT_FOUND" });
+      return await withPresaleChain(res, async (provider) => {
+        const verification = await verifyContribution({ contribution, provider });
+        return res.json({ verification });
+      });
+    } catch (err) {
+      console.error("GET /api/admin/presale/contributions/:id/verification error:", err);
+      return res.status(500).json({ error: "Failed to verify contribution" });
+    }
+  },
+);
+
+/**
+ * POST /api/admin/presale/contributions/:id/validate
+ * Vuelve a verificar en cadena y, solo si pasa, marca como validado con lo
+ * que dice la cadena (fase por fecha del bloque, HACK por monto transferido).
+ * Body opcional: { manualReviewNote } para un pago que llego desde otra
+ * direccion (exchange): revision manual con la explicacion del admin.
+ */
+router.post(
+  "/presale/contributions/:id/validate",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }),
+    body("manualReviewNote").optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      return await withPresaleChain(res, async (provider) => {
+        const result = await validateContribution({
+          models: db,
+          provider,
+          id: Number(req.params.id),
+          adminWallet: req.auth.wallet,
+          manualReviewNote: req.body?.manualReviewNote,
+        });
+        if (!result.ok) {
+          return res.status(STATUS_BY_REASON[result.reason] || 400).json({
+            error: result.reason,
+            ...(result.verification ? { verification: result.verification } : {}),
+            ...(result.currentStatus ? { currentStatus: result.currentStatus } : {}),
+            ...(result.availableHack !== undefined ? { availableHack: result.availableHack } : {}),
+          });
+        }
+        return res.json({ contribution: result.contribution, verification: result.verification });
+      });
+    } catch (err) {
+      console.error("POST /api/admin/presale/contributions/:id/validate error:", err);
+      return res.status(500).json({ error: "Failed to validate contribution" });
+    }
+  },
+);
+
+/**
+ * POST /api/admin/presale/contributions/:id/reject
+ * Body: { reason } — obligatorio, se le muestra al comprador.
+ */
+router.post(
+  "/presale/contributions/:id/reject",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  [
+    param("id").isInt({ min: 1 }),
+    body("reason").isString().trim().isLength({ min: 3, max: 255 })
+      .withMessage("reason is required (3-255 chars)"),
+  ],
+  async (req, res) => {
+    if (handleValidation(req, res)) return;
+    try {
+      const result = await rejectContribution({
+        models: db,
+        id: Number(req.params.id),
+        adminWallet: req.auth.wallet,
+        reason: req.body.reason.trim(),
+      });
+      if (!result.ok) {
+        return res.status(STATUS_BY_REASON[result.reason] || 400).json({
+          error: result.reason,
+          ...(result.currentStatus ? { currentStatus: result.currentStatus } : {}),
+        });
+      }
+      return res.json({ contribution: result.contribution });
+    } catch (err) {
+      console.error("POST /api/admin/presale/contributions/:id/reject error:", err);
+      return res.status(500).json({ error: "Failed to reject contribution" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/export
+ * Lote para allocateBatch + hash para setAllocationListHash, re-verificando
+ * cada aporte validado en cadena. Si una sola fila falla, no se exporta.
+ */
+router.get(
+  "/presale/export",
+  authenticate,
+  requireAdmin,
+  adminEducatorLimiter,
+  async (req, res) => {
+    try {
+      return await withPresaleChain(res, async (provider) => {
+        const result = await exportAllocationBatch({ models: db, provider });
+        if (!result.ok) {
+          return res.status(STATUS_BY_REASON[result.reason] || 400).json({
+            error: result.reason,
+            ...(result.problems ? { problems: result.problems } : {}),
+            ...(result.pending ? { pending: result.pending } : {}),
+          });
+        }
+        console.log(
+          `[presale-export] admin=${req.auth.wallet} wallets=${result.totals.wallets} hash=${result.hash}`
+        );
+        return res.json(result);
+      });
+    } catch (err) {
+      console.error("GET /api/admin/presale/export error:", err);
+      return res.status(500).json({ error: "Failed to export allocation batch" });
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/contract-status
+ * Lee PresaleAllocation en cadena (solo lectura) y lo compara contra el lote:
+ * fondeo, carga por tanda (incluida la doble carga), totales, hash y cierre.
+ * Sin PRESALE_CONTRACT_ADDRESS responde { configured: false }: el contrato
+ * todavia no esta desplegado, no es un error.
+ */
+router.get(
+  "/presale/contract-status",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  async (req, res) => {
+    // Direccion del contrato: del array de config/presale.js (red "token").
+    const contractAddress = networkFor("token").presaleContract;
+    // Variable propia para poder apuntar a otra red (p. ej. Anvil local) sin
+    // tocar la verificacion de pagos, que sigue usando POLYGON_RPC_URL.
+    const rpcUrl = process.env.PRESALE_RPC_URL || process.env.POLYGON_RPC_URL;
+    if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/.test(contractAddress) || !rpcUrl) {
+      return res.json({
+        configured: false,
+        detail: !contractAddress
+          ? "El contrato aun no se desplego (config/presale.js -> token.presaleContract)"
+          : !rpcUrl ? "Falta PRESALE_RPC_URL o POLYGON_RPC_URL" : "La direccion del contrato no es valida",
+      });
+    }
+    const reader = createPresaleContractReader({ rpcUrl, contractAddress });
+    try {
+      const status = await getContractStatus({ models: db, reader });
+      return res.json({ configured: true, ...status });
+    } catch (err) {
+      console.error("GET /api/admin/presale/contract-status error:", err.shortMessage || err.message);
+      return res.status(503).json({ error: "CHAIN_UNAVAILABLE", detail: err.shortMessage || err.message });
+    } finally {
+      reader.destroy();
+    }
+  },
+);
+
+/**
+ * GET /api/admin/presale/config
+ * Todo lo que el encargado necesita para analizar la configuracion: donde
+ * queda cada cosa (el array de config/presale.js), que falta definir, que
+ * esta sobrescrito por variables de entorno, y cada fase con lo vendido y lo
+ * disponible.
+ */
+router.get(
+  "/presale/config",
+  authenticate,
+  requireAdmin,
+  adminReadLimiter,
+  async (req, res) => {
+    try {
+      const { networks, overrides } = getNetworks();
+
+      // Lo que falta definir: campos de direccion en null.
+      const pending = [];
+      for (const n of networks) {
+        for (const field of ["treasury", "multisig", "presaleContract"]) {
+          if (field in n && !n[field]) pending.push({ role: n.role, field });
+        }
+      }
+
+      const vendidoPorFase = await db.PresaleContribution.findAll({
+        attributes: ["phase_id", [db.Sequelize.fn("SUM", db.Sequelize.col("hack_amount")), "sold"]],
+        where: { status: "validated" },
+        group: ["phase_id"],
+        raw: true,
+      });
+      const vendido = new Map(vendidoPorFase.map((r) => [Number(r.phase_id), BigInt(String(r.sold ?? 0).split(".")[0])]));
+
+      const phases = loadPhases().map((p) => {
+        const sold = vendido.get(p.id) || 0n;
+        return {
+          id: p.id,
+          label: p.label,
+          priceUsdt: (Number(p.priceBase) / 10 ** USDT_DECIMALS).toString(),
+          start: p.start.toISOString(),
+          end: p.end.toISOString(),
+          capHack: p.capHack.toString(),
+          soldHack: sold.toString(),
+          availableHack: (p.capHack > sold ? p.capHack - sold : 0n).toString(),
+        };
+      });
+
+      return res.json({
+        networks,
+        overrides,
+        pending,
+        phases,
+        phasesOverridden: Boolean(process.env.PRESALE_PHASES),
+      });
+    } catch (err) {
+      console.error("GET /api/admin/presale/config error:", err);
+      return res.status(500).json({ error: "Failed to read presale config" });
+    }
+  },
 );
 
 module.exports = router;

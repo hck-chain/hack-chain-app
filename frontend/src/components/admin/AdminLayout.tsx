@@ -15,8 +15,7 @@ import {
   Banknote,
   ShieldAlert,
   LogOut,
-  Menu,
-} from 'lucide-react';
+  Menu, Coins } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +31,7 @@ const NAV: NavItem[] = [
   { to: '/admin/payments',  label: 'Pagos',     icon: <Receipt         className="h-4 w-4" /> },
   { to: '/admin/treasury',  label: 'Treasury',  icon: <Banknote        className="h-4 w-4" /> },
   { to: '/admin/payment-disputes', label: 'Disputas', icon: <ShieldAlert className="h-4 w-4" /> },
+  { to: '/admin/presale',   label: 'Preventa',  icon: <Coins           className="h-4 w-4" /> },
 ];
 
 function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
