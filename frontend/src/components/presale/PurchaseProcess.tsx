@@ -2,7 +2,8 @@ import { type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import type { Phase } from "@/types/presale";
-import { NETWORK_NAME, CLAIM_ENABLED_DATE } from "@/utils/presale";
+import { CLAIM_ENABLED_DATE } from "@/utils/presale";
+import { usePresaleConfig } from "@/hooks/usePresaleConfig";
 import type { PresaleWallet } from "@/hooks/usePresaleWallet";
 import VerificationStrip from "@/components/presale/VerificationStrip";
 import WalletGate from "@/components/presale/WalletGate";
@@ -40,6 +41,9 @@ function Step({ n, title, children }: StepProps) {
 }
 
 export default function PurchaseProcess({ activePhase, wallet }: PurchaseProcessProps) {
+  const { data: config } = usePresaleConfig();
+  const red = config ? `${config.payment.network} (${config.payment.token.symbol})` : "la red indicada abajo";
+
   return (
     <section className="border-b border-white/10 py-12">
       <motion.div
@@ -64,20 +68,20 @@ export default function PurchaseProcess({ activePhase, wallet }: PurchaseProcess
           <Step n={2} title="Enviá los USDT a la dirección oficial">
             <div className="space-y-3">
               <p>
-                Transferí en <span className="font-mono text-white/70">{NETWORK_NAME}</span>{" "}
+                Transferí en <span className="font-mono text-white/70">{red}</span>{" "}
                 únicamente. Revisá el{" "}
                 <a href="#tutorial-transferencia" className="inline-flex items-center gap-1 text-amber-300 underline underline-offset-2 hover:text-amber-200 transition-colors">
                   tutorial de transferencia <ExternalLink className="h-3 w-3" />
                 </a>{" "}
                 si no lo hiciste antes.
               </p>
-              {/* El backend verifica que el Transfer salga de la wallet que
-                  firmo. Un envio directo desde un exchange sale de la wallet
-                  del exchange y no se puede validar. */}
+              {/* El backend comprueba que el Transfer salga de la wallet que
+                  firmo. Un envio desde un exchange sale de la wallet del
+                  exchange: la regla acordada es revision manual. */}
               <p className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-200/80">
-                Enviá desde <strong className="text-amber-200">la misma cartera que conectás en esta página</strong>.
-                No se aceptan envíos directos desde un exchange (Binance, etc.): pasá primero los USDT
-                a tu cartera y transferí desde ahí. Así comprobamos que el pago es tuyo.
+                Enviá desde <strong className="text-amber-200">la misma cartera que conectás en esta página</strong>:
+                así comprobamos automáticamente que el pago es tuyo. Si pagás directo desde un exchange
+                (Binance, etc.), la validación es manual y puede demorar más; guardá el comprobante del retiro.
               </p>
               <VerificationStrip compact />
             </div>

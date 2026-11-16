@@ -22,7 +22,6 @@ const PHASE: Phase = {
   end: new Date('2026-09-05T23:59:59Z'),
   price: 0.00003,
   tokensAvailable: 20_000_000,
-  maxPerPurchase: 5_000_000,
   lockup: '1 mes',
   release: '33.3% mensual (3 meses)',
 };
@@ -83,23 +82,20 @@ describe('Calculator — límites', () => {
     expect(screen.getByText(/mínimo de compra es 1 USDT/i)).toBeInTheDocument();
   });
 
-  it('rechaza por encima del máximo por compra de la fase', async () => {
+  it('no hay tope por compra (reglas: "sin tope de compra por dirección")', async () => {
     const user = userEvent.setup();
     render(<Calculator activePhase={PHASE} />);
 
+    // 6.000.000 HACK antes superaba el viejo máximo de 5.000.000 de la fase 1.
     await user.type(hackField(), '6000000');
 
-    expect(screen.getByText(/máximo por compra en esta fase/i)).toBeInTheDocument();
+    expect(screen.queryByText(/máximo/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/180,00 USDT|180 USDT/)).toBeInTheDocument();
   });
 
-  it('acepta el máximo exacto', async () => {
-    const user = userEvent.setup();
+  it('avisa que el precio es el de la fase en que llega el pago', () => {
     render(<Calculator activePhase={PHASE} />);
-
-    await user.type(hackField(), '5000000');
-
-    expect(screen.queryByText(/máximo por compra/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/150 USDT/)).toBeInTheDocument();
+    expect(screen.getByText(/fase en que llega tu pago/i)).toBeInTheDocument();
   });
 
   it('sin fase abierta no muestra la calculadora', () => {

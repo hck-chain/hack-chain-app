@@ -40,8 +40,6 @@ export default function PurchaseProofForm({ activePhase }: PurchaseProofFormProp
   let formError: string | null = null;
   if (hasAmount && usdtAmount < MIN_PURCHASE_USDT) {
     formError = `El mínimo de compra es ${MIN_PURCHASE_USDT} USDT.`;
-  } else if (activePhase && hackAmount > activePhase.maxPerPurchase) {
-    formError = `El máximo por compra en esta fase es ${formatNumber(activePhase.maxPerPurchase)} HACK.`;
   } else if (txInput.trim() !== "" && !txHash) {
     formError = "No encontramos un hash de transacción válido en lo que pegaste.";
   }
@@ -149,7 +147,7 @@ export default function PurchaseProofForm({ activePhase }: PurchaseProofFormProp
           type="text"
           value={txInput}
           onChange={(e) => setTxInput(e.target.value)}
-          placeholder="0x… o https://polygonscan.com/tx/0x…"
+          placeholder="0x… o https://etherscan.io/tx/0x…"
           className={inputClass}
         />
         <span className="mt-1.5 block font-body text-xs text-white/25">

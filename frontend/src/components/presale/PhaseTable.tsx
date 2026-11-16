@@ -31,7 +31,6 @@ export default function PhaseTable({ activePhase }: PhaseTableProps) {
                 <th className="px-4 py-3 font-body text-xs uppercase tracking-[0.15em] text-white/25 font-semibold">Precio</th>
                 <th className="px-4 py-3 font-body text-xs uppercase tracking-[0.15em] text-white/25 font-semibold">Disponible</th>
                 <th className="px-4 py-3 font-body text-xs uppercase tracking-[0.15em] text-white/25 font-semibold">Bloqueo / liberación</th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-[0.15em] text-white/25 font-semibold">Máx. por compra</th>
               </tr>
             </thead>
             <tbody className="font-mono">
@@ -62,7 +61,6 @@ export default function PhaseTable({ activePhase }: PhaseTableProps) {
                     <td className="px-4 py-3 text-white/40">
                       {phase.lockup} · {phase.release}
                     </td>
-                    <td className="px-4 py-3 text-white/70">{formatNumber(phase.maxPerPurchase)}</td>
                   </tr>
                 );
               })}

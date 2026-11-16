@@ -33,7 +33,6 @@ export default function Calculator({ activePhase }: CalculatorProps) {
     );
   }
 
-  const max = activePhase.maxPerPurchase;
   const entered = raw.trim() === "" ? NaN : Number(raw);
   const hasValue = Number.isFinite(entered) && entered > 0;
 
@@ -50,8 +49,6 @@ export default function Calculator({ activePhase }: CalculatorProps) {
         side === "usdt"
           ? `El mínimo de compra es ${MIN_PURCHASE_USDT} USDT.`
           : `Eso equivale a menos del mínimo de ${MIN_PURCHASE_USDT} USDT.`;
-    } else if (hack > max) {
-      error = `El máximo por compra en esta fase es ${formatNumber(max)} HACK.`;
     }
   }
 
@@ -122,7 +119,8 @@ export default function Calculator({ activePhase }: CalculatorProps) {
             <p className="font-body text-sm text-white/30">Ingresá un monto para calcular.</p>
           )}
           <p className="mt-2 font-body text-xs text-white/25">
-            Mínimo {MIN_PURCHASE_USDT} USDT por compra · máximo {formatNumber(max)} HACK en esta fase.
+            Mínimo {MIN_PURCHASE_USDT} USDT por compra. El precio que se aplica es el de la fase en
+            que llega tu pago, no el del momento en que calculás.
           </p>
         </div>
       </motion.div>

@@ -4,7 +4,7 @@
 //
 // Decisiones del encargado que esta pantalla refleja:
 //   - Valida un solo admin. No hay doble aprobacion por codigo.
-//   - La fuente de verdad es la transferencia de USDT en Polygon. Al abrir un
+//   - La fuente de verdad es la transferencia de USDT en Ethereum. Al abrir un
 //     aporte se verifica en cadena y "Validar" queda deshabilitado si no pasa.
 //     El backend vuelve a verificar al validar, asi que esto es informativo:
 //     no hay forma de saltearlo desde la UI.
@@ -40,6 +40,7 @@ import {
 import { ApiServiceError } from '@/services/api';
 import { PHASES } from '@/utils/presale';
 import PresaleContractStatus from '@/components/admin/PresaleContractStatus';
+import PresaleConfigPanel from '@/components/admin/PresaleConfigPanel';
 
 type TabValue = PresaleStatus | 'all';
 
@@ -53,16 +54,22 @@ const TABS: { value: TabValue; label: string }[] = [
 /** Lo que el admin necesita entender de cada motivo, no el codigo interno. */
 export const VERIFICATION_REASON_LABEL: Record<PresaleVerificationReason, string> = {
   NO_TX_HASH: 'El aporte no tiene hash de transacción.',
-  TX_NOT_FOUND: 'La transacción no existe en Polygon.',
+  TX_NOT_FOUND: 'La transacción no existe en Ethereum.',
   TX_REVERTED: 'La transacción falló en cadena (revertida).',
-  NO_USDT_TRANSFER: 'La transacción no movió USDT.',
+  NO_USDT_TRANSFER: 'La transacción no movió USDT (o movió otro token).',
   WRONG_RECIPIENT: 'El USDT no llegó a la tesorería oficial.',
-  WRONG_SENDER: 'El pago salió de otra wallet, no de la del comprador. Puede ser un hash ajeno.',
-  INSUFFICIENT_AMOUNT: 'Se transfirió menos de lo declarado.',
-  RPC_ERROR: 'No se pudo consultar Polygon. Reintentá en un momento.',
+  WRONG_SENDER: 'El pago llegó a la tesorería, pero desde otra dirección, no desde la wallet del comprador.',
+  BELOW_MINIMUM: 'El pago es menor al mínimo de 1 USDT: no se acredita.',
+  OUTSIDE_PHASE: 'El pago llegó cuando ninguna fase estaba abierta: corresponde devolverlo.',
+  NOT_ENOUGH_CONFIRMATIONS: 'El pago todavía tiene pocas confirmaciones. Reintentá en unos minutos.',
+  RPC_ERROR: 'No se pudo consultar Ethereum. Reintentá en un momento.',
+  PHASE_MISMATCH: 'La fase guardada no coincide con la fecha real del pago.',
+  AMOUNT_MISMATCH: 'Los HACK guardados no coinciden con lo que respalda el pago real.',
 };
 
-const POLYGONSCAN_TX = 'https://polygonscan.com/tx/';
+// Los pagos se hacen en Ethereum; el contrato vive en Polygon (ver
+// PresaleContractStatus, que enlaza a Polygonscan).
+const ETHERSCAN_TX = 'https://etherscan.io/tx/';
 const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs/';
 
 function statusBadge(status: PresaleStatus) {
@@ -95,22 +102,56 @@ function errorData<T>(err: unknown): T | undefined {
   return err instanceof ApiServiceError ? (err.data as T) : undefined;
 }
 
-function VerificationResult({ verification }: { verification: PresaleVerification }) {
+/** Lo que se acredita si se valida: sale de la cadena, no del formulario. */
+function Acreditacion({ v, row }: { v: PresaleVerification; row: PresaleContributionRow }) {
+  if (!v.hackAmount) return null;
+  const difiere = v.phaseId !== row.phase_id || v.hackAmount !== String(row.hack_amount).split('.')[0];
+  return (
+    <p className="text-muted-foreground">
+      Se acredita: <span className="font-medium text-foreground">{fmt(v.hackAmount)} HACK</span> en la fase{' '}
+      {v.phaseLabel}, por {usd(v.amountUsdt)} USDT pagados el {formatDateTime(v.blockTime)}.
+      {difiere && (
+        <span className="block text-amber-500">
+          El comprador declaró {fmt(row.hack_amount)} HACK en la fase {phaseLabel(row.phase_id)}: se acredita lo que
+          respalda el pago.
+        </span>
+      )}
+    </p>
+  );
+}
+
+function VerificationResult({ verification, row }: { verification: PresaleVerification; row: PresaleContributionRow }) {
   if (verification.ok) {
     return (
       <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-        <div>
-          <p className="font-medium">Pago verificado en Polygon</p>
+        <div className="space-y-1">
+          <p className="font-medium">Pago verificado en Ethereum</p>
+          <Acreditacion v={verification} row={row} />
+        </div>
+      </div>
+    );
+  }
+  // Pago real a la tesoreria, pero desde otra direccion: revision manual.
+  if (verification.reason === 'WRONG_SENDER' && verification.manualReviewPossible) {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+        <div className="space-y-1">
+          <p className="font-medium">Requiere revisión manual</p>
           <p className="text-muted-foreground">
-            {usd(verification.amountUsdt)} USDT desde la wallet del comprador a la tesorería.
+            El pago llegó a la tesorería desde{' '}
+            <span className="font-mono text-xs text-foreground">{verification.senders?.join(', ')}</span>, no desde la
+            wallet del comprador. Puede ser un retiro de un exchange… o el pago de otra persona. Validá sólo si
+            comprobaste que el pago es suyo (por ejemplo, con el comprobante de retiro del exchange).
           </p>
+          <Acreditacion v={verification} row={row} />
         </div>
       </div>
     );
   }
   const reason = verification.reason ?? 'RPC_ERROR';
-  const blando = reason === 'RPC_ERROR';
+  const blando = Boolean(verification.soft_failed) || reason === 'RPC_ERROR';
   return (
     <div
       className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
@@ -122,7 +163,10 @@ function VerificationResult({ verification }: { verification: PresaleVerificatio
         : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
       <div>
         <p className="font-medium">{blando ? 'Verificación no disponible' : 'El pago no se verifica'}</p>
-        <p className="text-muted-foreground">{VERIFICATION_REASON_LABEL[reason]}</p>
+        <p className="text-muted-foreground">
+          {VERIFICATION_REASON_LABEL[reason]}
+          {reason === 'NOT_ENOUGH_CONFIRMATIONS' && ` (${verification.confirmations} de ${verification.required}).`}
+        </p>
       </div>
     </div>
   );
@@ -142,8 +186,9 @@ function ReviewDialog({
   const { toast } = useToast();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
+  const [nota, setNota] = useState('');
 
-  useEffect(() => { setRejecting(false); setReason(''); }, [row?.id]);
+  useEffect(() => { setRejecting(false); setReason(''); setNota(''); }, [row?.id]);
 
   const isPending = row?.status === 'pending';
 
@@ -157,8 +202,18 @@ function ReviewDialog({
     staleTime: 0,
   });
 
-  // El 409 significa que otro admin ya lo reviso: se refresca, no se acusa error.
+  // El 409 suele significar que otro admin ya lo reviso: se refresca, no se
+  // acusa error. Salvo el cupo de la fase, que tambien es 409.
   function onReviewError(err: unknown, titulo: string) {
+    const data = errorData<{ error?: string; availableHack?: string }>(err);
+    if (data?.error === 'PHASE_CAP_EXCEEDED') {
+      toast({
+        title: 'Supera el cupo de la fase',
+        description: `Quedan ${fmt(data.availableHack ?? '0')} HACK disponibles en esa fase. Lo que excede se tiene que devolver.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     if (err instanceof ApiServiceError && err.status === 409) {
       toast({ title: 'Ya fue revisado por otro admin', description: 'Actualizando la lista…' });
       onDone();
@@ -170,7 +225,7 @@ function ReviewDialog({
   }
 
   const validate = useMutation({
-    mutationFn: () => adminApi.validatePresaleContribution(row!.id),
+    mutationFn: (manualReviewNote?: string) => adminApi.validatePresaleContribution(row!.id, manualReviewNote),
     onSuccess: () => { toast({ title: 'Aporte validado' }); onDone(); },
     onError: (err) => onReviewError(err, 'No se pudo validar'),
   });
@@ -185,6 +240,10 @@ function ReviewDialog({
   const errorDeVerificacion = verification.error;
   const busy = validate.isPending || reject.isPending;
   const motivoValido = reason.trim().length >= 3;
+  // Pago desde otra direccion: se valida solo con una nota que explique por que.
+  const requiereRevision = verificado?.reason === 'WRONG_SENDER' && Boolean(verificado.manualReviewPossible);
+  const notaValida = nota.trim().length >= 10;
+  const puedeValidar = Boolean(verificado?.ok) || (requiereRevision && notaValida);
 
   return (
     <Dialog open={!!row} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -192,7 +251,8 @@ function ReviewDialog({
         <DialogHeader>
           <DialogTitle>Revisar aporte #{row?.id}</DialogTitle>
           <DialogDescription>
-            La fuente de verdad es la transferencia en Polygon, no la captura.
+            La fuente de verdad es la transferencia en Ethereum, no la captura. La fase y los HACK que se
+            acreditan salen del pago real, no de lo que declaró el comprador.
           </DialogDescription>
         </DialogHeader>
 
@@ -201,15 +261,27 @@ function ReviewDialog({
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
               <dt className="text-muted-foreground">Wallet</dt>
               <dd className="break-all font-mono text-xs">{row.wallet_address}</dd>
-              <dt className="text-muted-foreground">Fase</dt>
-              <dd>{phaseLabel(row.phase_id)}</dd>
-              <dt className="text-muted-foreground">Declarado</dt>
-              <dd>${usd(row.usdt_amount)} USDT → {fmt(row.hack_amount)} HACK</dd>
+              {row.status === 'validated' ? (
+                <>
+                  <dt className="text-muted-foreground">Acreditado</dt>
+                  <dd>{fmt(row.hack_amount)} HACK · fase {phaseLabel(row.phase_id)}</dd>
+                  <dt className="text-muted-foreground">Declarado</dt>
+                  <dd>
+                    ${usd(row.usdt_amount)} USDT
+                    {row.declared_hack_amount && ` → ${fmt(row.declared_hack_amount)} HACK, fase ${phaseLabel(row.declared_phase_id ?? row.phase_id)}`}
+                  </dd>
+                </>
+              ) : (
+                <>
+                  <dt className="text-muted-foreground">Declarado</dt>
+                  <dd>${usd(row.usdt_amount)} USDT → {fmt(row.hack_amount)} HACK, fase {phaseLabel(row.phase_id)}</dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Transacción</dt>
               <dd>
                 {row.tx_hash ? (
                   <a
-                    href={`${POLYGONSCAN_TX}${row.tx_hash}`}
+                    href={`${ETHERSCAN_TX}${row.tx_hash}`}
                     target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-mono text-xs underline underline-offset-2"
                   >
@@ -243,6 +315,18 @@ function ReviewDialog({
                   <dd>${usd(row.onchain_amount_usdt)} USDT</dd>
                 </>
               )}
+              {row.payment_sender && row.payment_sender !== row.wallet_address && (
+                <>
+                  <dt className="text-muted-foreground">Pagó desde</dt>
+                  <dd className="break-all font-mono text-xs">{row.payment_sender}</dd>
+                </>
+              )}
+              {row.manual_review_note && (
+                <>
+                  <dt className="text-muted-foreground">Revisión manual</dt>
+                  <dd>{row.manual_review_note}</dd>
+                </>
+              )}
               {row.rejection_reason && (
                 <>
                   <dt className="text-muted-foreground">Motivo</dt>
@@ -255,10 +339,10 @@ function ReviewDialog({
               <div>
                 {verification.isLoading || verification.isFetching ? (
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Verificando en Polygon…
+                    <Loader2 className="h-4 w-4 animate-spin" /> Verificando el pago en Ethereum…
                   </div>
                 ) : verificado ? (
-                  <VerificationResult verification={verificado} />
+                  <VerificationResult verification={verificado} row={row} />
                 ) : errorDeVerificacion ? (
                   <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
                     <p className="font-medium">No se pudo verificar</p>
@@ -273,6 +357,19 @@ function ReviewDialog({
                     Volver a verificar
                   </Button>
                 )}
+              </div>
+            )}
+
+            {isPending && !rejecting && requiereRevision && (
+              <div className="space-y-1.5">
+                <Label htmlFor="manual-note">Nota de revisión manual (queda registrada)</Label>
+                <Textarea
+                  id="manual-note"
+                  value={nota}
+                  onChange={(e) => setNota(e.target.value)}
+                  maxLength={500}
+                  placeholder="Ej.: retiro de Binance; el comprador envió el comprobante del exchange con este hash."
+                />
               </div>
             )}
 
@@ -304,8 +401,11 @@ function ReviewDialog({
           ) : (
             <>
               <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}>Rechazar</Button>
-              <Button onClick={() => validate.mutate()} disabled={!verificado?.ok || busy}>
-                {validate.isPending ? 'Validando…' : 'Validar'}
+              <Button
+                onClick={() => validate.mutate(requiereRevision ? nota.trim() : undefined)}
+                disabled={!puedeValidar || busy}
+              >
+                {validate.isPending ? 'Validando…' : requiereRevision ? 'Validar con revisión manual' : 'Validar'}
               </Button>
             </>
           )}
@@ -378,8 +478,8 @@ function ExportPanel({ validados, pendientes }: { validados: number; pendientes:
           <p className="max-w-prose text-sm text-muted-foreground">
             Genera el archivo para <code>allocateBatch</code> y su hash para{' '}
             <code>setAllocationListHash</code>. Antes de generarlo vuelve a verificar en
-            Polygon cada uno de los {validados} aportes validados: si alguno ya no se
-            sostiene, no se exporta nada.
+            Ethereum cada uno de los {validados} aportes validados (pago, fase y HACK): si
+            alguno ya no se sostiene, no se exporta nada.
           </p>
         </div>
         <Button
@@ -529,7 +629,7 @@ export default function AdminPresalePage() {
       <header className="space-y-2">
         <h1 className="font-title text-3xl">Preventa</h1>
         <p className="text-sm text-muted-foreground">
-          Revisión de aportes contra las transferencias de USDT en Polygon, y generación del
+          Revisión de aportes contra las transferencias de USDT en Ethereum, y generación del
           lote para el contrato de preventa.
         </p>
       </header>
@@ -537,6 +637,8 @@ export default function AdminPresalePage() {
       <ExportPanel validados={counts.validated} pendientes={counts.pending} />
 
       <PresaleContractStatus />
+
+      <PresaleConfigPanel />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={tab} onValueChange={(v) => { setTab(v as TabValue); setPage(1); }}>
@@ -596,7 +698,7 @@ export default function AdminPresalePage() {
                 <TableCell className="font-mono text-xs" title={row.tx_hash ?? ''}>
                   {row.tx_hash ? (
                     <a
-                      href={`${POLYGONSCAN_TX}${row.tx_hash}`}
+                      href={`${ETHERSCAN_TX}${row.tx_hash}`}
                       target="_blank" rel="noopener noreferrer"
                       className="underline underline-offset-2"
                     >

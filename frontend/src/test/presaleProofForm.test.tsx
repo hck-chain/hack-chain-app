@@ -24,7 +24,7 @@ vi.mock('@/services/presale', () => ({
 const PHASE: Phase = {
   id: 1, label: 'Primera',
   start: new Date('2026-12-08T00:00:00Z'), end: new Date('2026-12-14T23:59:59Z'),
-  price: 0.00003, tokensAvailable: 20_000_000, maxPerPurchase: 5_000_000,
+  price: 0.00003, tokensAvailable: 20_000_000,
   lockup: '1 mes', release: '33.3% mensual (3 meses)',
 };
 const HASH = '0x' + 'ab'.repeat(32);

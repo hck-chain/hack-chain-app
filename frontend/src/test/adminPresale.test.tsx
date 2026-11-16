@@ -2,7 +2,7 @@
  * Tests de src/pages/admin/AdminPresalePage.tsx
  *
  * Lo que no puede fallar en esta pantalla: que "Validar" quede bloqueado si
- * la transferencia no se verifica en Polygon, que rechazar exija un motivo
+ * la transferencia no se verifica en Ethereum, que rechazar exija un motivo
  * (lo ve el comprador), y que si la exportacion se niega, el admin vea que
  * aporte la freno y por que.
  */
@@ -60,6 +60,7 @@ const api = vi.hoisted(() => ({
   rejectPresaleContribution: vi.fn(),
   exportPresaleBatch: vi.fn(),
   getPresaleContractStatus: vi.fn(),
+  getPresaleConfig: vi.fn(),
 }));
 vi.mock('@/services/admin', () => ({ adminApi: api }));
 
@@ -84,6 +85,7 @@ const ROW = {
 beforeEach(() => {
   vi.clearAllMocks();
   api.getPresaleContractStatus.mockResolvedValue({ configured: false, detail: 'sin contrato' });
+  api.getPresaleConfig.mockResolvedValue({ networks: [], overrides: [], pending: [], phases: [], phasesOverridden: false });
   api.listPresaleContributions.mockResolvedValue({
     contributions: [ROW], page: 1, per_page: 25, total: 1, total_pages: 1,
     counts: { pending: 1, validated: 3, rejected: 0 },
@@ -110,10 +112,10 @@ describe('AdminPresalePage — revisión', () => {
     renderPage();
 
     const dialog = await abrirRevision(user);
-    await within(dialog).findByText(/Pago verificado en Polygon/i);
+    await within(dialog).findByText(/Pago verificado en Ethereum/i);
     await user.click(within(dialog).getByRole('button', { name: 'Validar' }));
 
-    await waitFor(() => expect(api.validatePresaleContribution).toHaveBeenCalledWith(7));
+    await waitFor(() => expect(api.validatePresaleContribution).toHaveBeenCalledWith(7, undefined));
   });
 
   it('si el pago salió de otra wallet, lo explica y NO deja validar', async () => {
@@ -122,9 +124,53 @@ describe('AdminPresalePage — revisión', () => {
     renderPage();
 
     const dialog = await abrirRevision(user);
-    await within(dialog).findByText(/Puede ser un hash ajeno/i);
+    await within(dialog).findByText(/desde otra dirección/i);
 
     expect(within(dialog).getByRole('button', { name: 'Validar' })).toBeDisabled();
+  });
+
+  it('muestra lo que se ACREDITA (de la cadena) y avisa si difiere de lo declarado', async () => {
+    api.verifyPresaleContribution.mockResolvedValue({
+      verification: {
+        ok: true, amountUsdt: 100, txHash: ROW.tx_hash, phaseId: 3, phaseLabel: 'Tercera',
+        hackAmount: '1250000', blockTime: '2026-12-24T12:00:00Z', senders: [ROW.wallet_address], manualReview: false,
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    const dialog = await abrirRevision(user);
+
+    expect(await within(dialog).findByText(/1\.250\.000 HACK/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/El comprador declaró 1\.000\.000 HACK en la fase Primera/)).toBeInTheDocument();
+  });
+
+  it('pago desde un exchange: exige una nota y valida por revisión manual', async () => {
+    const EXCHANGE = '0x' + 'ee'.repeat(20);
+    api.verifyPresaleContribution.mockResolvedValue({
+      verification: {
+        ok: false, reason: 'WRONG_SENDER', manualReviewPossible: true, senders: [EXCHANGE],
+        amountUsdt: 30, phaseId: 1, phaseLabel: 'Primera', hackAmount: '1000000', blockTime: '2026-12-10T12:00:00Z',
+      },
+    });
+    api.validatePresaleContribution.mockResolvedValue({ contribution: { ...ROW, status: 'validated' } });
+    const user = userEvent.setup();
+    renderPage();
+
+    const dialog = await abrirRevision(user);
+    await within(dialog).findByText(/Requiere revisión manual/i);
+    expect(within(dialog).getByText(EXCHANGE)).toBeInTheDocument();
+
+    const boton = within(dialog).getByRole('button', { name: 'Validar con revisión manual' });
+    expect(boton).toBeDisabled();
+
+    await user.type(within(dialog).getByLabelText(/Nota de revisión manual/i), 'Retiro de Binance verificado.');
+    expect(boton).toBeEnabled();
+    await user.click(boton);
+
+    await waitFor(() =>
+      expect(api.validatePresaleContribution).toHaveBeenCalledWith(7, 'Retiro de Binance verificado.'),
+    );
   });
 
   it('mientras verifica, Validar está bloqueado', async () => {
@@ -133,7 +179,7 @@ describe('AdminPresalePage — revisión', () => {
     renderPage();
 
     const dialog = await abrirRevision(user);
-    await within(dialog).findByText(/Verificando en Polygon/i);
+    await within(dialog).findByText(/Verificando el pago en Ethereum/i);
 
     expect(within(dialog).getByRole('button', { name: 'Validar' })).toBeDisabled();
   });
@@ -224,7 +270,7 @@ describe('AdminPresalePage — exportación', () => {
 
     expect(await screen.findByText(/No se exportó/i)).toBeInTheDocument();
     expect(screen.getByText(/#12/)).toBeInTheDocument();
-    expect(screen.getByText(/no existe en Polygon/i)).toBeInTheDocument();
+    expect(screen.getByText(/no existe en Ethereum/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Lote completo/i })).not.toBeInTheDocument();
   });
 

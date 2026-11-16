@@ -47,7 +47,29 @@ export interface NewContribution {
   proof_uri?: string | null;
 }
 
+export interface PresaleConfig {
+  payment: {
+    network: string;
+    chainId: number;
+    explorer: string;
+    /** null mientras no este definida: la pagina no muestra ninguna. */
+    treasury: string | null;
+    token: { symbol: string; address: string; decimals: number };
+  };
+  token: { network: string; chainId: number; explorer: string; presaleContract: string | null };
+  minPurchaseUsdt: number;
+  phases: Array<{ id: number; label: string; priceUsdt: string; capHack: string; start: string; end: string }>;
+}
+
 export const presaleService = {
+  /**
+   * Configuracion publica (backend/config/presale.js): red de pago, tesoreria,
+   * token, minimo y fases. La direccion de pago se muestra SIEMPRE desde aca.
+   */
+  getConfig() {
+    return api.getPublic<PresaleConfig>('/api/presale/config');
+  },
+
   /** Registro publico. Solo devuelve aportes ya validados. */
   listContributors({ page = 1, perPage = 10, search, phaseId }: ContributorsQuery = {}) {
     const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
