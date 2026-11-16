@@ -1,0 +1,52 @@
+# Entorno local para probar la preventa (Postgres 15 + Redis 7).
+#
+# Es ADICIONAL a docker-compose.yml, que no se toca. Está pensado para no
+# chocar con nada de lo que ya haya en la máquina:
+#   - proyecto propio ("hackchain-preventa"): contenedores, red y volúmenes
+#     con nombre propio, distintos de "postgres-db" del compose original;
+#   - puertos altos y sólo en 127.0.0.1, configurables, para convivir con un
+#     Postgres o Redis locales en 5432/6379 o con el compose original;
+#   - misma versión de Postgres que el compose original (15).
+#
+# Uso (desde backend/):
+#   docker compose -f docker-compose.preventa.yml up -d
+#   docker compose -f docker-compose.preventa.yml down      # conserva los datos
+#   docker compose -f docker-compose.preventa.yml down -v   # borra los datos
+#
+# Variables en backend/.env que le corresponden (valores por defecto):
+#   DB_PGHOST=127.0.0.1  DB_PORT=55432  DB_PGDATABASE=hackchain_test
+#   DB_PGUSER=hctest     DB_PGPASSWORD=hctest
+#   REDIS_URL=redis://127.0.0.1:56380
+# Si esos puertos están ocupados: PRESALE_PG_PORT=55433 PRESALE_REDIS_PORT=56381 docker compose ...
+
+name: hackchain-preventa
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hctest
+      POSTGRES_PASSWORD: hctest
+      POSTGRES_DB: hackchain_test
+    ports:
+      - "127.0.0.1:${PRESALE_PG_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hctest -d hackchain_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - "127.0.0.1:${PRESALE_REDIS_PORT:-56380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
