@@ -78,7 +78,9 @@ async function verifyAccessToken(accessToken) {
 }
 
 /**
- * Verifies a Privy identity token and returns { did, email, embeddedWallet }.
+ * Verifies a Privy identity token and returns { did, email, emails, embeddedWallet }.
+ * emails lists every verified address among the linked accounts; email is the single one
+ * used to create or fill a profile.
  * embeddedWallet is null when Privy has not provisioned it yet, which the caller
  * must treat as "retry later" rather than as a permanent failure.
  * Returns null when the token itself is invalid.
@@ -91,6 +93,7 @@ async function verifyIdentityToken(identityToken) {
     return {
       did: mockDidFromToken(identityToken),
       email: identityToken.includes("noemail") ? null : "mock@hackchain.test",
+      emails: identityToken.includes("noemail") ? [] : ["mock@hackchain.test"],
       // "nowallet" exercises the not-provisioned-yet branch without real credentials.
       embeddedWallet: identityToken.includes("nowallet")
         ? null
@@ -129,8 +132,26 @@ async function verifyIdentityToken(identityToken) {
   return {
     did: user.id,
     email: emailAccount?.address || googleAccount?.email || appleAccount?.email || null,
+    emails: collectVerifiedEmails(accounts),
     embeddedWallet: embedded?.address ? embedded.address.toLowerCase() : null,
   };
+}
+
+// Every email Privy vouches for, normalised the same way the profile email is stored.
+// An account only counts when it carries a numeric verified_at: the SDK builds that field
+// from a compact claim of the token, so a token that omits it must not verify anything.
+function collectVerifiedEmails(accounts) {
+  const emails = new Set();
+  for (const account of accounts) {
+    const address =
+      account.type === "email" ? account.address
+      : account.type === "google_oauth" || account.type === "apple_oauth" ? account.email
+      : null;
+    if (typeof address !== "string" || typeof account.verified_at !== "number") continue;
+    const normalized = address.toLowerCase().trim();
+    if (normalized) emails.add(normalized);
+  }
+  return [...emails];
 }
 
 function isMockEnabled() {

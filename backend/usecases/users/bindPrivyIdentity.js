@@ -73,7 +73,8 @@ async function bindPrivyIdentity({ models, privyService, wallet, identityToken }
     updates.integrated_wallet_address = identity.embeddedWallet;
   }
 
-  // The profile email is only filled when empty: an existing one is kept as it is.
+  // The profile email is only filled when empty: an existing one is kept as it is (it may
+// get marked verified further down, but never replaced).
   let emailHolder = null;
   if (!user.email) {
     if (!identity.email) {
@@ -94,6 +95,21 @@ async function bindPrivyIdentity({ models, privyService, wallet, identityToken }
 
     updates.email = email;
     updates.email_verified = true;
+  } else if (!user.email_verified) {
+    // The profile already has an email that was never verified. If Privy vouches for that
+    // same address, the verification the legacy flow asked for has effectively happened.
+    // The email itself is never changed here, and a mismatch is not an error: login resolves
+    // through the DID, so it does not depend on the email.
+    const verifiedEmails = Array.isArray(identity.emails) ? identity.emails.map(normalizeEmail) : [];
+    if (verifiedEmails.includes(normalizeEmail(user.email))) {
+      updates.email_verified = true;
+      updates.verification_token = null;
+      updates.verification_token_expires_at = null;
+    } else {
+      console.warn(
+        `[privy] profile email does not match any verified Privy email id=${user.id} wallet=${user.wallet_address}`
+      );
+    }
   }
 
   if (Object.keys(updates).length > 0) {
@@ -142,6 +158,7 @@ async function bindPrivyIdentity({ models, privyService, wallet, identityToken }
       privy_did: user.privy_did,
       integrated_wallet_address: user.integrated_wallet_address || null,
       email: user.email || null,
+      email_verified: Boolean(user.email_verified),
       // True when the DID was already bound before this call, even if this call completed
       // something that was still pending.
       alreadyBound,
