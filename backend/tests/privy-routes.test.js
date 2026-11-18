@@ -175,6 +175,25 @@ describe("Privy routes", () => {
     expect(user.privy_did).toBe(DID);
   });
 
+  it("reports email_verified when Privy vouches for the email the profile already has", async () => {
+    privyService.verifyIdentityToken.mockResolvedValue({
+      did: DID,
+      email: "talento@hackchain.test",
+      emails: ["talento@hackchain.test"],
+      embeddedWallet: "0x" + "44".repeat(20),
+    });
+
+    const res = await request(app)
+      .post("/api/users/me/link-privy")
+      .send({ identity_token: "id-token" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.email_verified).toBe(true);
+
+    const user = await models.User.findOne({ where: { wallet_address: SESSION_WALLET } });
+    expect(user.email_verified).toBe(true);
+  });
+
   it("maps an invalid identity token to 401", async () => {
     privyService.verifyIdentityToken.mockResolvedValue(null);
     const res = await request(app)

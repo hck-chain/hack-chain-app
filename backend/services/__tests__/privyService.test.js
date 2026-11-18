@@ -92,6 +92,58 @@ describe("privyService.verifyIdentityToken — email by login method", () => {
     expect((await service.verifyIdentityToken("token")).email).toBe("google@hackchain.test");
   });
 
+  describe("emails — every address Privy vouches for", () => {
+    const VERIFIED = 1700000000;
+
+    it("lists the verified address of each login method, normalised and without duplicates", async () => {
+      const service = loadService({
+        id: "did:privy:8",
+        linked_accounts: [
+          { type: "email", address: " Ana@HackChain.test ", verified_at: VERIFIED },
+          { type: "google_oauth", email: "ana@hackchain.test", verified_at: VERIFIED },
+          { type: "apple_oauth", email: "relay@privaterelay.appleid.com", verified_at: VERIFIED },
+          embeddedWallet,
+        ],
+      });
+
+      const identity = await service.verifyIdentityToken("token");
+      expect(identity.emails).toEqual(["ana@hackchain.test", "relay@privaterelay.appleid.com"]);
+    });
+
+    it("skips Apple when it shares no email", async () => {
+      const service = loadService({
+        id: "did:privy:9",
+        linked_accounts: [{ type: "apple_oauth", email: null, verified_at: VERIFIED }],
+      });
+
+      expect((await service.verifyIdentityToken("token")).emails).toEqual([]);
+    });
+
+    it("does not count an account whose token carries no verified_at", async () => {
+      const service = loadService({
+        id: "did:privy:10",
+        linked_accounts: [
+          { type: "email", address: "sin-lv@hackchain.test" },
+          { type: "google_oauth", email: "g@hackchain.test", verified_at: undefined },
+        ],
+      });
+
+      const identity = await service.verifyIdentityToken("token");
+      expect(identity.emails).toEqual([]);
+      // The single email used to fill a profile is unaffected.
+      expect(identity.email).toBe("sin-lv@hackchain.test");
+    });
+
+    it("ignores linked accounts that are not an email login", async () => {
+      const service = loadService({
+        id: "did:privy:11",
+        linked_accounts: [{ type: "twitter_oauth", email: "t@hackchain.test", verified_at: VERIFIED }, embeddedWallet],
+      });
+
+      expect((await service.verifyIdentityToken("token")).emails).toEqual([]);
+    });
+  });
+
   it("returns a null embedded wallet until Privy provisions it", async () => {
     const service = loadService({
       id: "did:privy:7",

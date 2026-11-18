@@ -162,7 +162,7 @@ SQLite cannot reproduce the partial unique indexes on `users`, and `link-privy` 
 npm run verify:privy-followup --workspace=backend
 ```
 
-It runs 16 checks: the partial indexes (NULLs coexist, duplicates are rejected), the retry that completes a pending wallet, the verified email taking priority over an unverified one, the cases where an email must **not** be taken, an account that gets verified between the check and the write, and the rollback when the write fails halfway.
+It runs 19 checks: the partial indexes (NULLs coexist, duplicates are rejected), the retry that completes a pending wallet, the verification of an email the profile already has when Privy vouches for it (including the retry that repairs an account bound earlier), the verified email taking priority over an unverified one, the cases where an email must **not** be taken, an account that gets verified between the check and the write, and the rollback when the write fails halfway.
 
 It needs a **local** Postgres on `localhost:5433` (user `postgres`, password `postgres`, database `hackchain`); change that with `VERIFY_DB_HOST`, `VERIFY_DB_PORT`, `VERIFY_DB_USER`, `VERIFY_DB_PASSWORD` and `VERIFY_DB_NAME`. To get one from scratch:
 

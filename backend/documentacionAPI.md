@@ -3180,10 +3180,19 @@ falte a la cuenta, y lo que ya esté completo no se toca:
 | `privy_did` | Si la cuenta todavía no lo tiene. Se guarda en la primera llamada, aunque falte lo demás, para que el usuario no termine con una cuenta nueva y vacía al volver a entrar |
 | `integrated_wallet_address` | Si falta y el token ya la trae. Privy crea la wallet embebida de forma asíncrona, así que la primera llamada puede llegar antes de que exista |
 | `email` | Solo si el perfil no tiene correo. Un correo existente se conserva siempre. Se marca `email_verified`, porque lo verificó Privy |
+| `email_verified` | Si el perfil ya tenía un correo sin verificar y coincide con alguno de los correos **verificados** de la identidad de Privy (email, Google o Apple), pasa a `true` y se borra el token de verificación pendiente. Aplica también al reintentar sobre una cuenta ya vinculada, que es como se repara una cuenta migrada antes de este cambio |
 
 Por eso, si la respuesta trae `integrated_wallet_address: null`, la migración quedó a medias: hay que
 volver a llamar con un `identity_token` nuevo cuando Privy ya tenga la wallet. Lo recomendable es que
 el frontend espere a que Privy la reporte antes de llamar.
+
+**Verificación del correo existente.** La comparación ignora mayúsculas y espacios y nada más: no se
+colapsan puntos ni alias con `+`. Solo cuentan los correos que el token de Privy trae con `verified_at`;
+un correo sin esa marca no verifica nada. El correo del perfil nunca se cambia aquí. Si no coincide con
+ninguno, la respuesta sigue siendo `200`, el correo queda como estaba y `email_verified` en `false`, y
+queda una línea en el log del servidor. La sesión no depende del correo, porque entrar por Privy se
+resuelve por el DID. Un correo de Apple con relay privado (`@privaterelay.appleid.com`) está verificado
+pero no es el buzón real del usuario, así que no coincide con un correo propio.
 
 **Correo repetido.** Si el perfil no tiene correo y el de Privy ya lo usa otra cuenta, gana el
 verificado: Privy comprobó que quien llama controla ese correo, mientras que el registro anterior lo
@@ -3235,6 +3244,7 @@ Los errores traen `error` (texto) y `code`, para distinguir los `409` sin leer e
 | `privy_did` | Identidad de Privy vinculada |
 | `integrated_wallet_address` | Wallet embebida, o `null` si todavía no llegó |
 | `email` | Correo de la cuenta, o `null` |
+| `email_verified` | `true` si el correo de la cuenta está verificado. Si es `false`, el frontend seguirá mandando a `/verify-email` |
 | `alreadyBound` | `true` si la identidad ya estaba vinculada **antes de esta llamada**, aunque esta llamada haya completado algo pendiente. Para saber si la migración terminó, mirar `integrated_wallet_address` |
 
 ```json
@@ -3242,6 +3252,7 @@ Los errores traen `error` (texto) y `code`, para distinguir los `409` sin leer e
   "privy_did": "did:privy:abc123",
   "integrated_wallet_address": "0x4444...",
   "email": "ana@ejemplo.com",
+  "email_verified": true,
   "alreadyBound": false
 }
 ```
