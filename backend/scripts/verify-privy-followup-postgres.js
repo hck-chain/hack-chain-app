@@ -212,6 +212,40 @@ async function run() {
   await spacedHolder.reload();
   check("the email match ignores case and spaces", r3.ok && spacedHolder.email === null);
 
+  console.log("\nlink-privy: an email the profile already has gets verified when Privy vouches for it");
+  const ownEmail = email("own-verify");
+  const unverifiedOwn = await mkUser({
+    email: ownEmail,
+    email_verified: false,
+    verification_token: "stale",
+    verification_token_expires_at: new Date(Date.now() + 60000),
+  });
+  const ownDid = `did:privy:own-${tag}`;
+  const ownResult = await bind(unverifiedOwn, { did: ownDid, email: ownEmail, emails: [ownEmail], embeddedWallet: null });
+  await unverifiedOwn.reload();
+  check(
+    "a matching verified email marks the profile verified, clears the token and keeps the email",
+    ownResult.ok && unverifiedOwn.email === ownEmail && unverifiedOwn.email_verified === true && unverifiedOwn.verification_token === null && unverifiedOwn.verification_token_expires_at === null
+  );
+
+  const repairEmail = email("repair");
+  const repaired = await mkUser({ email: repairEmail, email_verified: false, privy_did: `did:privy:repair-${tag}`, integrated_wallet_address: newWallet() });
+  const repairResult = await bind(repaired, { did: repaired.privy_did, email: repairEmail, emails: [`  ${repairEmail.toUpperCase()} `], embeddedWallet: repaired.integrated_wallet_address });
+  await repaired.reload();
+  check("a retry on an account that was already bound repairs email_verified (case and spaces ignored)", repairResult.ok && repairResult.data.alreadyBound === true && repaired.email_verified === true);
+
+  const mismatch = await mkUser({ email: email("typo"), email_verified: false });
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  let mismatchResult;
+  try {
+    mismatchResult = await bind(mismatch, { did: `did:privy:mismatch-${tag}`, email: email("other-real"), emails: [email("other-real")], embeddedWallet: newWallet() });
+  } finally {
+    console.warn = originalWarn;
+  }
+  await mismatch.reload();
+  check("a different Privy email changes nothing: the email is kept, unverified, and the identity is still linked", mismatchResult.ok && mismatch.email === email("typo") && mismatch.email_verified === false && mismatch.privy_did !== null);
+
   console.log("\nlink-privy: concurrency and atomicity (what only a real database can show)");
   const raceHolder = await mkUser({ email: email("race"), email_verified: true });
   const raceCaller = await mkUser();
