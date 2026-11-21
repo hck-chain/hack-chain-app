@@ -3179,7 +3179,7 @@ falte a la cuenta, y lo que ya esté completo no se toca:
 |---|---|
 | `privy_did` | Si la cuenta todavía no lo tiene. Se guarda en la primera llamada, aunque falte lo demás, para que el usuario no termine con una cuenta nueva y vacía al volver a entrar |
 | `integrated_wallet_address` | Si falta y el token ya la trae. Privy crea la wallet embebida de forma asíncrona, así que la primera llamada puede llegar antes de que exista |
-| `email` | Solo si el perfil no tiene correo. Un correo existente se conserva siempre. Se marca `email_verified`, porque lo verificó Privy |
+| `email` | Solo si el perfil no tiene correo, y solo con un correo que Privy verificó (el preferido si lo está, si no el primero verificado). Un correo existente se conserva siempre. Se marca `email_verified`, porque lo verificó Privy |
 | `email_verified` | Si el perfil ya tenía un correo sin verificar y coincide con alguno de los correos **verificados** de la identidad de Privy (email, Google o Apple), pasa a `true` y se borra el token de verificación pendiente. Aplica también al reintentar sobre una cuenta ya vinculada, que es como se repara una cuenta migrada antes de este cambio |
 
 Por eso, si la respuesta trae `integrated_wallet_address: null`, la migración quedó a medias: hay que
@@ -3222,7 +3222,7 @@ dirección y tienen que seguir siendo válidos y visibles. La wallet embebida se
 | Código | Descripción |
 |---|---|
 | `200` | Identidad vinculada, o ya lo estaba y se completó lo pendiente (o no había nada pendiente) |
-| `400` | Falta `identity_token` (`IDENTITY_TOKEN_REQUIRED`), o ni la cuenta ni Privy tienen correo (`EMAIL_REQUIRED`) |
+| `400` | Falta `identity_token` (`IDENTITY_TOKEN_REQUIRED`), o la cuenta no tiene correo y Privy no trae ninguno verificado (`EMAIL_REQUIRED`) |
 | `401` | Token de Privy inválido o expirado (`INVALID_PRIVY_TOKEN`) |
 | `404` | Usuario no encontrado |
 | `409` | Conflicto, ver la tabla de códigos |

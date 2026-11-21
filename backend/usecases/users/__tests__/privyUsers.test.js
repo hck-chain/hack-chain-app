@@ -277,6 +277,7 @@ describe("Privy user usecases", () => {
       privyService.verifyIdentityToken.mockResolvedValue({
         did: DID,
         email: "migrado@hackchain.test",
+        emails: ["migrado@hackchain.test"],
         embeddedWallet: EMBEDDED,
         ...overrides,
       });
@@ -513,13 +514,46 @@ describe("Privy user usecases", () => {
 
       it("rejects when neither the profile nor Privy have an email, writing nothing", async () => {
         const user = await seed({ email: null });
-        identity({ email: null });
+        identity({ email: null, emails: [] });
         const result = await bind();
         expect(result.code).toBe("EMAIL_REQUIRED");
         expect(result.httpStatus).toBe(400);
 
         await user.reload();
         expect(user.privy_did).toBeNull();
+      });
+
+      it("does not fill an empty email from an address Privy does not vouch for", async () => {
+        // A token that omits the verification claim still carries the address in email.
+        const user = await seed({ email: null });
+        identity({ email: "migrado@hackchain.test", emails: [] });
+        const result = await bind();
+        expect(result.code).toBe("EMAIL_REQUIRED");
+
+        await user.reload();
+        expect(user.email).toBeNull();
+        expect(user.email_verified).toBe(false);
+        expect(user.privy_did).toBeNull();
+      });
+
+      it("never takes an address from another account unless Privy vouches for it", async () => {
+        await seed({ email: null });
+        const holder = await seed({ wallet_address: OTHER_WALLET, email: "migrado@hackchain.test", email_verified: false });
+        identity({ email: "migrado@hackchain.test", emails: [] });
+
+        expect((await bind()).code).toBe("EMAIL_REQUIRED");
+        await holder.reload();
+        expect(holder.email).toBe("migrado@hackchain.test");
+      });
+
+      it("fills the profile with a verified address when the preferred one is not verified", async () => {
+        const user = await seed({ email: null });
+        identity({ email: "sin-verificar@hackchain.test", emails: ["migrado@hackchain.test"] });
+
+        expect((await bind()).ok).toBe(true);
+        await user.reload();
+        expect(user.email).toBe("migrado@hackchain.test");
+        expect(user.email_verified).toBe(true);
       });
 
       it("still links when Privy has no email but the profile already has one", async () => {
@@ -558,7 +592,7 @@ describe("Privy user usecases", () => {
           const user = await seed({ email: null });
           const holder = await seed({ wallet_address: OTHER_WALLET, email: "migrado@hackchain.test", email_verified: false });
           jest.spyOn(console, "warn").mockImplementation(() => {});
-          identity({ email: "  Migrado@HackChain.TEST " });
+          identity({ email: "  Migrado@HackChain.TEST ", emails: ["migrado@hackchain.test"] });
 
           expect((await bind()).ok).toBe(true);
           await holder.reload();

@@ -76,7 +76,8 @@ async function mkUser(attrs = {}) {
 function bind(user, identity, models = { User, sequelize }) {
   return bindPrivyIdentity({
     models,
-    privyService: { verifyIdentityToken: async () => identity },
+    // Unless a check says otherwise, the identity's email is one Privy vouches for.
+    privyService: { verifyIdentityToken: async () => ({ emails: identity.email ? [identity.email] : [], ...identity }) },
     wallet: user.wallet_address,
     identityToken: "token",
   });
@@ -245,6 +246,23 @@ async function run() {
   }
   await mismatch.reload();
   check("a different Privy email changes nothing: the email is kept, unverified, and the identity is still linked", mismatchResult.ok && mismatch.email === email("typo") && mismatch.email_verified === false && mismatch.privy_did !== null);
+
+  console.log("\nlink-privy: an address Privy does not vouch for is never used");
+  const unvouched = email("unvouched");
+  const unvouchedHolder = await mkUser({ email: unvouched, email_verified: false });
+  const unvouchedCaller = await mkUser({ email: null });
+  const unvouchedResult = await bind(unvouchedCaller, { did: `did:privy:unv-${tag}`, email: unvouched, emails: [], embeddedWallet: newWallet() });
+  await Promise.all([unvouchedHolder.reload(), unvouchedCaller.reload()]);
+  check(
+    "an empty profile is not filled, nor another account's email taken, from an address without verification (400, nothing written)",
+    !unvouchedResult.ok && unvouchedResult.code === "EMAIL_REQUIRED" && unvouchedHolder.email === unvouched && unvouchedCaller.email === null && unvouchedCaller.privy_did === null
+  );
+
+  const fallbackEmail = email("fallback-verified");
+  const fallbackCaller = await mkUser({ email: null });
+  const fallbackResult = await bind(fallbackCaller, { did: `did:privy:fb-${tag}`, email: email("fallback-unverified"), emails: [fallbackEmail], embeddedWallet: newWallet() });
+  await fallbackCaller.reload();
+  check("when the preferred address is not verified, the profile is filled with a verified one", fallbackResult.ok && fallbackCaller.email === fallbackEmail && fallbackCaller.email_verified === true);
 
   console.log("\nlink-privy: concurrency and atomicity (what only a real database can show)");
   const raceHolder = await mkUser({ email: email("race"), email_verified: true });
