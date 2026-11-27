@@ -76,7 +76,8 @@ async function mkUser(attrs = {}) {
 function bind(user, identity, models = { User, sequelize }) {
   return bindPrivyIdentity({
     models,
-    privyService: { verifyIdentityToken: async () => identity },
+    // Unless a check says otherwise, the identity's email is one Privy vouches for.
+    privyService: { verifyIdentityToken: async () => ({ emails: identity.email ? [identity.email] : [], ...identity }) },
     wallet: user.wallet_address,
     identityToken: "token",
   });
@@ -211,6 +212,57 @@ async function run() {
   const r3 = await bind(spaced, { did: `did:privy:c3-${tag}`, email: `  ${email("case").toUpperCase()}  `, embeddedWallet: newWallet() });
   await spacedHolder.reload();
   check("the email match ignores case and spaces", r3.ok && spacedHolder.email === null);
+
+  console.log("\nlink-privy: an email the profile already has gets verified when Privy vouches for it");
+  const ownEmail = email("own-verify");
+  const unverifiedOwn = await mkUser({
+    email: ownEmail,
+    email_verified: false,
+    verification_token: "stale",
+    verification_token_expires_at: new Date(Date.now() + 60000),
+  });
+  const ownDid = `did:privy:own-${tag}`;
+  const ownResult = await bind(unverifiedOwn, { did: ownDid, email: ownEmail, emails: [ownEmail], embeddedWallet: null });
+  await unverifiedOwn.reload();
+  check(
+    "a matching verified email marks the profile verified, clears the token and keeps the email",
+    ownResult.ok && unverifiedOwn.email === ownEmail && unverifiedOwn.email_verified === true && unverifiedOwn.verification_token === null && unverifiedOwn.verification_token_expires_at === null
+  );
+
+  const repairEmail = email("repair");
+  const repaired = await mkUser({ email: repairEmail, email_verified: false, privy_did: `did:privy:repair-${tag}`, integrated_wallet_address: newWallet() });
+  const repairResult = await bind(repaired, { did: repaired.privy_did, email: repairEmail, emails: [`  ${repairEmail.toUpperCase()} `], embeddedWallet: repaired.integrated_wallet_address });
+  await repaired.reload();
+  check("a retry on an account that was already bound repairs email_verified (case and spaces ignored)", repairResult.ok && repairResult.data.alreadyBound === true && repaired.email_verified === true);
+
+  const mismatch = await mkUser({ email: email("typo"), email_verified: false });
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  let mismatchResult;
+  try {
+    mismatchResult = await bind(mismatch, { did: `did:privy:mismatch-${tag}`, email: email("other-real"), emails: [email("other-real")], embeddedWallet: newWallet() });
+  } finally {
+    console.warn = originalWarn;
+  }
+  await mismatch.reload();
+  check("a different Privy email changes nothing: the email is kept, unverified, and the identity is still linked", mismatchResult.ok && mismatch.email === email("typo") && mismatch.email_verified === false && mismatch.privy_did !== null);
+
+  console.log("\nlink-privy: an address Privy does not vouch for is never used");
+  const unvouched = email("unvouched");
+  const unvouchedHolder = await mkUser({ email: unvouched, email_verified: false });
+  const unvouchedCaller = await mkUser({ email: null });
+  const unvouchedResult = await bind(unvouchedCaller, { did: `did:privy:unv-${tag}`, email: unvouched, emails: [], embeddedWallet: newWallet() });
+  await Promise.all([unvouchedHolder.reload(), unvouchedCaller.reload()]);
+  check(
+    "an empty profile is not filled, nor another account's email taken, from an address without verification (400, nothing written)",
+    !unvouchedResult.ok && unvouchedResult.code === "EMAIL_REQUIRED" && unvouchedHolder.email === unvouched && unvouchedCaller.email === null && unvouchedCaller.privy_did === null
+  );
+
+  const fallbackEmail = email("fallback-verified");
+  const fallbackCaller = await mkUser({ email: null });
+  const fallbackResult = await bind(fallbackCaller, { did: `did:privy:fb-${tag}`, email: email("fallback-unverified"), emails: [fallbackEmail], embeddedWallet: newWallet() });
+  await fallbackCaller.reload();
+  check("when the preferred address is not verified, the profile is filled with a verified one", fallbackResult.ok && fallbackCaller.email === fallbackEmail && fallbackCaller.email_verified === true);
 
   console.log("\nlink-privy: concurrency and atomicity (what only a real database can show)");
   const raceHolder = await mkUser({ email: email("race"), email_verified: true });
